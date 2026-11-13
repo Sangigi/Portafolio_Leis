@@ -986,24 +986,39 @@
   const FULL = txt.dataset.text || "";
   const timers = [];
   const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
-  let introOn = true;
+  let introOn = true, introEspera = false;
   doc.classList.add("lock");
 
-  // Las letras (con su cursor) parpadean cada segundo mientras se escriben
-  term.classList.add("blink");
+  // Los navegadores no dejan sonar nada hasta el primer clic o tecla. Por eso, con el sonido
+  // encendido, la intro espera un "PRESIONA START"; con el sonido apagado arranca sola.
+  function arrancaIntro() {
+    introEspera = false;
+    intro.classList.remove("espera");
+    intro.setAttribute("aria-label", "Conectando");
 
-  // inicio.mp3 al arrancar la intro; la música de fondo entra un segundo antes de que termine
-  SND.intro(() => introOn);
-  later(() => SND.fondo.iniciar(), INTRO_MS - 1000);
+    // Las letras (con su cursor) parpadean cada segundo mientras se escriben
+    term.classList.add("blink");
 
-  // Tecleo con ritmo humano
-  let t = 450;
-  Array.from(FULL).forEach((ch, i) => {
-    if (i > 0) t += 60 + Math.random() * 90;
-    if (i > 0 && FULL[i - 1] === "\\" && ch !== "\\") t += 260;
-    if (ch === "." && FULL[i - 1] !== ".") t += 160;
-    later(() => { txt.textContent += ch; }, t);
-  });
+    // inicio.mp3 al arrancar la intro; la música de fondo entra un segundo antes de que termine
+    SND.intro(() => introOn);
+    later(() => SND.fondo.iniciar(), INTRO_MS - 1000);
+
+    // Tecleo con ritmo humano
+    let t = 450;
+    Array.from(FULL).forEach((ch, i) => {
+      if (i > 0) t += 60 + Math.random() * 90;
+      if (i > 0 && FULL[i - 1] === "\\" && ch !== "\\") t += 260;
+      if (ch === "." && FULL[i - 1] !== ".") t += 160;
+      later(() => { txt.textContent += ch; }, t);
+    });
+    if (!RM) flicker();
+    later(endIntro, INTRO_MS);
+  }
+  // Clic o tecla en la intro: primero la enciende, después la salta
+  function introToque() {
+    if (introEspera) arrancaIntro();
+    else endIntro();
+  }
 
   // Altas y bajas del mismo negro: nunca pasa de un negro un poco más claro
   const NEGROS = ["var(--p-negro)", "var(--p-negro)", "var(--negro-medio)", "var(--negro-claro)"];
@@ -1012,7 +1027,6 @@
     intro.style.backgroundColor = NEGROS[(Math.random() * NEGROS.length) | 0];
     later(flicker, 40 + Math.random() * (Math.random() < 0.25 ? 480 : 140));
   }
-  if (!RM) flicker();
 
   function endIntro() {
     if (!introOn) return;
@@ -1035,8 +1049,13 @@
     }, 800);
     setTimeout(boot, 300);
   }
-  later(endIntro, INTRO_MS);
-  intro.addEventListener("click", endIntro);
+  intro.addEventListener("click", introToque);
+  if (SND.silencio()) arrancaIntro();
+  else {
+    introEspera = true;
+    intro.classList.add("espera");
+    intro.setAttribute("aria-label", "Presiona cualquier tecla para encender");
+  }
 
   /* ---------- Arranque de la página ---------- */
   let booted = false;
@@ -1104,7 +1123,7 @@
   const order = ["sobre-mi", "proyectos", "habilidades", "contacto"];
   window.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (introOn) { e.preventDefault(); endIntro(); return; }
+    if (introOn) { e.preventDefault(); introToque(); return; }
     if (e.key === "0") { irA("inicio"); return; }
     const k = "1234".indexOf(e.key);
     if (k > -1 && e.key.length === 1) irA(order[k]);

@@ -380,6 +380,16 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 @keyframes blinkCorto{91%{opacity:0}}
 #intro .skip{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0;font-size:18px;color:var(--p-gris);opacity:0;animation:hint .8s 1.5s forwards}
 @keyframes hint{to{opacity:.45}}
+/* Antes de la intro: PRESIONA START (el primer clic es el que deja sonar el audio) */
+#intro .start{display:none}
+#intro.espera .term,#intro.espera .skip{display:none}
+#intro.espera .start{display:grid;place-content:center;gap:22px;position:absolute;inset:0;text-align:center;padding:0 16px}
+#intro .start p{margin:0}
+#intro .start-t{font-family:var(--f-pixel);font-size:clamp(16px,2.6vw,26px);letter-spacing:.08em;color:var(--p-amarillo);animation:blinkStart 1.1s steps(1,end) infinite;
+  text-shadow:-.08em 0 color-mix(in srgb,var(--p-rojo) 55%,transparent),.08em 0 color-mix(in srgb,var(--p-azul) 55%,transparent)}
+#intro .start-s{font-size:20px;color:var(--p-gris)}
+@keyframes blinkStart{60%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#intro .start-t{animation:none}}
 
 /* ---------- Encendido ---------- */
 #power{position:fixed;inset:0;z-index:60;pointer-events:none}

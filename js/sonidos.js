@@ -1,7 +1,7 @@
 /* ---------- Sonidos del portafolio: efectos cortos y la música de fondo en bucle ----------
    Los archivos van en la carpeta sonidos/ (ojo: en GitHub Pages importan mayúsculas y minúsculas).
-   Los navegadores no dejan sonar nada hasta el primer clic o tecla de la visita: si inicio.mp3
-   no puede sonar al cargar, suena en cuanto la persona toca algo (si la intro sigue en pantalla). */
+   Los navegadores no dejan sonar nada hasta el primer clic o tecla de la visita: por eso la intro
+   espera un "PRESIONA START" (en app.js) y ese clic es el que deja sonar todo. */
 (() => {
   "use strict";
   const RUTA = "sonidos/";
@@ -93,7 +93,7 @@
     carga.inicio.then(() => {
       if (!sigue()) return;
       if (ctx && buf.inicio) {
-        if (ctx.state === "running") play("inicio");
+        if (permitido()) play("inicio");
         else pendientes.push(() => { if (sigue()) play("inicio"); });
         return;
       }
@@ -196,12 +196,18 @@
   }
 
   /* ---------- Primer clic o tecla: se desbloquea el audio ---------- */
-  const EVENTOS = ["pointerdown", "keydown", "touchend", "click"];
+  // Cada clic o tecla vuelve a intentarlo hasta que el audio de verdad quede activo
+  // (algunos navegadores, como Safari, solo aceptan ciertos eventos)
+  const EVENTOS = ["pointerdown", "pointerup", "keydown", "touchend", "click"];
   function desbloquea() {
-    if (gesto) return;
     gesto = true;
-    EVENTOS.forEach((t) => window.removeEventListener(t, desbloquea, true));
-    if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
+    if (ctx && ctx.state !== "running") {
+      ctx.resume().then(() => {
+        if (ctx.state === "running") EVENTOS.forEach((t) => window.removeEventListener(t, desbloquea, true));
+      }).catch(() => {});
+    } else if (!ctx) {
+      EVENTOS.forEach((t) => window.removeEventListener(t, desbloquea, true));
+    }
     pendientes.splice(0).forEach((fn) => fn());
     fondoSuena();
   }
