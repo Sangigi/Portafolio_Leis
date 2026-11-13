@@ -687,6 +687,10 @@ body.warming #app{animation:warm .8s ease-out}
    (marco con relieve, bloques que caen uno por uno): panel gris, barra de título y bloques en azul */
 .envio{position:fixed;inset:0;z-index:58;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--negro) 60%,transparent)}
 .envio[hidden]{display:none}
+.envio:focus{outline:none}
+/* Mientras conecta, el primer bloque parpadea (y solo ahí se puede cancelar) */
+.envio.conectando .descarga-barra i:first-child{background:var(--d-brillo);animation:blink .5s steps(1,end) infinite}
+@media (prefers-reduced-motion:reduce){.envio.conectando .descarga-barra i:first-child{animation:none}}
 .envio-win{--c:var(--azul);--d-fondo:var(--negro);--d-bloque:var(--c);--d-brillo:color-mix(in srgb,var(--c) 50%,#fff);
   --d-luz:color-mix(in srgb,var(--gris-osc) 55%,#fff);--d-sombra:color-mix(in srgb,var(--gris-osc) 40%,#000);
   width:min(520px,100%);background:var(--gris-osc);color:var(--blanco);font-family:var(--f-term);font-size:21px;line-height:1.25;
