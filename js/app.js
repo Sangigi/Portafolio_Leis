@@ -1001,7 +1001,7 @@
 
     // inicio.mp3 al arrancar la intro; la música de fondo entra un segundo antes de que termine
     SND.intro(() => introOn);
-    later(() => SND.fondo.iniciar(), INTRO_MS - 1000);
+    later(() => SND.fondo.iniciar(), INTRO_MS - 3000);
 
     // Tecleo con ritmo humano
     let t = 450;
