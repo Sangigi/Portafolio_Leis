@@ -636,7 +636,7 @@ body.warming #app{animation:warm .8s ease-out}
 }
 
 /* ---------- CORREO.EXE: formulario de contacto (js/correo.js) ---------- */
-.correo{--c:var(--azul);margin-top:64px;max-width:860px}
+.correo{--c:var(--azul);margin-top:64px}
 .correo > .cmd{margin:0 0 18px}
 .correo-win{background:var(--negro-2);box-shadow:0 -4px 0 var(--gris-osc),0 4px 0 var(--gris-osc),-4px 0 0 var(--gris-osc),4px 0 0 var(--gris-osc)}
 .correo-cnt{color:var(--gris)}

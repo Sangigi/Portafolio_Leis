@@ -47,7 +47,7 @@
     ["Gracias por pasar.", "Thanks for stopping by."], ["Esta página se sigue construyendo, pixel por pixel.", "This page is still being built, pixel by pixel."],
     ["© 2026 Leonel Almanza · dibujado pixel por pixel", "© 2026 Leonel Almanza · drawn pixel by pixel"],
     // CORREO.EXE
-    ["correo.exe", "mail.exe"], ["/nuevo", "/new"], ["CORREO.EXE", "MAIL.EXE"], ["· MENSAJE NUEVO", "· NEW MESSAGE"],
+    ["correo.exe", "mail.exe"], ["CORREO.EXE", "MAIL.EXE"], ["· MENSAJE NUEVO", "· NEW MESSAGE"],
     ["PARA:", "TO:"], ["DE:", "FROM:"], ["NOMBRE:", "NAME:"], ["ASUNTO:", "SUBJECT:"],
     ["tu@correo.com", "you@email.com"], ["Cómo te llamas", "Your name"], ["Propuesta de trabajo", "Job opportunity"],
     ["Escribe tu mensaje...", "Write your message..."], ["Mensaje", "Message"], ["ENVIAR", "SEND"], ["BORRAR", "CLEAR"], ["SIGUIENTE CAMPO", "NEXT FIELD"],
