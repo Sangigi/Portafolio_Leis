@@ -188,6 +188,7 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
     <button type="button" data-accion="mudo" id="bit-mudo"><kbd>M</kbd><span id="bit-mudo-txt">QUITAR MENSAJES</span></button>
   </div>
   <div class="buddy-fila">
+    <button class="modo-b" id="sonido-b" type="button" aria-pressed="false" title="Quitar el sonido"><span class="spr" id="sonido-ico" data-sprite="bocina" data-px="2" aria-hidden="true"></span><span class="sr">Sonido <span id="sonido-txt">ENCENDIDO</span></span></button>
     <button class="modo-b" id="modo-b" type="button" title="Cambiar a modo oscuro"><span class="spr" id="modo-ico" data-sprite="sol" data-px="2" aria-hidden="true"></span><span class="sr">Modo <span id="modo-txt">CLARO</span></span></button>
     <button class="buddy-b" id="buddy-b" type="button" aria-expanded="false" aria-controls="buddy-menu" aria-label="BIT: abrir su menú"><span class="spr" data-sprite="bit" data-px="4" aria-hidden="true"></span></button>
   </div>
@@ -213,6 +214,7 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
 
 <div class="crt" aria-hidden="true"><div class="scan"></div><div class="grain"></div><div class="roll"></div><div class="flick"></div><div class="vig"></div></div>
 
+<script src="js/sonidos.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

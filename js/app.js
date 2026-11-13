@@ -4,6 +4,8 @@
   const RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  // Sonidos (js/sonidos.js); si no cargó, todo funciona igual pero en silencio
+  const SND = window.Sonidos || { play() {}, intro() {}, silenciar() {}, silencio: () => true, fondo: { iniciar() {}, pausar() {}, reanudar() {} } };
 
   // Modo claro por defecto; si eligieron el oscuro, este navegador lo recuerda
   let modo = "claro";
@@ -234,6 +236,9 @@
   // Corazón de color variable (A toma el color de --c)
   SPRITES.heartA = [".AA.AA.", "AWAAAAA", "AAAAAAA", ".AAAAA.", "..AAA..", "...A..."];
   SPRITES.sol = ["....Y....", ".Y.....Y.", "...YYY...", "..YYYYY..", "Y.YYYYY.Y", "..YYYYY..", "...YYY...", ".Y.....Y.", "....Y...."];
+  // Bocina del botón de sonido: con ondas, y callada con una X roja
+  SPRITES.bocina = ["...W.....", "..WW..B..", "WWWW...B.", "WWWW.B.B.", "WWWW.B.B.", "WWWW...B.", "..WW..B..", "...W....."];
+  SPRITES.bocinaMuda = ["...W.....", "..WW.....", "WWWWR..R.", "WWWW.RR..", "WWWW.RR..", "WWWWR..R.", "..WW.....", "...W....."];
   SPRITES.luna = ["..WWWW...", ".WWW.....", "WWW......", "WWW......", "WWW......", "WWW......", ".WWW.....", "..WWWW..."];
   // Sobre del contacto: cerrado, y abierto con la solapa gris arriba
   SPRITES.sobre = [
@@ -582,6 +587,7 @@
     // Una vez noqueada se queda así hasta que se recarga la página
     if (ko) return;
     ko = true;
+    SND.play("ko");
     pcArt.classList.add("ko");
     pc.setAttribute("aria-pressed", "true");
     pc.setAttribute("aria-disabled", "true");
@@ -986,6 +992,10 @@
   // Las letras (con su cursor) parpadean cada segundo mientras se escriben
   term.classList.add("blink");
 
+  // inicio.mp3 al arrancar la intro; la música de fondo entra un segundo antes de que termine
+  SND.intro(() => introOn);
+  later(() => SND.fondo.iniciar(), INTRO_MS - 1000);
+
   // Tecleo con ritmo humano
   let t = 450;
   Array.from(FULL).forEach((ch, i) => {
@@ -1008,6 +1018,8 @@
     if (!introOn) return;
     introOn = false;
     timers.forEach(clearTimeout);
+    // Si se saltó la intro, la música entra ya
+    SND.fondo.iniciar();
     intro.hidden = true;
     doc.classList.remove("lock");
     if (RM) { boot(); return; }
@@ -1246,6 +1258,8 @@
   function apagar() {
     if (apagadoOn) return;
     apagadoOn = true;
+    SND.play("exit");
+    SND.fondo.pausar();
     bitMenu(false);
     doc.classList.add("lock");
     cont.hidden = true;
@@ -1274,12 +1288,16 @@
   }
   function gameOver() {
     clearInterval(cuentaT);
+    if (cont.classList.contains("over")) return;
+    SND.play("terminar");
     cont.classList.add("over");
   }
   function encender() {
     if (!apagadoOn || !apagado.classList.contains("fin")) return;
     clearInterval(cuentaT);
     apagadoOn = false;
+    SND.play("continuar");
+    SND.fondo.reanudar();
     apagado.hidden = true;
     apagado.classList.remove("off", "fin");
     doc.classList.remove("lock");
@@ -1342,6 +1360,7 @@
   pintaModo();
   modoB.addEventListener("click", () => {
     modo = modo === "oscuro" ? "claro" : "oscuro";
+    SND.play("tema");
     try { localStorage.setItem("modo", modo); } catch (e) { /* no se recuerda, pero cambia igual */ }
     pintaModo();
     if (!RM) {
@@ -1351,6 +1370,23 @@
       app.classList.add("cambio");
     }
     bitDice(modo === "oscuro" ? "Modo oscuro: fósforo sobre negro." : "Modo claro: tinta sobre papel.", "s", 2000, false, { salto: "giro", emote: "Estrella" });
+  });
+
+  /* ---------- Sonido encendido / apagado (se recuerda en este navegador) ---------- */
+  const sonidoB = $("#sonido-b"), sonidoIco = $("#sonido-ico"), sonidoTxt = $("#sonido-txt");
+  function pintaSonido() {
+    const mudo = SND.silencio();
+    paint(sonidoIco, mudo ? "bocinaMuda" : "bocina");
+    sonidoTxt.textContent = mudo ? "APAGADO" : "ENCENDIDO";
+    sonidoB.title = mudo ? "Activar el sonido" : "Quitar el sonido";
+    sonidoB.setAttribute("aria-pressed", String(mudo));
+  }
+  pintaSonido();
+  sonidoB.addEventListener("click", () => {
+    const mudo = !SND.silencio();
+    SND.silenciar(mudo);
+    pintaSonido();
+    bitDice(mudo ? "Shhh... sonido apagado." : "¡Sonido de vuelta!", "s", 2000, false, { salto: mudo ? "temblor" : "brinco", emote: mudo ? "Silencio" : "Nota" });
   });
 
   /* ---------- BIT: el compañero que te acompaña y te lleva entre secciones ---------- */
@@ -1371,6 +1407,8 @@
   function bitDice(texto, boca = "n", ms = 2400, aviso = false, gesto = {}) {
     if (!bitListo) return;
     if (bitMudo && aviso) return;
+    // BIT solo suena cuando de verdad muestra el mensaje
+    if (!bitMudo) SND.play("bit", true);
     if (!aviso) bitUltimo = Date.now();
     const salto = gesto.salto || (aviso ? "brinco" : boca === "o" ? "temblor" : boca === "s" ? null : "brinco");
     const emote = gesto.emote || (aviso ? null : boca === "o" ? "Alerta" : boca === "s" ? (Math.random() < 0.5 ? "Nota" : "Corazon") : null);
