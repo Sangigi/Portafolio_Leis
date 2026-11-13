@@ -14,9 +14,10 @@
     exit: "exit.mp3",
     continuar: "continuar.mp3",
     terminar: "terminar.mp3",
+    foto: "foto.mp3",
   };
   // Volumen de cada sonido, de 0 a 1
-  const VOLUMEN = { inicio: 0.6, fondo: 0.35, tema: 0.8, ko: 0.9, bit: 0.5, exit: 0.9, continuar: 0.9, terminar: 0.9 };
+  const VOLUMEN = { inicio: 0.6, fondo: 0.35, tema: 0.8, ko: 0.9, bit: 0.5, exit: 0.9, continuar: 0.9, terminar: 0.9, foto: 0.8 };
   // La música suena completa la primera vez; después se repite del segundo 10 hasta 8 s antes del final
   const BUCLE_DESDE = 10, BUCLE_ANTES_DEL_FINAL = 8;
 

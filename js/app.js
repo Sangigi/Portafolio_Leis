@@ -764,6 +764,7 @@
       el.classList.remove("sale");
       el.hidden = false;
       doc.classList.add("lock");
+      SND.play("foto", true);
       if (!RM) { el.classList.remove("prende"); void el.offsetWidth; el.classList.add("prende"); }
       mostrar(k);
       pan.focus({ preventScroll: true });
