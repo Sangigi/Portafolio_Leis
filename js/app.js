@@ -6,6 +6,10 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // Sonidos (js/sonidos.js); si no cargó, todo funciona igual pero en silencio
   const SND = window.Sonidos || { play() {}, intro() {}, silenciar() {}, silencio: () => true, fondo: { iniciar() {}, pausar() {}, reanudar() {} } };
+  // Analítica sin cookies (GoatCounter): solo cuenta si su script está activado en index.html
+  const cuenta = (evento) => {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: evento, title: evento, event: true }); } catch (e) { /* sin analítica */ }
+  };
 
   // Modo claro por defecto; si eligieron el oscuro, este navegador lo recuerda
   let modo = "claro";
@@ -564,7 +568,11 @@
   function paint(el, name) {
     const rows = SPRITES[name || el.dataset.sprite];
     if (!rows) return;
-    const h = rows.length, w = rows[0].length, px = +el.dataset.px || 4;
+    el.innerHTML = svgDe(rows, +el.dataset.px || 4);
+  }
+  // El <svg> de un sprite (también lo usan temporadas.js y juego.js)
+  function svgDe(rows, px) {
+    const h = rows.length, w = rows[0].length;
     let out = "";
     rows.forEach((row, y) => {
       for (let x = 0; x < row.length;) {
@@ -576,7 +584,7 @@
         x += n;
       }
     });
-    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="${w * px}" height="${h * px}" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${out}</svg>`;
+    return `<svg viewBox="0 0 ${w} ${h}" width="${w * px}" height="${h * px}" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${out}</svg>`;
   }
   $$("[data-sprite]").forEach((el) => paint(el));
 
@@ -885,6 +893,7 @@
 
     function abrir(imgs, k, op = {}) {
       clearTimeout(cierreT);
+      cuenta("visor");
       lista = imgs;
       carpeta = `C:\\PROYECTOS\\${op.carpeta || "IMAGENES"}`;
       alCerrar = op.alCerrar || null;
@@ -1744,20 +1753,26 @@
     exitB.focus({ preventScroll: true });
   }
   exitB.addEventListener("click", apagar);
+  // En el GAME OVER, BIT ofrece la revancha: BIT VS BUGS (js/juego.js)
+  const jugar = () => { if (window.Juego) window.Juego.abrir(); };
   apagado.addEventListener("click", (e) => {
     if (!apagado.classList.contains("fin")) return;
+    if (e.target.closest(".cont-juego")) { jugar(); return; }
     if (e.target.closest("#cont-no")) { gameOver(); return; }
     encender();
   });
-  // Con la consola apagada, el teclado solo responde a Y / N
+  // Con la consola apagada, el teclado solo responde a Y / N (y a J en el GAME OVER)
   window.addEventListener("keydown", (e) => {
     if (!apagadoOn) return;
+    // Mientras se juega, el teclado es del juego
+    if (window.Juego && window.Juego.abierto()) return;
     e.stopPropagation();
     e.preventDefault();
     if (!apagado.classList.contains("fin")) return;
     const k = e.key.toLowerCase();
     if (k === "n" || k === "escape") gameOver();
     else if (k === "y" || k === "enter" || k === " ") encender();
+    else if (k === "j" && cont.classList.contains("over")) jugar();
   }, true);
 
   /* ---------- Tarjeta de presentación: se voltea con un clic ---------- */
@@ -1986,6 +2001,8 @@
     buddy.hidden = false;
     bitListo = true;
     bitPintar();
+    // Aviso para los módulos que quieren que BIT diga algo (temporadas.js)
+    document.dispatchEvent(new CustomEvent("bit:listo"));
     if (!RM) buddy.classList.add("llega");
     setTimeout(() => bitDice(window.matchMedia("(min-width: 720px)").matches ? "Hola, soy BIT. Te acompaño mientras exploras." : "Hola, soy BIT. Dame clic y te llevo a cualquier sección.", "s", 4500), RM ? 0 : 700);
     secActual = seccionActual();
@@ -2047,4 +2064,16 @@
   window.addEventListener("scrollend", revisarSeccion);
   window.addEventListener("resize", revisarSeccion);
   revisarSeccion();
+
+  /* ---------- Lo que usan los demás módulos (idioma.js, correo.js, temporadas.js, juego.js) ---------- */
+  window.Portafolio = {
+    bitDice,
+    bitEmote,
+    bitListo: () => bitListo,
+    bitSprite,
+    svg: svgDe,
+    cuenta,
+    // La consola apagada (exit → CONTINUE?): el juego la vuelve a encender con Y
+    consola: { apagada: () => apagadoOn, encender },
+  };
 })();

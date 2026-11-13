@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
   <link rel="stylesheet" href="css/estilos.css">
+  <script data-goatcounter="https://leonel.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 <div id="app">
@@ -23,6 +25,11 @@
         <a href="#habilidades"><kbd>3</kbd>HABILIDADES</a>
         <a href="#contacto"><kbd>4</kbd>CONTACTO</a>
       </nav>
+      <div class="lang" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es" lang="es" aria-pressed="true" title="Español (chcp 850)">ES</button>
+        <button type="button" data-lang="en" lang="en" aria-pressed="false" title="English (chcp 437)">EN</button>
+        <div class="chcp" hidden aria-hidden="true"><p class="chcp-1"></p><p class="chcp-2"></p></div>
+      </div>
     </div>
   </header>
 
@@ -168,6 +175,28 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
           </button>
         </div>
       </div>
+
+      <div class="correo" id="correo">
+        <p class="cmd"><span class="ps">C:\&gt;</span> <span>correo.exe</span> <span class="arg">/nuevo</span></p>
+        <form class="correo-win" novalidate aria-label="Formulario de contacto">
+          <div class="term-bar"><span><i class="sw" aria-hidden="true"></i><span>CORREO.EXE</span><span class="correo-sub"> · MENSAJE NUEVO</span></span><span class="correo-cnt">0/1000</span></div>
+          <div class="correo-cuerpo">
+            <div class="correo-campo"><span class="correo-k">PARA:</span><span class="correo-para">leo.software@outlook.com</span></div>
+            <label class="correo-campo"><span class="correo-k">DE:</span><input name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required></label>
+            <label class="correo-campo"><span class="correo-k">NOMBRE:</span><input name="name" autocomplete="name" placeholder="Cómo te llamas"></label>
+            <label class="correo-campo"><span class="correo-k">ASUNTO:</span><input name="subject" placeholder="Propuesta de trabajo"></label>
+            <textarea name="message" rows="6" maxlength="1000" placeholder="Escribe tu mensaje..." aria-label="Mensaje"></textarea>
+            <!-- Trampa para bots: las personas no ven esta casilla -->
+            <input type="checkbox" name="botcheck" class="correo-trampa" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <div class="correo-estado" role="status" aria-live="polite"></div>
+          </div>
+          <div class="correo-teclas">
+            <button type="submit"><kbd>F10</kbd><span>ENVIAR</span></button>
+            <button type="button" data-accion="borrar"><kbd>ESC</kbd><span>BORRAR</span></button>
+            <span class="correo-tab"><kbd>TAB</kbd><span>SIGUIENTE CAMPO</span></span>
+          </div>
+        </form>
+      </div>
     </section>
   </main>
 
@@ -210,12 +239,17 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
     <div class="cont-op"><button type="button" id="cont-y">Y</button><span aria-hidden="true">/</span><button type="button" id="cont-no">N</button></div>
     <p class="cont-over">GAME OVER</p>
     <p class="cont-hint">Clic o tecla Y para volver a encender</p>
+    <p class="cont-juego"><button type="button"><span class="cont-juego-k">[J] </span><span>JUGAR BIT VS BUGS</span></button></p>
   </div>
 </div>
 
 <div class="crt" aria-hidden="true"><div class="scan"></div><div class="grain"></div><div class="roll"></div><div class="flick"></div><div class="vig"></div></div>
 
 <script src="js/sonidos.js"></script>
+<script src="js/idioma.js"></script>
 <script src="js/app.js"></script>
+<script src="js/correo.js"></script>
+<script src="js/temporadas.js"></script>
+<script src="js/juego.js"></script>
 </body>
 </html>
