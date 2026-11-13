@@ -635,11 +635,14 @@
     ? `<figure class="slide"><img src="${img.src}" alt="${img.pie}" loading="lazy" draggable="false"><figcaption>${img.pie}</figcaption></figure>`
     : `<figure class="slide ph ph-${i % 3}"><figcaption><b>SIN IMAGEN ${dos(i + 1)}</b><span>${img.pie}</span></figcaption></figure>`;
 
-  /* ---------- VISOR.EXE: la captura completa, a pantalla completa y con zoom ---------- */
-  // Se prende como monitor CRT (línea → ventana) y la imagen se "descarga" renglón por renglón.
-  // Clic o toque: acerca/aleja en ese punto · arrastrar: mover cuando hay zoom (o cambiar de imagen sin zoom)
+  /* ---------- VISOR ASCII: la terminal teclea el comando, dibuja la captura con caracteres y luego la revela ---------- */
+  // Clic o toque: acerca/aleja en ese punto · arrastrar: mover con zoom (o cambiar de imagen sin zoom)
+  // Línea de comandos: sig, ant, ver 3, zoom 2, dir, cls, ayuda, salir (y flechas, + - 0, Esc)
   const visor = (() => {
     const ZOOMS = [1, 1.5, 2, 3], PAD = 12;
+    // La rampa clásica del arte ASCII, de vacío a lleno
+    const RAMPA = " .'`^\",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+    const CMDS = ["ant", "sig", "zoom +", "zoom -", "dir", "ayuda", "salir"];
     const el = document.createElement("div");
     el.className = "visor";
     el.hidden = true;
@@ -652,46 +655,55 @@
           `<span class="visor-t" id="visor-t"><span class="sw" aria-hidden="true"></span><span class="visor-ruta"></span></span>` +
           `<button type="button" class="visor-x" aria-label="Cerrar visor">[X]</button>` +
         `</div>` +
+        `<div class="visor-log"></div>` +
         `<div class="visor-cuerpo">` +
           `<div class="visor-pan" tabindex="0" aria-label="Imagen ampliada: clic para acercar o alejar">` +
-            `<div class="visor-lienzo"><img alt="" draggable="false"></div>` +
+            `<div class="visor-lienzo"><img alt="" draggable="false"><pre class="visor-ascii" aria-hidden="true" hidden></pre></div>` +
           `</div>` +
-          `<p class="visor-carga" aria-hidden="true"><span class="visor-msg"></span>` +
-            `<span class="lbar">${Array.from({ length: 10 }, (_, k) => `<i style="--k:${k}"></i>`).join("")}</span></p>` +
         `</div>` +
-        `<div class="visor-pie">` +
-          `<span class="visor-nav">` +
-            `<button type="button" class="mini prev" aria-label="Imagen anterior">&lt;</button>` +
-            `<span class="visor-n"></span>` +
-            `<button type="button" class="mini next" aria-label="Imagen siguiente">&gt;</button>` +
-          `</span>` +
-          `<span class="visor-cap"></span>` +
-          `<span class="visor-res"></span>` +
-          `<span class="visor-zoom">` +
-            `<button type="button" class="mini menos" aria-label="Alejar">-</button>` +
-            `<span class="visor-z"></span>` +
-            `<button type="button" class="mini mas" aria-label="Acercar">+</button>` +
-          `</span>` +
-        `</div>` +
-        `<p class="visor-ayuda" aria-hidden="true">` +
-          `<span><kbd>&lt;</kbd><kbd>&gt;</kbd> CAMBIAR</span><span><kbd>+</kbd><kbd>-</kbd> ZOOM</span>` +
-          `<span>CLIC ACERCA</span><span><kbd>ESC</kbd> SALIR</span>` +
-        `</p>` +
+        `<div class="visor-info"><b class="visor-n"></b><b class="visor-cap"></b><span class="visor-res"></span><span>zoom <span class="visor-z"></span></span></div>` +
+        `<label class="visor-prompt"><span class="visor-ps"></span><input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Comando"></label>` +
+        `<div class="visor-cmds">${CMDS.map((c) => `<button type="button" data-cmd="${c}">${c}</button>`).join("")}</div>` +
         `<span class="sr" aria-live="polite"></span>` +
       `</div>`;
     document.body.appendChild(el);
 
     const q = (s) => el.querySelector(s);
-    const pan = q(".visor-pan"), cuerpo = q(".visor-cuerpo"), img = q("img"), ruta = q(".visor-ruta"),
-      nEl = q(".visor-n"), cap = q(".visor-cap"), res = q(".visor-res"), zEl = q(".visor-z"), msg = q(".visor-msg"),
-      sr = q(".sr"), bPrev = q(".prev"), bNext = q(".next"), bMenos = q(".menos"), bMas = q(".mas");
+    const pan = q(".visor-pan"), cuerpo = q(".visor-cuerpo"), img = q("img"), arte = q(".visor-ascii"), log = q(".visor-log"),
+      inp = q("input"), ps = q(".visor-ps"), ruta = q(".visor-ruta"), nEl = q(".visor-n"), cap = q(".visor-cap"),
+      res = q(".visor-res"), zEl = q(".visor-z"), sr = q(".sr");
     let lista = [], i = 0, z = 0, carpeta = "", alCerrar = null, volverA = null, abierto = false, carga = 0, cierreT = 0;
+    let primera = true, hist = [], h = 0;
+    const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+    const nombreDe = (im) => im.src.split("/").pop();
+
+    // Ancho de un carácter de VT323 entre su tamaño de letra (se mide cuando carga la fuente)
+    let RATIO = 0.4;
+    if (document.fonts) document.fonts.load("100px VT323").then(() => {
+      const s = document.createElement("span");
+      s.style.cssText = "position:absolute;visibility:hidden;white-space:pre;font:100px VT323";
+      s.textContent = "M".repeat(20);
+      document.body.appendChild(s);
+      RATIO = s.getBoundingClientRect().width / 2000 || RATIO;
+      s.remove();
+    }).catch(() => {});
+
+    // Un renglón en el registro de la terminal (se quedan los últimos 20)
+    const linea = (html, cls) => {
+      const d = document.createElement("div");
+      d.className = "ln" + (cls ? " " + cls : "");
+      d.innerHTML = html;
+      log.appendChild(d);
+      while (log.children.length > 20) log.firstChild.remove();
+      return d;
+    };
+    const prompt = () => `<span class="visor-ps">${carpeta}&gt;</span> `;
 
     // Escala con la que la imagen cabe completa (zoom x1)
     const encaja = () => {
-      const w = img.naturalWidth, h = img.naturalHeight;
-      if (!w || !h) return 1;
-      return Math.max(0.05, Math.min((cuerpo.clientWidth - PAD * 2) / w, (cuerpo.clientHeight - PAD * 2) / h));
+      const w = img.naturalWidth, hh = img.naturalHeight;
+      if (!w || !hh) return 1;
+      return Math.max(0.05, Math.min((cuerpo.clientWidth - PAD * 2) / w, (cuerpo.clientHeight - PAD * 2) / hh));
     };
     function medir() {
       const f = encaja() * ZOOMS[z];
@@ -699,13 +711,11 @@
       img.style.height = Math.floor(img.naturalHeight * f) + "px";
       pan.classList.toggle("zoom", z > 0);
       zEl.textContent = "x" + ZOOMS[z];
-      bMenos.disabled = z === 0;
-      bMas.disabled = z === ZOOMS.length - 1;
     }
     // Cambia el zoom dejando quieto el punto de la imagen que está bajo "a" (el puntero o el centro)
     function zoom(nz, a) {
       nz = Math.max(0, Math.min(ZOOMS.length - 1, nz));
-      if (nz === z || el.classList.contains("cargando")) return;
+      if (nz === z || el.classList.contains("entrando")) return;
       const pr = pan.getBoundingClientRect();
       a = a || { x: pr.left + pr.width / 2, y: pr.top + pr.height / 2 };
       const r = img.getBoundingClientRect();
@@ -719,44 +729,131 @@
       sr.textContent = "Zoom x" + ZOOMS[z];
     }
 
-    function mostrar(k) {
+    // La captura convertida en caracteres, del tamaño exacto en que se va a mostrar
+    function aAscii(W, H) {
+      const cols = Math.max(56, Math.min(220, Math.round(W / 7)));
+      const fs = W / cols / RATIO, lh = fs * 0.8;
+      const rows = Math.max(14, Math.floor(H / lh));
+      const cv = document.createElement("canvas");
+      cv.width = cols;
+      cv.height = rows;
+      const g = cv.getContext("2d", { willReadFrequently: true });
+      g.drawImage(img, 0, 0, cols, rows);
+      const d = g.getImageData(0, 0, cols, rows).data; // falla si la página se abre directo como archivo (file://)
+      const L = new Float32Array(cols * rows);
+      for (let k = 0; k < L.length; k++) L[k] = (0.2126 * d[k * 4] + 0.7152 * d[k * 4 + 1] + 0.0722 * d[k * 4 + 2]) / 255;
+      // Contraste por percentiles (2 % y 98 %) para que las capturas oscuras no queden en puros puntos
+      const orden = Float32Array.from(L).sort();
+      const lo = orden[Math.floor(L.length * 0.02)], hi = orden[Math.floor(L.length * 0.98)];
+      const rango = Math.max(0.05, hi - lo);
+      // En modo claro la tinta es oscura: lo lleno va donde la imagen es oscura
+      const claro = doc.dataset.modo !== "oscuro";
+      let texto = "";
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const t = Math.min(1, Math.max(0, (L[y * cols + x] - lo) / rango));
+          const v = (claro ? 1 - t : t) ** 0.75;
+          texto += RAMPA[Math.min(RAMPA.length - 1, Math.floor(v * RAMPA.length))];
+        }
+        texto += "\n";
+      }
+      return { texto, cols, rows, fs, lh };
+    }
+
+    async function mostrar(k) {
       i = (k + lista.length) % lista.length;
-      const im = lista[i], yo = ++carga;
-      // Sin zoom y arriba a la izquierda mientras llega la siguiente (así no asoman barras de desplazamiento)
+      const im = lista[i], yo = ++carga, nombre = nombreDe(im);
+      const vivo = () => yo === carga && abierto;
       z = 0;
       medir();
       pan.scrollTo(0, 0);
-      el.classList.remove("roto");
-      el.classList.add("cargando");
-      pan.classList.remove("revela");
-      msg.textContent = "CARGANDO";
-      ruta.textContent = `C:\\PROYECTOS\\${carpeta}\\${im.src.split("/").pop().toUpperCase()}`;
+      arte.hidden = true;
+      arte.classList.remove("dibuja");
+      el.classList.remove("revela");
+      el.classList.add("cargando", "entrando");
+      ruta.textContent = `${carpeta}\\${nombre.toUpperCase()}`;
       nEl.textContent = `${dos(i + 1)}/${dos(lista.length)}`;
       cap.textContent = im.pie;
       res.textContent = "";
       sr.textContent = `Imagen ${i + 1} de ${lista.length}: ${im.pie}`;
-      bPrev.disabled = bNext.disabled = lista.length < 2;
       img.alt = im.pie;
       img.src = im.src;
-      img.decode().then(() => {
+
+      // 1. Se teclea el comando (la primera vez despacio, después rápido)
+      const ln = linea(prompt() + `<span class="t"></span>`);
+      const t = ln.querySelector(".t"), cmd = `type ${nombre.toLowerCase()} /ascii`;
+      if (RM) t.textContent = cmd;
+      else {
+        for (let c = 1; c <= cmd.length; c++) {
+          t.textContent = cmd.slice(0, c);
+          if (primera || c % 4 === 0) await espera(primera ? 18 : 6);
+          if (!vivo()) return;
+        }
+        primera = false;
+      }
+      try { await img.decode(); } catch (e) {
         if (yo !== carga) return;
-        el.classList.remove("cargando");
-        res.textContent = `${img.naturalWidth}x${img.naturalHeight}`;
-        medir();
-        pan.scrollTo(0, 0);
-        if (!RM) { void pan.offsetWidth; pan.classList.add("revela"); }
-      }, () => {
-        if (yo !== carga) return;
-        el.classList.remove("cargando");
-        el.classList.add("roto");
-        msg.textContent = "ERROR: NO SE PUDO LEER EL ARCHIVO";
-      });
+        el.classList.remove("cargando", "entrando");
+        linea(`No se encontró el archivo ${nombre.toUpperCase()}`, "err");
+        return;
+      }
+      if (yo !== carga) return;
+      medir();
+      res.textContent = `${img.naturalWidth}x${img.naturalHeight}`;
+
+      // 2. Se dibuja con caracteres y 3. la captura se revela renglón por renglón encima
+      if (!RM) {
+        const W = parseFloat(img.style.width), H = parseFloat(img.style.height);
+        let a = null;
+        try { a = aAscii(W, H); } catch (e) { a = null; }
+        if (a) {
+          linea(`Convirtiendo ${img.naturalWidth}x${img.naturalHeight} a ${a.cols}x${a.rows} caracteres...`, "dim");
+          arte.textContent = a.texto;
+          arte.style.cssText = `width:${W}px;height:${H}px;font-size:${a.fs}px;line-height:${a.lh}px`;
+          arte.hidden = false;
+          void arte.offsetWidth;
+          arte.classList.add("dibuja");
+          await espera(1100);
+          if (!vivo()) return;
+          el.classList.remove("cargando");
+          el.classList.add("revela");
+          await espera(620);
+          if (!vivo()) return;
+          el.classList.remove("revela");
+          arte.hidden = true;
+        }
+      }
+      el.classList.remove("cargando", "entrando");
+    }
+
+    function ejecuta(txt) {
+      linea(prompt()).appendChild(document.createTextNode(txt));
+      const [c, arg = ""] = txt.trim().toLowerCase().split(/\s+/);
+      if (!c) return;
+      if (["sig", "siguiente", "n"].includes(c)) mostrar(i + 1);
+      else if (["ant", "anterior", "p"].includes(c)) mostrar(i - 1);
+      else if (c === "zoom") {
+        const k = ZOOMS.indexOf(parseFloat(arg));
+        if (arg === "+") zoom(z + 1);
+        else if (arg === "-") zoom(z - 1);
+        else if (k >= 0) zoom(k);
+        else linea("Uso: zoom + | zoom - | zoom 1 | 1.5 | 2 | 3", "dim");
+      } else if (c === "ver" || c === "type") {
+        // Por número (ver 3) o por nombre (type libertyfin-3.jpeg)
+        const n = parseInt(arg, 10), k = n >= 1 && n <= lista.length ? n - 1 : lista.findIndex((im) => nombreDe(im).toLowerCase() === arg);
+        if (k >= 0) mostrar(k);
+        else linea(`Uso: ver 1-${lista.length}`, "dim");
+      } else if (c === "dir" || c === "ls") linea(lista.map((im, k) => `${k + 1}.${nombreDe(im).toUpperCase()}`).join("  "), "dim");
+      else if (["ayuda", "help", "?"].includes(c)) linea(`sig · ant · ver 1-${lista.length} · zoom + / - / 2 · dir · cls · salir   (flechas y Esc también)`, "dim");
+      else if (c === "cls") log.textContent = "";
+      else if (["salir", "exit", "q"].includes(c)) cerrar();
+      else linea("Comando o nombre de archivo incorrecto", "err");
     }
 
     function abrir(imgs, k, op = {}) {
       clearTimeout(cierreT);
       lista = imgs;
-      carpeta = op.carpeta || "IMAGENES";
+      carpeta = `C:\\PROYECTOS\\${op.carpeta || "IMAGENES"}`;
       alCerrar = op.alCerrar || null;
       volverA = document.activeElement;
       abierto = true;
@@ -765,9 +862,14 @@
       el.hidden = false;
       doc.classList.add("lock");
       SND.play("foto", true);
+      ps.textContent = carpeta + ">";
+      inp.value = "";
+      log.textContent = "";
+      linea("VISOR ASCII 1.0 · escribe 'ayuda' para ver los comandos", "dim");
       if (!RM) { el.classList.remove("prende"); void el.offsetWidth; el.classList.add("prende"); }
       mostrar(k);
-      pan.focus({ preventScroll: true });
+      // Con mouse, el cursor espera en la línea de comandos; en pantallas táctiles no se abre el teclado
+      (matchMedia("(pointer: fine)").matches ? inp : pan).focus({ preventScroll: true });
     }
     function cerrar() {
       if (!abierto) return;
@@ -781,10 +883,10 @@
     }
 
     q(".visor-x").addEventListener("click", cerrar);
-    bPrev.addEventListener("click", () => mostrar(i - 1));
-    bNext.addEventListener("click", () => mostrar(i + 1));
-    bMenos.addEventListener("click", () => zoom(z - 1));
-    bMas.addEventListener("click", () => zoom(z + 1));
+    q(".visor-cmds").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-cmd]");
+      if (b) ejecuta(b.dataset.cmd);
+    });
 
     // Puntero: toque = zoom en ese punto; arrastre = mover (con zoom) o cambiar de imagen (sin zoom)
     let p0 = null;
@@ -832,20 +934,44 @@
       e.stopPropagation();
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key;
+      if (e.target === inp) {
+        if (k === "Enter") {
+          e.preventDefault();
+          const v = inp.value;
+          inp.value = "";
+          if (v.trim()) hist.push(v);
+          h = hist.length;
+          ejecuta(v);
+          return;
+        }
+        // Flecha arriba / abajo: comandos anteriores
+        if (k === "ArrowUp" || k === "ArrowDown") {
+          e.preventDefault();
+          h = Math.max(0, Math.min(hist.length, h + (k === "ArrowUp" ? -1 : 1)));
+          inp.value = hist[h] || "";
+          return;
+        }
+        // Mientras haya algo escrito, las teclas son para escribir
+        if (inp.value !== "" && k !== "Escape" && k !== "Tab") return;
+      } else if (/^[a-zñ?]$/i.test(k)) {
+        // Escribir con el foco en la imagen manda las letras a la línea de comandos
+        inp.focus({ preventScroll: true });
+        return;
+      }
       if (k === "Escape") cerrar();
       else if (k === "ArrowLeft" || k === "ArrowRight") mostrar(i + (k === "ArrowRight" ? 1 : -1));
       else if (k === "+" || k === "=") zoom(z + 1);
       else if (k === "-" || k === "_") zoom(z - 1);
       else if (k === "0") zoom(0);
       else if (k === "Tab") {
-        const f = $$("button:not(:disabled), [tabindex='0']", el);
+        const f = $$("button, input, [tabindex='0']", el);
         const a = f[0], b = f[f.length - 1], act = document.activeElement;
         if (!el.contains(act) || (e.shiftKey ? act === a : act === b)) { (e.shiftKey ? b : a).focus(); e.preventDefault(); }
         return;
       } else return;
       e.preventDefault();
     }, true);
-    window.addEventListener("resize", () => { if (abierto && !el.classList.contains("cargando")) medir(); });
+    window.addEventListener("resize", () => { if (abierto && !el.classList.contains("entrando")) medir(); });
 
     return { abrir };
   })();

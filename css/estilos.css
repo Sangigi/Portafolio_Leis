@@ -330,17 +330,23 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .amplia:hover,.amplia:focus-visible{background:var(--c);color:var(--negro)}
 .amplia[hidden]{display:none}
 
-/* ---------- VISOR.EXE: captura a pantalla completa ---------- */
+/* ---------- VISOR ASCII: la captura a pantalla completa, dibujada primero con caracteres ---------- */
 .visor{--c:var(--amarillo);position:fixed;inset:0;z-index:55;display:flex;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));
-  background:color-mix(in srgb,var(--negro) 97%,transparent);text-shadow:0 0 .3em color-mix(in srgb,currentColor var(--glow),transparent)}
+  background:color-mix(in srgb,var(--negro) 97%,transparent);font-size:21px;line-height:1.3;text-shadow:0 0 .3em color-mix(in srgb,currentColor var(--glow),transparent)}
 .visor[hidden]{display:none}
-.visor-win{flex:1;display:flex;flex-direction:column;min-width:0;margin:4px;background:var(--negro-2);
-  box-shadow:0 -4px 0 var(--c),0 4px 0 var(--c),-4px 0 0 var(--c),4px 0 0 var(--c)}
+.visor-win{flex:1;display:flex;flex-direction:column;min-width:0;margin:4px;background:var(--negro-2);color:var(--blanco);
+  box-shadow:0 -4px 0 var(--gris-osc),0 4px 0 var(--gris-osc),-4px 0 0 var(--gris-osc),4px 0 0 var(--gris-osc)}
 .visor-bar{align-items:center;padding-block:6px}
 .visor-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .visor-x{flex:none;margin:-2px -8px -2px 0;padding:6px 8px;border:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer}
 .visor-x:hover,.visor-x:focus-visible{outline:none;background:var(--rojo);color:var(--negro)}
-.visor-cuerpo{position:relative;flex:1;min-height:0;display:grid;grid-template:minmax(0,1fr) / minmax(0,1fr);background:var(--negro)}
+/* Los últimos tres renglones de la terminal */
+.visor-log{flex:none;display:flex;flex-direction:column;justify-content:flex-end;height:calc(1.3em * 3);margin-top:10px;padding:0 16px;overflow:hidden}
+.visor-log .ln{flex:none;overflow:hidden;white-space:pre;text-overflow:ellipsis}
+.visor-log .dim{color:var(--gris)}
+.visor-log .err{color:var(--rojo)}
+.visor-ps{color:var(--c)}
+.visor-cuerpo{position:relative;flex:1;min-height:0;display:grid;grid-template:minmax(0,1fr) / minmax(0,1fr);margin:8px 16px 0;background:var(--negro);box-shadow:0 0 0 3px var(--gris-osc)}
 .visor-pan{overflow:auto;cursor:zoom-in;touch-action:none;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--c) var(--negro)}
 .visor-pan::-webkit-scrollbar{width:10px;height:10px}
 .visor-pan::-webkit-scrollbar-track,.visor-pan::-webkit-scrollbar-corner{background:var(--negro)}
@@ -349,35 +355,33 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .visor-pan.zoom{cursor:grab;touch-action:pan-x pan-y}
 .visor-pan.arrastra{cursor:grabbing}
 .visor-lienzo{display:grid;place-items:center;width:max-content;min-width:100%;min-height:100%;padding:12px}
-.visor-lienzo img{display:block;max-width:none;user-select:none;-webkit-user-drag:none;box-shadow:0 0 0 3px var(--gris-osc)}
+.visor-lienzo > *{grid-area:1 / 1}
+.visor-lienzo img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
 .visor.cargando .visor-lienzo img{visibility:hidden}
-/* La imagen baja renglón por renglón, como descarga por módem */
-.visor-pan.revela img{animation:revela .5s steps(10,end)}
-.visor-carga{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;margin:0;padding:16px;font-size:24px;text-align:center;color:var(--gris);pointer-events:none;visibility:hidden}
-.visor.cargando .visor-carga{animation:visorCarga 0s .2s forwards}
-.visor.roto .visor-carga{visibility:visible;color:var(--rojo)}
-.visor.roto .visor-carga .lbar{display:none}
-@keyframes visorCarga{to{visibility:visible}}
-.visor-carga .lbar i{animation:celda 1.2s steps(1,end) infinite;animation-delay:calc(var(--k) * .12s)}
-@keyframes celda{0%{background:var(--c)}50%{background:var(--gris-osc)}}
-.visor-pie{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:10px 12px 8px;font-size:20px;line-height:1.2;color:var(--gris)}
-.visor-nav,.visor-zoom{display:flex;align-items:center;gap:10px}
-.visor-n,.visor-z{font-variant-numeric:tabular-nums;color:var(--blanco)}
-.visor-z{min-width:3ch;text-align:center}
-.visor-cap{flex:1 1 14ch;min-width:0;color:var(--blanco)}
-.visor .mini:not(:hover){--c:inherit}
-.visor .mini:disabled{--c:var(--gris-osc);cursor:default}
-.visor-ayuda{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;margin:0;padding:0 14px 12px;font-family:var(--f-pixel);font-size:8px;line-height:1;letter-spacing:.06em;color:var(--gris)}
-.visor-ayuda kbd{display:inline-block;margin-right:4px;font-family:inherit;font-size:8px;line-height:1;padding:4px 5px 3px;background:var(--gris-osc);color:var(--blanco)}
-@media (hover:none){.visor-ayuda{display:none}}
-@media (max-width:600px){.visor{padding:8px}.visor-res{display:none}}
-/* Se prende como monitor: un punto, una línea y luego la ventana */
-.visor.prende{animation:visorFondo .3s steps(3,end)}
-.visor.prende .visor-win{animation:visorOn .38s steps(7,end)}
-.visor.sale{animation:fadeOut .22s steps(3,end) forwards}
-.visor.sale .visor-win{animation:visorOn .22s steps(4,end) reverse forwards}
-@keyframes visorFondo{from{opacity:0}}
-@keyframes visorOn{0%{clip-path:inset(calc(50% - 2px) 50%)}40%{clip-path:inset(calc(50% - 2px) -4px)}100%{clip-path:inset(-4px)}}
+/* El dibujo baja renglón por renglón y luego la captura lo tapa igual */
+.visor-ascii{margin:0;overflow:hidden;white-space:pre;color:var(--c);font-family:var(--f-term);pointer-events:none;user-select:none;text-shadow:0 0 6px color-mix(in srgb,var(--c) 45%,transparent)}
+.visor-ascii[hidden]{display:none}
+.visor-ascii.dibuja{animation:revela .7s steps(16,end)}
+.visor.revela .visor-lienzo img{animation:revela .6s steps(12,end)}
+.visor-info{display:flex;flex-wrap:wrap;gap:0 18px;padding:8px 16px 0;color:var(--gris)}
+.visor-info b{font-weight:400;color:var(--blanco)}
+.visor-n{font-variant-numeric:tabular-nums}
+.visor-prompt{display:flex;align-items:baseline;gap:1ch;padding:6px 16px 0}
+.visor-prompt input{flex:1;min-width:4ch;padding:0;border:0;outline:none;background:none;color:var(--blanco);font:inherit;caret-color:var(--c);caret-shape:block}
+.visor-cmds{display:flex;flex-wrap:wrap;gap:4px 18px;padding:6px 16px 12px}
+.visor-cmds button{padding:0 2px;border:0;background:none;color:var(--c);font:inherit;cursor:pointer;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.visor-cmds button:hover,.visor-cmds button:focus-visible{outline:none;background:var(--c);color:var(--negro);text-decoration:none;text-shadow:none}
+@media (max-width:600px){
+  .visor{padding:8px}
+  .visor-res{display:none}
+  .visor-cuerpo{margin-inline:10px}
+  .visor-log,.visor-info,.visor-prompt,.visor-cmds{padding-inline:10px}
+}
+/* Se abre como ventana de terminal: parpadea y se despliega de arriba abajo */
+.visor.prende .visor-win{animation:visorAbre .26s steps(5,end)}
+.visor.sale{animation:visorCierra .2s steps(4,end) forwards}
+@keyframes visorAbre{0%{clip-path:inset(0 0 100% 0);opacity:.2}60%{opacity:.9}100%{clip-path:inset(-4px);opacity:1}}
+@keyframes visorCierra{0%{opacity:1}40%{opacity:.2}60%{opacity:.7}100%{opacity:0}}
 /* Carta de ajuste mientras no haya captura */
 .ph{background:
   linear-gradient(90deg,var(--p-blanco) 0 20%,var(--p-amarillo) 0 40%,var(--p-azul) 0 60%,var(--p-rojo) 0 80%,var(--p-gris-osc) 0) top/100% 66% no-repeat,
@@ -595,7 +599,7 @@ body.warming #app{animation:warm .8s ease-out}
   html{scroll-behavior:auto}
   .crt .grain,.crt .flick,.hero-art .spr,.dot,.card.empty .plus .spr,.tech[aria-pressed="true"] .spr,.card:target,.card.destello,.res-x.abre,.card.zap .view{animation:none}
   .track,.car{transition:none}
-  .visor.prende,.visor.prende .visor-win,.visor.sale,.visor.sale .visor-win,.visor-pan.revela img,.visor-carga .lbar i{animation:none}
+  .visor.prende .visor-win,.visor.sale,.visor-ascii.dibuja,.visor.revela .visor-lienzo img{animation:none}
   .buddy.llega .buddy-b,.buddy-b .spr{animation:none}
   .bit-emote{animation:fadeOut 1.2s steps(3,end) forwards}
   #linkedin.tirado .spr{animation:none;transform:translateY(10px) rotate(90deg)}
