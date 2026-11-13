@@ -635,6 +635,220 @@
     ? `<figure class="slide"><img src="${img.src}" alt="${img.pie}" loading="lazy" draggable="false"><figcaption>${img.pie}</figcaption></figure>`
     : `<figure class="slide ph ph-${i % 3}"><figcaption><b>SIN IMAGEN ${dos(i + 1)}</b><span>${img.pie}</span></figcaption></figure>`;
 
+  /* ---------- VISOR.EXE: la captura completa, a pantalla completa y con zoom ---------- */
+  // Se prende como monitor CRT (línea → ventana) y la imagen se "descarga" renglón por renglón.
+  // Clic o toque: acerca/aleja en ese punto · arrastrar: mover cuando hay zoom (o cambiar de imagen sin zoom)
+  const visor = (() => {
+    const ZOOMS = [1, 1.5, 2, 3], PAD = 12;
+    const el = document.createElement("div");
+    el.className = "visor";
+    el.hidden = true;
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.setAttribute("aria-labelledby", "visor-t");
+    el.innerHTML =
+      `<div class="visor-win">` +
+        `<div class="term-bar visor-bar">` +
+          `<span class="visor-t" id="visor-t"><span class="sw" aria-hidden="true"></span><span class="visor-ruta"></span></span>` +
+          `<button type="button" class="visor-x" aria-label="Cerrar visor">[X]</button>` +
+        `</div>` +
+        `<div class="visor-cuerpo">` +
+          `<div class="visor-pan" tabindex="0" aria-label="Imagen ampliada: clic para acercar o alejar">` +
+            `<div class="visor-lienzo"><img alt="" draggable="false"></div>` +
+          `</div>` +
+          `<p class="visor-carga" aria-hidden="true"><span class="visor-msg"></span>` +
+            `<span class="lbar">${Array.from({ length: 10 }, (_, k) => `<i style="--k:${k}"></i>`).join("")}</span></p>` +
+        `</div>` +
+        `<div class="visor-pie">` +
+          `<span class="visor-nav">` +
+            `<button type="button" class="mini prev" aria-label="Imagen anterior">&lt;</button>` +
+            `<span class="visor-n"></span>` +
+            `<button type="button" class="mini next" aria-label="Imagen siguiente">&gt;</button>` +
+          `</span>` +
+          `<span class="visor-cap"></span>` +
+          `<span class="visor-res"></span>` +
+          `<span class="visor-zoom">` +
+            `<button type="button" class="mini menos" aria-label="Alejar">-</button>` +
+            `<span class="visor-z"></span>` +
+            `<button type="button" class="mini mas" aria-label="Acercar">+</button>` +
+          `</span>` +
+        `</div>` +
+        `<p class="visor-ayuda" aria-hidden="true">` +
+          `<span><kbd>&lt;</kbd><kbd>&gt;</kbd> CAMBIAR</span><span><kbd>+</kbd><kbd>-</kbd> ZOOM</span>` +
+          `<span>CLIC ACERCA</span><span><kbd>ESC</kbd> SALIR</span>` +
+        `</p>` +
+        `<span class="sr" aria-live="polite"></span>` +
+      `</div>`;
+    document.body.appendChild(el);
+
+    const q = (s) => el.querySelector(s);
+    const pan = q(".visor-pan"), cuerpo = q(".visor-cuerpo"), img = q("img"), ruta = q(".visor-ruta"),
+      nEl = q(".visor-n"), cap = q(".visor-cap"), res = q(".visor-res"), zEl = q(".visor-z"), msg = q(".visor-msg"),
+      sr = q(".sr"), bPrev = q(".prev"), bNext = q(".next"), bMenos = q(".menos"), bMas = q(".mas");
+    let lista = [], i = 0, z = 0, carpeta = "", alCerrar = null, volverA = null, abierto = false, carga = 0, cierreT = 0;
+
+    // Escala con la que la imagen cabe completa (zoom x1)
+    const encaja = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) return 1;
+      return Math.max(0.05, Math.min((cuerpo.clientWidth - PAD * 2) / w, (cuerpo.clientHeight - PAD * 2) / h));
+    };
+    function medir() {
+      const f = encaja() * ZOOMS[z];
+      img.style.width = Math.floor(img.naturalWidth * f) + "px";
+      img.style.height = Math.floor(img.naturalHeight * f) + "px";
+      pan.classList.toggle("zoom", z > 0);
+      zEl.textContent = "x" + ZOOMS[z];
+      bMenos.disabled = z === 0;
+      bMas.disabled = z === ZOOMS.length - 1;
+    }
+    // Cambia el zoom dejando quieto el punto de la imagen que está bajo "a" (el puntero o el centro)
+    function zoom(nz, a) {
+      nz = Math.max(0, Math.min(ZOOMS.length - 1, nz));
+      if (nz === z || el.classList.contains("cargando")) return;
+      const pr = pan.getBoundingClientRect();
+      a = a || { x: pr.left + pr.width / 2, y: pr.top + pr.height / 2 };
+      const r = img.getBoundingClientRect();
+      const frac = (v, ini, largo) => (largo ? Math.min(1, Math.max(0, (v - ini) / largo)) : 0.5);
+      const fx = frac(a.x, r.left, r.width), fy = frac(a.y, r.top, r.height);
+      z = nz;
+      medir();
+      const r2 = img.getBoundingClientRect();
+      pan.scrollLeft += r2.left + fx * r2.width - a.x;
+      pan.scrollTop += r2.top + fy * r2.height - a.y;
+      sr.textContent = "Zoom x" + ZOOMS[z];
+    }
+
+    function mostrar(k) {
+      i = (k + lista.length) % lista.length;
+      const im = lista[i], yo = ++carga;
+      // Sin zoom y arriba a la izquierda mientras llega la siguiente (así no asoman barras de desplazamiento)
+      z = 0;
+      medir();
+      pan.scrollTo(0, 0);
+      el.classList.remove("roto");
+      el.classList.add("cargando");
+      pan.classList.remove("revela");
+      msg.textContent = "CARGANDO";
+      ruta.textContent = `C:\\PROYECTOS\\${carpeta}\\${im.src.split("/").pop().toUpperCase()}`;
+      nEl.textContent = `${dos(i + 1)}/${dos(lista.length)}`;
+      cap.textContent = im.pie;
+      res.textContent = "";
+      sr.textContent = `Imagen ${i + 1} de ${lista.length}: ${im.pie}`;
+      bPrev.disabled = bNext.disabled = lista.length < 2;
+      img.alt = im.pie;
+      img.src = im.src;
+      img.decode().then(() => {
+        if (yo !== carga) return;
+        el.classList.remove("cargando");
+        res.textContent = `${img.naturalWidth}x${img.naturalHeight}`;
+        medir();
+        pan.scrollTo(0, 0);
+        if (!RM) { void pan.offsetWidth; pan.classList.add("revela"); }
+      }, () => {
+        if (yo !== carga) return;
+        el.classList.remove("cargando");
+        el.classList.add("roto");
+        msg.textContent = "ERROR: NO SE PUDO LEER EL ARCHIVO";
+      });
+    }
+
+    function abrir(imgs, k, op = {}) {
+      clearTimeout(cierreT);
+      lista = imgs;
+      carpeta = op.carpeta || "IMAGENES";
+      alCerrar = op.alCerrar || null;
+      volverA = document.activeElement;
+      abierto = true;
+      el.style.setProperty("--c", op.color || "");
+      el.classList.remove("sale");
+      el.hidden = false;
+      doc.classList.add("lock");
+      if (!RM) { el.classList.remove("prende"); void el.offsetWidth; el.classList.add("prende"); }
+      mostrar(k);
+      pan.focus({ preventScroll: true });
+    }
+    function cerrar() {
+      if (!abierto) return;
+      abierto = false;
+      doc.classList.remove("lock");
+      if (alCerrar) alCerrar(i);
+      if (volverA && volverA.isConnected) volverA.focus({ preventScroll: true });
+      const fin = () => { el.hidden = true; el.classList.remove("sale", "prende"); };
+      if (RM) fin();
+      else { el.classList.add("sale"); cierreT = setTimeout(fin, 220); }
+    }
+
+    q(".visor-x").addEventListener("click", cerrar);
+    bPrev.addEventListener("click", () => mostrar(i - 1));
+    bNext.addEventListener("click", () => mostrar(i + 1));
+    bMenos.addEventListener("click", () => zoom(z - 1));
+    bMas.addEventListener("click", () => zoom(z + 1));
+
+    // Puntero: toque = zoom en ese punto; arrastre = mover (con zoom) o cambiar de imagen (sin zoom)
+    let p0 = null;
+    pan.addEventListener("pointerdown", (e) => {
+      const r = pan.getBoundingClientRect();
+      // Sobre la barra de desplazamiento no hacemos nada
+      if (e.button || e.clientX - r.left >= pan.clientWidth || e.clientY - r.top >= pan.clientHeight) return;
+      p0 = { id: e.pointerId, x: e.clientX, y: e.clientY, sl: pan.scrollLeft, st: pan.scrollTop, mov: false, mano: e.pointerType !== "touch" };
+      if (p0.mano) pan.setPointerCapture(e.pointerId);
+    });
+    pan.addEventListener("pointermove", (e) => {
+      if (!p0 || e.pointerId !== p0.id) return;
+      const dx = e.clientX - p0.x, dy = e.clientY - p0.y;
+      if (!p0.mov && Math.hypot(dx, dy) > 6) {
+        p0.mov = true;
+        if (z > 0 && p0.mano) pan.classList.add("arrastra");
+      }
+      if (p0.mov && z > 0 && p0.mano) { pan.scrollLeft = p0.sl - dx; pan.scrollTop = p0.st - dy; }
+    });
+    const suelta = (e) => {
+      if (!p0 || e.pointerId !== p0.id) return;
+      const dx = e.clientX - p0.x, mov = p0.mov;
+      p0 = null;
+      pan.classList.remove("arrastra");
+      if (e.type !== "pointerup") return;
+      if (!mov) zoom(z > 0 ? 0 : 2, { x: e.clientX, y: e.clientY });
+      else if (z === 0 && Math.abs(dx) > 50) mostrar(i + (dx < 0 ? 1 : -1));
+    };
+    pan.addEventListener("pointerup", suelta);
+    pan.addEventListener("pointercancel", suelta);
+    // Pellizco en el trackpad (o Ctrl + rueda): zoom por pasos
+    let rueda = 0;
+    pan.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      rueda += e.deltaY;
+      if (Math.abs(rueda) < 40) return;
+      zoom(z + (rueda < 0 ? 1 : -1), { x: e.clientX, y: e.clientY });
+      rueda = 0;
+    }, { passive: false });
+
+    // Con el visor abierto, el teclado es solo suyo (no salta a otras secciones ni silencia a BIT)
+    window.addEventListener("keydown", (e) => {
+      if (!abierto) return;
+      e.stopPropagation();
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = e.key;
+      if (k === "Escape") cerrar();
+      else if (k === "ArrowLeft" || k === "ArrowRight") mostrar(i + (k === "ArrowRight" ? 1 : -1));
+      else if (k === "+" || k === "=") zoom(z + 1);
+      else if (k === "-" || k === "_") zoom(z - 1);
+      else if (k === "0") zoom(0);
+      else if (k === "Tab") {
+        const f = $$("button:not(:disabled), [tabindex='0']", el);
+        const a = f[0], b = f[f.length - 1], act = document.activeElement;
+        if (!el.contains(act) || (e.shiftKey ? act === a : act === b)) { (e.shiftKey ? b : a).focus(); e.preventDefault(); }
+        return;
+      } else return;
+      e.preventDefault();
+    }, true);
+    window.addEventListener("resize", () => { if (abierto && !el.classList.contains("cargando")) medir(); });
+
+    return { abrir };
+  })();
+
   // Cada tarjeta con imágenes cambia <DIR> por <VER>: abre una pasarela dentro de la misma tarjeta
   const visores = {};
   $$(".card[id]").forEach((card) => {
@@ -651,9 +865,13 @@
     const view = document.createElement("div");
     view.className = "view";
     view.hidden = true;
+    const titulo = card.querySelector("h3").textContent.trim();
+    // Solo las imágenes reales se pueden ampliar (las cartas de ajuste no)
+    const reales = imgs.flatMap((im, k) => (im.src ? [{ ...im, k }] : []));
     view.innerHTML =
-      `<div class="stage" tabindex="0" role="group" aria-roledescription="carrusel" aria-label="Imágenes de ${card.querySelector("h3").textContent}">` +
+      `<div class="stage" tabindex="0" role="group" aria-roledescription="carrusel" aria-label="Imágenes de ${titulo}">` +
         `<div class="track">${imgs.map(slideHTML).join("")}</div>` +
+        (reales.length ? `<button type="button" class="amplia" aria-label="Ampliar imagen" title="Ampliar (Enter)">[+]</button>` : "") +
       `</div>` +
       `<div class="ctrl">` +
         `<button type="button" class="mini prev" aria-label="Imagen anterior">&lt;</button>` +
@@ -662,35 +880,52 @@
       `</div>`;
     info.after(view);
 
-    const track = view.querySelector(".track"), count = view.querySelector(".count"), stage = view.querySelector(".stage");
+    const track = view.querySelector(".track"), count = view.querySelector(".count"), stage = view.querySelector(".stage"),
+      amplia = view.querySelector(".amplia");
     let i = 0;
     const go = (n) => {
       i = (n + imgs.length) % imgs.length;
       track.style.transform = `translateX(${-i * 100}%)`;
       count.textContent = `${dos(i + 1)}/${dos(imgs.length)}`;
+      if (amplia) amplia.hidden = !imgs[i].src;
     };
+    const ampliar = () => {
+      const j = reales.findIndex((r) => r.k === i);
+      if (j < 0) return;
+      visor.abrir(reales, j, {
+        carpeta: titulo.replace(/\s+/g, "_"),
+        color: card.style.getPropertyValue("--c").trim(),
+        // Al cerrar, el carrusel se queda en la última imagen que viste
+        alCerrar: (jj) => go(reales[jj].k),
+      });
+    };
+    if (amplia) amplia.addEventListener("click", ampliar);
     const abrir = (on) => {
       view.hidden = !on;
       info.hidden = on;
       btn.textContent = on ? "<CERRAR>" : "<VER>";
       btn.setAttribute("aria-expanded", String(on));
       if (on && !RM) { card.classList.remove("zap"); void card.offsetWidth; card.classList.add("zap"); }
-      if (on) bitDice(imgs.every((im) => !im.src) ? "Aquí irán las capturas. Por ahora, carta de ajuste." : "¡Mira esas capturas!", "s", 2600);
+      if (on) bitDice(reales.length ? "¡Mira esas capturas! Dale clic a una para verla en grande." : "Aquí irán las capturas. Por ahora, carta de ajuste.", "s", 3200);
     };
     btn.addEventListener("click", () => abrir(view.hidden));
     view.querySelector(".prev").addEventListener("click", () => go(i - 1));
     view.querySelector(".next").addEventListener("click", () => go(i + 1));
     stage.addEventListener("keydown", (e) => {
+      if (e.target !== stage) return;
       if (e.key === "ArrowLeft") { go(i - 1); e.preventDefault(); }
       if (e.key === "ArrowRight") { go(i + 1); e.preventDefault(); }
+      if (e.key === "Enter" && imgs[i].src) { ampliar(); e.preventDefault(); }
     });
+    // Arrastrar cambia de imagen; un clic sin arrastrar la amplía
     let x0 = null;
-    stage.addEventListener("pointerdown", (e) => { x0 = e.clientX; });
+    stage.addEventListener("pointerdown", (e) => { x0 = e.button || e.target.closest(".amplia") ? null : e.clientX; });
     stage.addEventListener("pointerup", (e) => {
       if (x0 === null) return;
       const dx = e.clientX - x0;
       x0 = null;
       if (Math.abs(dx) > 40) go(i + (dx < 0 ? 1 : -1));
+      else if (Math.abs(dx) < 6 && e.target.closest(".slide img")) ampliar();
     });
     go(0);
     visores[card.id] = { abrir: (n) => { abrir(true); go(n); } };
