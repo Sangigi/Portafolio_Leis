@@ -362,7 +362,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .visor-ascii{margin:0;overflow:hidden;white-space:pre;color:var(--c);font-family:var(--f-term);pointer-events:none;user-select:none;text-shadow:0 0 6px color-mix(in srgb,var(--c) 45%,transparent)}
 .visor-ascii[hidden]{display:none}
 .visor-ascii.dibuja{animation:revela .7s steps(16,end)}
-.visor.revela .visor-lienzo img{animation:revela .6s steps(12,end)}
+.visor.revela .visor-lienzo img{animation:revela .48s steps(12,end)}
+/* Capturas ya vistas: solo un barrido rápido */
+.visor.revela.rapido .visor-lienzo img{animation-duration:.25s;animation-timing-function:steps(5,end)}
 .visor-info{display:flex;flex-wrap:wrap;gap:0 18px;padding:8px 16px 0;color:var(--gris)}
 .visor-info b{font-weight:400;color:var(--blanco)}
 .visor-n{font-variant-numeric:tabular-nums}

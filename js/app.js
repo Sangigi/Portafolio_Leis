@@ -673,9 +673,25 @@
       inp = q("input"), ps = q(".visor-ps"), ruta = q(".visor-ruta"), nEl = q(".visor-n"), cap = q(".visor-cap"),
       res = q(".visor-res"), zEl = q(".visor-z"), sr = q(".sr");
     let lista = [], i = 0, z = 0, carpeta = "", alCerrar = null, volverA = null, abierto = false, carga = 0, cierreT = 0;
-    let primera = true, hist = [], h = 0;
-    const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+    let primera = true, hist = [], h = 0, prisa = 0, despierta = null;
     const nombreDe = (im) => im.src.split("/").pop();
+    // Capturas que ya se dibujaron en esta visita: la segunda vez entran directo
+    const vistas = new Set();
+    // "ascii no" apaga el dibujo (se recuerda en este navegador)
+    let conAscii = true;
+    try { conAscii = localStorage.getItem("visor-ascii") !== "no"; } catch (e) { /* encendido por defecto */ }
+    // Pausa que se puede cortar: un clic en la imagen o Enter terminan la animación de golpe
+    const pausa = (ms, yo) => new Promise((r) => {
+      if (prisa === yo) { r(); return; }
+      const t = setTimeout(r, ms);
+      despierta = () => { clearTimeout(t); r(); };
+    });
+    const salta = () => {
+      if (!el.classList.contains("entrando") || prisa === carga) return false;
+      prisa = carga;
+      if (despierta) despierta();
+      return true;
+    };
 
     // Ancho de un carácter de VT323 entre su tamaño de letra (se mide cuando carga la fuente)
     let RATIO = 0.4;
@@ -764,12 +780,15 @@
       i = (k + lista.length) % lista.length;
       const im = lista[i], yo = ++carga, nombre = nombreDe(im);
       const vivo = () => yo === carga && abierto;
+      const corre = () => prisa !== yo; // false si se pidió saltar la animación
+      // El dibujo ASCII solo sale la primera vez que se ve cada captura
+      const dibuja = !RM && conAscii && !vistas.has(im.src);
       z = 0;
       medir();
       pan.scrollTo(0, 0);
       arte.hidden = true;
       arte.classList.remove("dibuja");
-      el.classList.remove("revela");
+      el.classList.remove("revela", "rapido");
       el.classList.add("cargando", "entrando");
       ruta.textContent = `${carpeta}\\${nombre.toUpperCase()}`;
       nEl.textContent = `${dos(i + 1)}/${dos(lista.length)}`;
@@ -778,19 +797,21 @@
       sr.textContent = `Imagen ${i + 1} de ${lista.length}: ${im.pie}`;
       img.alt = im.pie;
       img.src = im.src;
+      // La anterior y la siguiente se van descargando para que no haya espera al cambiar
+      [i - 1, i + 1].forEach((n) => { const o = lista[(n + lista.length) % lista.length]; if (o !== im) new Image().src = o.src; });
 
       // 1. Se teclea el comando (la primera vez despacio, después rápido)
       const ln = linea(prompt() + `<span class="t"></span>`);
-      const t = ln.querySelector(".t"), cmd = `type ${nombre.toLowerCase()} /ascii`;
-      if (RM) t.textContent = cmd;
-      else {
-        for (let c = 1; c <= cmd.length; c++) {
+      const t = ln.querySelector(".t"), cmd = `type ${nombre.toLowerCase()}${dibuja ? " /ascii" : ""}`;
+      if (!RM) {
+        for (let c = 1; c <= cmd.length && corre(); c++) {
           t.textContent = cmd.slice(0, c);
-          if (primera || c % 4 === 0) await espera(primera ? 18 : 6);
+          if (primera || c % 4 === 0) await pausa(primera ? 18 : 6, yo);
           if (!vivo()) return;
         }
         primera = false;
       }
+      t.textContent = cmd;
       try { await img.decode(); } catch (e) {
         if (yo !== carga) return;
         el.classList.remove("cargando", "entrando");
@@ -802,28 +823,34 @@
       res.textContent = `${img.naturalWidth}x${img.naturalHeight}`;
 
       // 2. Se dibuja con caracteres y 3. la captura se revela renglón por renglón encima
-      if (!RM) {
-        const W = parseFloat(img.style.width), H = parseFloat(img.style.height);
-        let a = null;
-        try { a = aAscii(W, H); } catch (e) { a = null; }
-        if (a) {
-          linea(`Convirtiendo ${img.naturalWidth}x${img.naturalHeight} a ${a.cols}x${a.rows} caracteres...`, "dim");
-          arte.textContent = a.texto;
-          arte.style.cssText = `width:${W}px;height:${H}px;font-size:${a.fs}px;line-height:${a.lh}px`;
-          arte.hidden = false;
-          void arte.offsetWidth;
-          arte.classList.add("dibuja");
-          await espera(1100);
-          if (!vivo()) return;
+      const W = parseFloat(img.style.width), H = parseFloat(img.style.height);
+      let a = null;
+      if (dibuja && corre()) { try { a = aAscii(W, H); } catch (e) { a = null; } }
+      if (a) {
+        linea(`Convirtiendo ${img.naturalWidth}x${img.naturalHeight} a ${a.cols}x${a.rows} caracteres... (Enter o clic para saltar)`, "dim");
+        arte.textContent = a.texto;
+        arte.style.cssText = `width:${W}px;height:${H}px;font-size:${a.fs}px;line-height:${a.lh}px`;
+        arte.hidden = false;
+        void arte.offsetWidth;
+        arte.classList.add("dibuja");
+        await pausa(850, yo);
+        if (!vivo()) return;
+        if (corre()) {
           el.classList.remove("cargando");
           el.classList.add("revela");
-          await espera(620);
+          await pausa(480, yo);
           if (!vivo()) return;
-          el.classList.remove("revela");
-          arte.hidden = true;
         }
+        arte.hidden = true;
+      } else if (!RM && corre()) {
+        // Ya vista (o con el ASCII apagado): entra con un barrido rápido
+        el.classList.remove("cargando");
+        el.classList.add("revela", "rapido");
+        await pausa(260, yo);
+        if (!vivo()) return;
       }
-      el.classList.remove("cargando", "entrando");
+      el.classList.remove("cargando", "entrando", "revela", "rapido");
+      vistas.add(im.src);
     }
 
     function ejecuta(txt) {
@@ -843,8 +870,14 @@
         const n = parseInt(arg, 10), k = n >= 1 && n <= lista.length ? n - 1 : lista.findIndex((im) => nombreDe(im).toLowerCase() === arg);
         if (k >= 0) mostrar(k);
         else linea(`Uso: ver 1-${lista.length}`, "dim");
+      } else if (c === "ascii") {
+        if (["no", "off", "0"].includes(arg)) conAscii = false;
+        else if (["si", "sí", "on", "1"].includes(arg)) { conAscii = true; vistas.clear(); }
+        else { linea(`Uso: ascii si | ascii no   (ahora: ${conAscii ? "si" : "no"})`, "dim"); return; }
+        try { localStorage.setItem("visor-ascii", conAscii ? "si" : "no"); } catch (e) { /* solo en esta visita */ }
+        linea(conAscii ? "Dibujo ASCII encendido" : "Dibujo ASCII apagado: las capturas entran directo", "dim");
       } else if (c === "dir" || c === "ls") linea(lista.map((im, k) => `${k + 1}.${nombreDe(im).toUpperCase()}`).join("  "), "dim");
-      else if (["ayuda", "help", "?"].includes(c)) linea(`sig · ant · ver 1-${lista.length} · zoom + / - / 2 · dir · cls · salir   (flechas y Esc también)`, "dim");
+      else if (["ayuda", "help", "?"].includes(c)) linea(`sig · ant · ver 1-${lista.length} · zoom + / - / 2 · ascii si / no · dir · cls · salir   (Enter o clic saltan el dibujo)`, "dim");
       else if (c === "cls") log.textContent = "";
       else if (["salir", "exit", "q"].includes(c)) cerrar();
       else linea("Comando o nombre de archivo incorrecto", "err");
@@ -912,7 +945,8 @@
       p0 = null;
       pan.classList.remove("arrastra");
       if (e.type !== "pointerup") return;
-      if (!mov) zoom(z > 0 ? 0 : 2, { x: e.clientX, y: e.clientY });
+      // Un clic durante la animación la salta; ya quieta, hace zoom
+      if (!mov) { if (!salta()) zoom(z > 0 ? 0 : 2, { x: e.clientX, y: e.clientY }); }
       else if (z === 0 && Math.abs(dx) > 50) mostrar(i + (dx < 0 ? 1 : -1));
     };
     pan.addEventListener("pointerup", suelta);
@@ -934,6 +968,12 @@
       e.stopPropagation();
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key;
+      // Enter sin nada escrito salta la animación
+      if (k === "Enter" && (e.target === pan || (e.target === inp && !inp.value.trim())) && salta()) {
+        e.preventDefault();
+        inp.value = "";
+        return;
+      }
       if (e.target === inp) {
         if (k === "Enter") {
           e.preventDefault();
