@@ -620,9 +620,9 @@
       { src: "", pie: "Catálogo por empresa" },
       { src: "", pie: "Calendario de citas" },
     ],
-    "p-portafolio": [
-      { src: "", pie: "Intro de terminal" },
-      { src: "", pie: "Habilidades y terminal" },
+    "p-libertyfin": [
+      { src: "", pie: "Punto de venta y cobranza" },
+      { src: "", pie: "Inventario y facturación CFDI" },
     ],
   };
   const dos = (n) => String(n).padStart(2, "0");
@@ -694,19 +694,19 @@
   /* ---------- Habilidades: ícono → búsqueda en la terminal → proyectos ---------- */
   const PROY = {
     lux: { nombre: "SEGUROS_LUX", id: "p-seguros-lux" },
-    port: { nombre: "PORTAFOLIO.EXE", id: "p-portafolio" },
+    liberty: { nombre: "LIBERTYFIN", id: "p-libertyfin" },
   };
   // Conteos tomados del repositorio de Seguros-Lux (noviembre de 2026).
   // Las que no tienen "hits" abren su ícono en grande con una descripción.
   const TECH = {
-    html:     { n: "HTML",         q: "html",     c: "var(--rojo)",     s: "html",     hits: [["lux", "34 vistas", "Plantillas PHP del CRM"], ["port", "1 archivo", "Una sola página, sin frameworks"]] },
-    css:      { n: "CSS",          q: "css",      c: "var(--azul)",     s: "css",      hits: [["lux", "7 archivos .css", "Tema del CRM, formularios y landing"], ["port", "1 archivo", "Filtro CRT y bordes pixelados"]] },
-    js:       { n: "JavaScript",   q: "js",       c: "var(--amarillo)", s: "js",       tile: "JS", hits: [["lux", "23 archivos .js", "Calendario, clientes, cotizaciones y autos"], ["port", "1 archivo", "Intro, sprites y esta terminal"]] },
+    html:     { n: "HTML",         q: "html",     c: "var(--rojo)",     s: "html",     hits: [["lux", "34 vistas", "Plantillas PHP del CRM"]] },
+    css:      { n: "CSS",          q: "css",      c: "var(--azul)",     s: "css",      hits: [["lux", "7 archivos .css", "Tema del CRM, formularios y landing"]] },
+    js:       { n: "JavaScript",   q: "js",       c: "var(--amarillo)", s: "js",       tile: "JS", hits: [["lux", "23 archivos .js", "Calendario, clientes, cotizaciones y autos"]] },
     vue:      { n: "Vue.js",       q: "vue",      c: "var(--verde)",    s: "vue",      tile: "VUE.JS", hits: [], desc: "Framework de JavaScript para interfaces reactivas." },
     tailwind: { n: "Tailwind CSS", q: "tailwind", c: "var(--azul)",     s: "tailwind", tile: "TAILWIND", hits: [], desc: "CSS con clases de utilidad, directo en el HTML." },
     sass:     { n: "Sass",         q: "sass",     c: "var(--rojo)",     s: "sass",     hits: [], desc: "CSS con variables, anidación y mixins." },
     figma:    { n: "Figma",        q: "figma",    c: "var(--amarillo)", s: "figma",    hits: [], desc: "Diseño de interfaces y prototipos." },
-    php:      { n: "PHP",          q: "php",      c: "var(--azul)",     s: "php",      hits: [["lux", "145 archivos .php", "PHP 8.1 · Composer · PHPUnit · PHPMailer"]] },
+    php:      { n: "PHP",          q: "php",      c: "var(--azul)",     s: "php",      hits: [["lux", "145 archivos .php", "PHP 8.1 · Composer · PHPUnit · PHPMailer"], ["liberty", "XX archivos .php", "PDO · MVC · POS y cobranza multiempresa"]] },
     sql:      { n: "SQL",          q: "sql",      c: "var(--blanco)",   s: "sql",      hits: [["lux", "4 migraciones .sql", "Cola de correos, renovaciones y citas"]] },
     laravel:  { n: "Laravel",      q: "laravel",  c: "var(--rojo)",     s: "laravel",  hits: [], desc: "Framework de PHP para aplicaciones web." },
     apache:   { n: "Apache",       q: "apache",   c: "var(--amarillo)", s: "apache",   hits: [["lux", "1 archivo .htaccess", "Fuerza HTTPS y reescribe rutas en public/"]] },
