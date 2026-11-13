@@ -621,8 +621,13 @@
       { src: "", pie: "Calendario de citas" },
     ],
     "p-libertyfin": [
-      { src: "", pie: "Punto de venta y cobranza" },
-      { src: "", pie: "Inventario y facturación CFDI" },
+      { src: "images/Libertyfin/Libertyfin-1", pie: "Inicio de sesión" },
+      { src: "images/Libertyfin/Libertyfin-2", pie: "Dashboard con resumen del negocio" },
+      { src: "images/Libertyfin/Libertyfin-3", pie: "Caja y cobro de ventas" },
+      { src: "images/Libertyfin/Libertyfin-4", pie: "Listado y detalle de ventas" },
+      { src: "images/Libertyfin/Libertyfin-5", pie: "Reportes" },
+      { src: "images/Libertyfin/Libertyfin-6", pie: "Trabajos y notas" },
+      { src: "images/Libertyfin/Libertyfin-7", pie: "Tutorial de uso" },
     ],
   };
   const dos = (n) => String(n).padStart(2, "0");
