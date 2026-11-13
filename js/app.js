@@ -621,13 +621,13 @@
       { src: "", pie: "Calendario de citas" },
     ],
     "p-libertyfin": [
-      { src: "images/Libertyfin/Libertyfin-1", pie: "Inicio de sesión" },
-      { src: "images/Libertyfin/Libertyfin-2", pie: "Dashboard con resumen del negocio" },
-      { src: "images/Libertyfin/Libertyfin-3", pie: "Caja y cobro de ventas" },
-      { src: "images/Libertyfin/Libertyfin-4", pie: "Listado y detalle de ventas" },
-      { src: "images/Libertyfin/Libertyfin-5", pie: "Reportes" },
-      { src: "images/Libertyfin/Libertyfin-6", pie: "Trabajos y notas" },
-      { src: "images/Libertyfin/Libertyfin-7", pie: "Tutorial de uso" },
+      { src: "images/Libertyfin/Libertyfin-1.jpeg", pie: "Inicio de sesión" },
+      { src: "images/Libertyfin/Libertyfin-2.jpeg", pie: "Dashboard con resumen del negocio" },
+      { src: "images/Libertyfin/Libertyfin-3.jpeg", pie: "Caja y cobro de ventas" },
+      { src: "images/Libertyfin/Libertyfin-4.jpeg", pie: "Listado y detalle de ventas" },
+      { src: "images/Libertyfin/Libertyfin-5.jpeg", pie: "Reportes" },
+      { src: "images/Libertyfin/Libertyfin-6.jpeg", pie: "Trabajos y notas" },
+      { src: "images/Libertyfin/Libertyfin-7.jpeg", pie: "Tutorial de uso" },
     ],
   };
   const dos = (n) => String(n).padStart(2, "0");
