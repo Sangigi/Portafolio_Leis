@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portafolio Leonel Almanza</title>
+  <meta name="description" content="Portafolio de Leonel Almanza: desarrollo web.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="logo" href="#inicio" aria-label="LEO.EXE, ir al inicio">
+        <span class="mark" aria-hidden="true"><i class="y"></i><i class="w"></i><i class="b"></i><i class="r"></i></span>LEO.EXE
+      </a>
+      <nav class="nav" aria-label="Secciones">
+        <a href="#sobre-mi"><kbd>1</kbd>PERFIL</a>
+        <a href="#proyectos"><kbd>2</kbd>PROYECTOS</a>
+        <a href="#habilidades"><kbd>3</kbd>HABILIDADES</a>
+        <a href="#contacto"><kbd>4</kbd>CONTACTO</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero wrap" aria-labelledby="nombre">
+      <div>
+        <p class="cmd"><span class="ps">C:\&gt;</span> whoami</p>
+        <h1 class="name" id="nombre"><span>LEON<span class="egg" id="egg"><span class="egg-in" aria-hidden="true"><span class="egg-alien"></span></span><span class="egg-door">E</span></span>L</span><span>ALMANZA</span></h1>
+        <p class="role"><span class="gt">&gt;</span> <span class="typed">Desarrollo web · CDMX</span><span class="cur" aria-hidden="true"></span><span class="ghost" aria-hidden="true"></span></p>
+        <div class="cta">
+          <a class="btn" href="#proyectos">VER PROYECTOS</a>
+          <a class="btn ghost" href="#contacto">CONTACTAR</a>
+        </div>
+      </div>
+      <div class="hero-art">
+        <button class="pc" id="pc" type="button" aria-pressed="false" aria-label="Noquear la computadora" title="¿Y si le pegas?">
+          <span class="spr" data-sprite="monitor" data-px="9" aria-hidden="true"></span>
+        </button>
+        <span class="shadow" aria-hidden="true"></span>
+      </div>
+    </section>
+
+    <div class="status" role="group" aria-label="Estado">
+      <div class="wrap status-in">
+        <span><i class="dot" aria-hidden="true"></i>EN LÍNEA</span>
+        <span>HORA LOCAL <b id="clk">--:--:--</b></span>
+        <span>SESIÓN <b id="up">00:00:00</b></span>
+        <span>COM1 · <b>9600</b> BAUD</span>
+      </div>
+    </div>
+
+    <section class="sec wrap" id="sobre-mi">
+      <h2 class="cmd"><span class="ps">C:\&gt;</span> type <span class="arg">sobre_mi.txt</span></h2>
+      <div class="about">
+        <p>Soy un desarrollador web, enfocado principalmente en el desarrollo Back-End y apasionado por construir aplicaciones funcionales, eficientes y escalables, complementando mis conocimientos con herramientas Front-End.</p>
+        <ul class="facts">
+          <li><span class="k">ROL</span><i class="lead"></i><span class="v">Desarrollo Back-End</span></li>
+          <!-- <li><span class="k">STACK</span><i class="lead"></i><span class="v">PHP · JavaScript · SQL</span></li>
+          <li><span class="k">ENFOQUE</span><i class="lead"></i><span class="v">Plataformas multiempresa</span></li> -->
+          <li><span class="k">ESTADO</span><i class="lead"></i><span class="v ok">Disponible</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="sec wrap" id="proyectos">
+      <h2 class="cmd"><span class="ps">C:\&gt;</span> dir <span class="arg">proyectos</span> /w</h2>
+      <pre class="dir-head"> El volumen de la unidad C es PORTAFOLIO
+ Directorio de C:\PROYECTOS</pre>
+      <div class="grid">
+        <article class="card" id="p-seguros-lux" style="--c:var(--amarillo)">
+          <div class="card-h"><span class="spr" data-sprite="folder" data-px="3" aria-hidden="true"></span><span class="card-tag">&lt;DIR&gt;</span></div>
+          <h3>SEGUROS_LUX</h3>
+          <div class="card-info">
+            <p>CRM de seguros para varias empresas: catálogos propios por empresa, filtro por ramo, citas, renovaciones y envío de cotizaciones al cliente.</p>
+            <ul class="tags"><li>PHP 8.1</li><li>JS</li><li>SQL</li><li>MULTIEMPRESA</li></ul>
+          </div>
+          <div class="card-f"><span>MOD. 11/2026</span><span>EN CURSO</span></div>
+        </article>
+        <article class="card" id="p-portafolio" style="--c:var(--azul)">
+          <div class="card-h"><span class="spr" data-sprite="folder" data-px="3" aria-hidden="true"></span><span class="card-tag">&lt;DIR&gt;</span></div>
+          <h3>PORTAFOLIO.EXE</h3>
+          <div class="card-info">
+            <p>Este sitio. Intro de terminal, filtro CRT y sprites dibujados con código.</p>
+            <ul class="tags"><li>HTML</li><li>CSS</li><li>JS</li></ul>
+          </div>
+          <div class="card-f"><span>MOD. 11/2026</span><span>VERSIÓN 0.1</span></div>
+        </article>
+        <article class="card empty" id="p-ranura" style="--c:var(--rojo)">
+          <div class="card-h"><span>RANURA 03</span><span>&lt;LIBRE&gt;</span></div>
+          <h3>RANURA_VACIA</h3>
+          <div class="plus"><span class="spr" data-sprite="plus" data-px="5" aria-hidden="true"></span></div>
+          <p>Aquí entra el próximo proyecto.</p>
+          <div class="card-f"><span>MOD. --/----</span><span>LIBRE</span></div>
+        </article>
+      </div>
+      <p class="dir-foot">        2 dir(s)        1 ranura libre</p>
+    </section>
+
+    <section class="sec wrap" id="habilidades">
+      <h2 class="cmd"><span class="ps">C:\&gt;</span> dir <span class="arg">habilidades</span></h2>
+      <div class="discos" role="tablist" aria-label="Categorías de tecnologías">
+        <button class="disco" type="button" role="tab" aria-selected="true" data-cat="front" style="--c:var(--amarillo)"><span class="spr" data-sprite="disquete" data-px="3" aria-hidden="true"></span><span class="disco-t"><b>A:</b>FRONT-END</span><i class="led" aria-hidden="true"></i></button>
+        <button class="disco" type="button" role="tab" aria-selected="false" data-cat="back" style="--c:var(--azul)"><span class="spr" data-sprite="disquete" data-px="3" aria-hidden="true"></span><span class="disco-t"><b>B:</b>BACK-END</span><i class="led" aria-hidden="true"></i></button>
+        <button class="disco" type="button" role="tab" aria-selected="false" data-cat="aprendo" style="--c:var(--rojo)"><span class="spr" data-sprite="disquete" data-px="3" aria-hidden="true"></span><span class="disco-t"><b>C:</b>APRENDIENDO</span><i class="led" aria-hidden="true"></i></button>
+        <button class="disco" type="button" role="tab" aria-selected="false" data-cat="tools" style="--c:var(--blanco)"><span class="spr" data-sprite="disquete" data-px="3" aria-hidden="true"></span><span class="disco-t"><b>D:</b>HERRAMIENTAS</span><i class="led" aria-hidden="true"></i></button>
+      </div>
+      <div class="skills-ui">
+        <div class="techs" role="group" aria-label="Tecnologías: elige una para ver sus proyectos">
+
+        </div>
+        <div class="term-win" id="term-win">
+          <div class="term-bar"><span><i class="sw" aria-hidden="true"></i><span id="term-ruta">A:\FRONTEND</span></span><span>80X25</span></div>
+          <div class="term-body" id="term-out"></div>
+          <p class="sr" id="term-sr" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec wrap" id="contacto">
+      <h2 class="cmd"><span class="ps">C:\&gt;</span> ping <span class="arg">contacto</span></h2>
+      <div class="contacto-ui">
+        <div class="contacto-izq">
+      <pre class="out">Haciendo ping a leonel con 32 bytes de datos:
+Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
+      <ul class="links">
+        <li>
+          <button type="button" class="ico ico-b" id="sobre" aria-pressed="false" aria-label="Abrir el sobre"><span class="spr" data-sprite="sobre" data-px="3" aria-hidden="true"></span></button>
+          <span class="k">CORREO</span>
+          <button type="button" class="v mail-b" id="mail" title="Clic para copiar">leo.software@outlook.com</button>
+          <button class="mini" id="copy" type="button">COPIAR</button>
+        </li>
+        <li style="--c:var(--azul)">
+          <button type="button" class="ico ico-b" id="gato" aria-label="Gato de GitHub: dale clic"><span class="spr sin-contorno" data-sprite="gato" data-px="3" aria-hidden="true"></span></button>
+          <span class="k">GITHUB</span>
+          <a class="v" href="https://github.com/Sangigi" target="_blank" rel="noopener">github.com/Sangigi</a>
+        </li>
+        <li style="--c:var(--rojo)">
+          <button type="button" class="ico ico-b" id="linkedin" aria-label="Logo de LinkedIn: dale clic"><span class="spr" data-sprite="linkedin" data-px="3" aria-hidden="true"></span></button>
+          <span class="k">LINKEDIN</span>
+          <a class="v" href="https://www.linkedin.com/in/leonel-almanza-medina-a48031344" target="_blank" rel="noopener">linkedin.com/in/leonel</a>
+        </li>
+      </ul>
+        </div>
+        <div class="tj-esc">
+          <button type="button" class="tarjeta" id="tarjeta" aria-pressed="false" aria-label="Tarjeta de presentación. Clic para voltearla">
+            <span class="tj-cara tj-frente">
+              <span class="tj-top"><span>TARJETA.DAT</span><span>1/2</span></span>
+              <span class="tj-nombre">LEONEL<br>ALMANZA</span>
+              <span class="tj-rol"><span class="gt">&gt;</span> Desarrollo web · sistemas a la medida</span>
+              <span class="tj-datos">
+                <span><b>ESTADO</b><i class="lead"></i><em class="ok">Disponible</em></span>
+                <span><b>HORA LOCAL</b><i class="lead"></i><em id="clk2">--:--:--</em></span>
+              </span>
+              <span class="tj-pie"><span class="mark" aria-hidden="true"><i class="y"></i><i class="w"></i><i class="b"></i><i class="r"></i></span>LEO.EXE<span class="tj-voltea">VOLTEAR &gt;</span></span>
+            </span>
+            <span class="tj-cara tj-dorso" aria-hidden="true">
+              <span class="tj-top"><span>TARJETA.DAT</span><span>2/2</span></span>
+              <span class="spr" data-sprite="monitor" data-px="5" aria-hidden="true"></span>
+              <span class="tj-gracias">Gracias por pasar.</span>
+              <span class="tj-sub">Esta página se sigue construyendo, pixel por pixel.</span>
+              <span class="tj-colores" aria-hidden="true"><i class="y"></i><i class="w"></i><i class="b"></i><i class="r"></i></span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot wrap">
+    <p class="cmd"><button type="button" class="exit-b" id="exit-b" title="Apagar la consola"><span class="ps">C:\&gt;</span> exit</button><span class="cur" aria-hidden="true"></span></p>
+    <p>© 2026 Leonel Almanza · dibujado pixel por pixel<span class="spr" data-sprite="heart" data-px="3" aria-hidden="true"></span></p>
+  </footer>
+</div>
+
+<div class="buddy" id="buddy" hidden>
+  <p class="buddy-say" id="buddy-say" role="status" aria-live="polite"></p>
+  <div class="buddy-menu" id="buddy-menu" hidden>
+    <button type="button" data-go="inicio"><kbd>0</kbd>INICIO</button>
+    <button type="button" data-go="sobre-mi"><kbd>1</kbd>PERFIL</button>
+    <button type="button" data-go="proyectos"><kbd>2</kbd>PROYECTOS</button>
+    <button type="button" data-go="habilidades"><kbd>3</kbd>HABILIDADES</button>
+    <button type="button" data-go="contacto"><kbd>4</kbd>CONTACTO</button>
+    <button type="button" data-accion="mudo" id="bit-mudo"><kbd>M</kbd><span id="bit-mudo-txt">QUITAR MENSAJES</span></button>
+  </div>
+  <div class="buddy-fila">
+    <button class="modo-b" id="modo-b" type="button" title="Cambiar a modo oscuro"><span class="spr" id="modo-ico" data-sprite="sol" data-px="2" aria-hidden="true"></span><span class="sr">Modo <span id="modo-txt">CLARO</span></span></button>
+    <button class="buddy-b" id="buddy-b" type="button" aria-expanded="false" aria-controls="buddy-menu" aria-label="BIT: abrir su menú"><span class="spr" data-sprite="bit" data-px="4" aria-hidden="true"></span></button>
+  </div>
+</div>
+
+<div id="intro" role="status" aria-label="Conectando">
+  <p class="term"><span class="txt" data-text="\\connecting..."></span><span class="cur" aria-hidden="true"></span></p>
+  <p class="skip">clic o cualquier tecla para saltar</p>
+</div>
+
+<div id="power" hidden aria-hidden="true"><div class="h t"></div><div class="h b"></div></div>
+
+<div id="apagado" hidden role="dialog" aria-label="Consola apagada">
+  <div class="ap-h ap-t"></div><div class="ap-h ap-b"></div><div class="ap-ln"></div>
+  <div class="cont" id="cont" hidden>
+    <p class="cont-t">CONTINUE?</p>
+    <p class="cont-n" id="cont-n" aria-live="polite">9</p>
+    <div class="cont-op"><button type="button" id="cont-y">Y</button><span aria-hidden="true">/</span><button type="button" id="cont-no">N</button></div>
+    <p class="cont-over">GAME OVER</p>
+    <p class="cont-hint">Clic o tecla Y para volver a encender</p>
+  </div>
+</div>
+
+<div class="crt" aria-hidden="true"><div class="scan"></div><div class="grain"></div><div class="roll"></div><div class="flick"></div><div class="vig"></div></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
