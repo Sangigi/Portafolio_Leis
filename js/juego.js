@@ -54,11 +54,12 @@
   const tactil = window.matchMedia("(pointer: coarse)").matches;
   const kb = (k) => (tactil ? "" : `[${k}] `);
   // Las canciones del modo ritmo (cada una en su archivo js/ritmo-*.js). R es la elegida; G() dice si es el nivel GRIMORIO
-  const CANCIONES = [window.RitmoUIA, window.RitmoGrimorio, window.RitmoDoom].filter(Boolean);
+  // Las que traen oculta: true (niveles sin terminar) no aparecen en el juego
+  const CANCIONES = [window.RitmoUIA, window.RitmoGrimorio, window.RitmoFunk, window.RitmoDoom].filter((c) => c && !c.oculta);
   let cancionI = Math.max(0, Math.min(CANCIONES.length - 1, +(lee("bitBugsCancion") || 0) || 0)), R = CANCIONES[cancionI] || null;
   const G = () => !!R && R.tema === "grimorio";
   // UIA() = el nivel del gato (el que no trae tema) · DM() = el nivel DOOM CROSSING
-  const UIA = () => !!R && !R.tema, DM = () => !!R && R.tema === "doom";
+  const UIA = () => !!R && !R.tema, DM = () => !!R && R.tema === "doom", FK = () => !!R && R.tema === "funk";
 
   /* ---------- 1. Datos fijos: sprites, especies, niveles de combo y fuente chica ---------- */
 
@@ -106,10 +107,13 @@
     L: [["R.........R", "RR.......RR", ".RRRRRRRRR.", ".RWWRRRWWR.", ".RKWRRRWKR.", ".RRRRRRRRR.", ".RRWKWKWRR.", "..RRRRRRR..", "..RR...RR.."],
         ["R.........R", "RR.......RR", ".RRRRRRRRR.", ".RWWRRRWWR.", ".RWKRRRKWR.", ".RRRRRRRRR.", ".RRKWKWKRR.", "..RRRRRRR..", "...R...R..."]],
   });
-  const MUTA_D = [["J", { P: "#ff9ad5", Z: "W", K: "W" }], ["J", { P: "#7dd3fc", Z: "W", K: "W" }], ["L", null], ["A", { R: "#ffb13b", Z: "N" }], ["G", { R: "R", Z: "Z" }], ["I", { R: "#7dd3fc", Z: "W" }],
+  const MUTA_D = [["J", { P: "#ff9ad5", Z: "W", K: "W" }], ["J", { P: "#7dd3fc", Z: "W", K: "W" }], ["L", null], ["A", { R: "#ffb13b", Z: "N" }], ["G", { R: "R", Z: "Z" }],
     ["J", { P: "#c084ff", Z: "W", K: "W" }], ["H", { R: "R", Z: "Y" }], ["L", { R: "N", Z: "R" }], ["L", null], ["J", { P: "#ffd23b", Z: "W", K: "W" }]];
   const DEMONIO = ["R...........R", "RR.........RR", "RRR.WWWWW.RRR", ".RRWWWWWWWRR.", "..WWWWWWWWW..", "..WKKWWWKKW..", "..WKYWWWYKW..", "..WWWWKWWWW..", "...WWKWKWW...", "...WKWKWKW...", "...WWWWWWW...", "....W.W.W...."];
   const CAMPANA = ["..Y..", ".YYY.", ".YYY.", "YYYYY", "..Y.."];
+  // Nivel FUTURE FUNK: las especies de siempre, en colores de neón
+  const MUTA_F = [["I", { R: "#ff3fb4", Z: "W" }], ["J", { P: "#ffb86b", Z: "W", K: "W" }], ["A", { R: "#ff3fb4", Z: "#8a2a8a" }], ["B", { R: "#00f6ff", Z: "B" }], ["C", { R: "#ffd23b", Z: "N" }], ["E", { R: "#c084ff", Z: "M" }],
+    ["D", { R: "#3fff8a", Z: "V" }], ["H", { R: "#ff3fb4", Z: "#00f6ff" }], ["I", { R: "#9be8ff", Z: "W" }], ["J", { P: "#00f6ff", Z: "W", K: "W" }], ["A", { R: "#ffd23b", Z: "N" }]];
   const MUTA_G = [["I", { R: "C", Z: "W" }], ["F", { R: "R", Z: "Z" }], ["G", { R: "W", Z: "G" }], ["H", { R: "N", Z: "R" }], ["F", { R: "B", Z: "#1c2f6b" }], ["I", { R: "N", Z: "Y" }], ["H", { R: "Y", Z: "M" }]];
   // La runa (en este nivel hace de arcoíris: ilumina todo y desata la fiebre) y el liche, que se dibuja en grande en el escenario
   const RUNA = ["....RRR....", "...R.R.R...", "..R..R..R..", ".R..RRR..R.", ".R.R.R.R.R.", ".R..RRR..R.", "..R..R..R..", "...R.R.R...", "....RRR...."];
@@ -163,7 +167,8 @@
   const REPARTO = {
     uia: [[], ["gusano", "polilla"], ["fantasma", "nido"], ["gemelo", "acorazado", "troya", "gusano"], ["bomba", "polilla", "bomba"], ["fantasma", "reloj", "nido"], ["gemelo", "troyaOk", "acorazado", "troya"], [], ["fantasma", "nido", "reloj"], []],
     grimorio: [[], ["gusano", "polilla"], ["gemelo", "acorazado"], ["bomba", "polilla", "acorazado"], [], ["nido", "reloj"], ["gemelo", "bomba", "polilla", "troyaOk"]],
-    doom: [[], ["gusano", "troyaOk"], ["polilla", "acorazado"], ["gemelo", "nido"], ["bomba", "polilla", "acorazado", "troya"], ["fantasma", "nido", "reloj"], ["gusano", "gemelo", "troya"], ["bomba", "polilla"], [], ["bomba", "gemelo", "polilla", "troyaOk"], ["reloj"]],
+    funk: [[], ["gusano", "reloj"], ["polilla", "gemelo", "bomba"], ["gemelo", "troya", "polilla", "gusano"], ["bomba", "acorazado", "troyaOk", "polilla"], ["fantasma", "nido", "reloj"], ["gusano", "gemelo", "troya", "acorazado"], ["bomba", "polilla", "bomba"], ["fantasma", "nido", "reloj"], [], ["bomba", "gemelo", "polilla", "troyaOk", "acorazado"]],
+    doom: [[], ["gusano", "troyaOk", "nido"], ["polilla", "acorazado", "bomba"], ["gemelo", "troya", "polilla", "gusano"], ["bomba", "acorazado", "gemelo", "troyaOk"], ["reloj", "fantasma"], ["bomba", "polilla"], [], ["bomba", "gemelo", "polilla", "troyaOk"], ["reloj"]],
   };
   const esTrampa = (o) => o.tipo === "mal" || o.tipo === "troya";
   const ANTIVIRUS = ["..WWWWWWW..", ".WWWWVWWWW.", "WWWWWVWWWWW", "WWWWWVWWWWW", "WWVVVVVVVWW", "WWWWWVWWWWW", "WWWWWVWWWWW", ".WWWWVWWWW.", "..WWWWWWW.."];
@@ -315,6 +320,10 @@
   const CAMPANAS_ESCUDO = 12;
   let campanas = 0, escudo = 0;
   const mundoDe = (i) => (R.mundos ? R.mundos[i] : "");
+  // Nivel FUTURE FUNK: el groove (0 a 8). Sube con cada salto que cae en el golpe de la música y hace que cada bug valga más
+  // (hasta el doble); si se deja de bailar, baja solo. grooveT = segundo del último salto al compás · grooveFx = su destello
+  const GROOVE_MAX = 8;
+  let groove = 0, grooveT = 0, grooveFx = 0;
   // Pantallas: disco elegido en el estante, tramo elegido en la cinta, tramo que se practica (null = canción entera),
   // en qué va la pantalla final ("conteo", "resultado", "practica", "crash", "clasico") y sus datos
   let selDisco = Math.max(0, Math.min(3, +(lee("bitBugsDisco") || 0) || 0)), selTramo = 0, practica = null, finModo = "", finN = 0, res = null;
@@ -375,6 +384,8 @@
     fx.style.width = `${FW * escala}px`;
     fx.style.height = `${FH * escala}px`;
     if (!aEl.hidden) ponAudio(aEl.dataset.d);
+    // Las tramas guardadas dependen del tamaño del lienzo: al cambiar, se vuelven a pintar
+    tramas = {};
   }
   // Si el marcador cambia de alto (en el teléfono ocupa dos renglones en ritmo), el recuadro se vuelve a medir
   if (window.ResizeObserver) new ResizeObserver(() => { if (!el.hidden) medir(); }).observe(marco);
@@ -550,22 +561,29 @@
     for (const q of colaV) q.T--;
     while (colaV.length && colaV[0].T <= 0) { const q = colaV.shift(); abreCombo(q.clase, q.dato); }
   }
-  /* El grito de racha: al subir de nivel de combo, la palabra cae de golpe arriba del recuadro, chueca, con el multiplicador
-     pegado como etiqueta. Entra en un instante, se queda poco menos de un segundo (un poco más en las rachas altas) y se va. */
-  let gritoN = 0;
+  /* El grito de racha: al subir de nivel de combo pasa un listón con la palabra. No sale siempre en el mismo sitio: cada vez
+     elige un lugar distinto de la terminal (nunca encima de BIT, y de preferencia del lado contrario), algo ladeado, y se va
+     en un segundo. El material del listón sube con la racha: papel, bronce, plata, oro y arcoíris.
+     El multiplicador, en cambio, se queda en grande al fondo del recuadro mientras dure la racha (lo pinta dibuja()). */
+  let gritoN = 0, gritoLugar = -1;
+  const LUGARES_GRITO = [[0.24, 0.24], [0.76, 0.24], [0.2, 0.42], [0.8, 0.42], [0.5, 0.36], [0.27, 0.64], [0.73, 0.64]];
   function grita(nv) {
     if (!rectL || nv < 1) return;
-    const n = ++gritoN, queda = Math.min(1.6, 1 + nv * 0.05);
+    const n = ++gritoN, queda = Math.min(1.3, 0.85 + nv * 0.04);
+    // Los lugares del lado donde está BIT y a su altura quedan fuera; tampoco se repite el anterior
+    const ladoBit = (bit.x + 5) / W, libres = LUGARES_GRITO.map((_, i) => i).filter((i) => i !== gritoLugar && !(LUGARES_GRITO[i][1] > 0.5 && Math.abs(LUGARES_GRITO[i][0] - ladoBit) < 0.3));
+    gritoLugar = libres[(Math.random() * libres.length) | 0];
+    const [lx, ly] = LUGARES_GRITO[gritoLugar];
     $("b", gEl).textContent = GRITOS[Math.min(nv, GRITOS.length) - 1];
     $("em", gEl).textContent = `x${1 + nv * 0.5}`;
-    $("i", gEl).textContent = `${NIVELES[Math.min(nv, NIVELES.length) - 1][0]} ${T("SEGUIDOS", "IN A ROW")}`;
-    gEl.style.setProperty("--c", TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
+    gEl.className = `j-grito g-${nv < 3 ? "papel" : nv < 5 ? "bronce" : nv < 7 ? "plata" : nv < 10 ? "oro" : "arco"}`;
     gEl.style.setProperty("--q", `${queda}s`);
-    gEl.style.left = `${rectL.left + rectL.width / 2}px`;
-    gEl.style.top = `${rectL.top + rectL.height * 0.3}px`;
+    gEl.style.setProperty("--rot", `${(Math.random() * 10 - 5).toFixed(1)}deg`);
+    gEl.style.left = `${rectL.left + rectL.width * lx}px`;
+    gEl.style.top = `${rectL.top + rectL.height * ly}px`;
     // Se reinicia la animación aunque el grito anterior siga en pantalla
     gEl.hidden = true; void gEl.offsetWidth; gEl.hidden = false;
-    setTimeout(() => { if (n === gritoN) gEl.hidden = true; }, (0.12 + queda + 0.25) * 1000);
+    setTimeout(() => { if (n === gritoN) gEl.hidden = true; }, (0.16 + queda + 0.22) * 1000);
   }
   function cierraVentana() { gritoN++; gEl.hidden = true; ponAudio(null); colaV = []; for (const v of VENT) { v.el.hidden = true; v.T = 0; v.lugar = -1; } }
   // Cada nivel de combo alcanzado suma medio punto al multiplicador; con fiebre, todo vale el doble
@@ -842,6 +860,7 @@
     ondas = []; punch = 0; fiebre = 0; burbujas = []; ataques = []; rayoN = 0; iman = 0; llenaT = 0; llenaAviso = false; gatoFrente = 0; vuela = false; vueloAviso = false; vx = vy = 0;
     celdas = [0, 0, 0, 0, 0]; pistaT = desde > 0 ? 0 : 420; atrapadosPista = 0; cierraVentana();
     cierraOrden(); dichos = {};
+    groove = 0; grooveT = 0; grooveFx = 0;
     luz = luzVis = 0.75; campanas = guardado && guardado.campanas ? guardado.campanas : 0; escudo = guardado && guardado.escudo ? guardado.escudo : 0; res = null; finModo = ""; finN++; cred = desde > 0 ? -1 : 0;
     tramos = guardado && guardado.tramos ? JSON.parse(guardado.tramos) : R.sec.map(() => [0, 0]);
     ts = desde; ultA = -1; rI = 0; rG = 0; golpeN = 0; pulso = 0; secI = -1; cambio = 0; combo = 0; maxCombo = 0; atrapados = 0; giro = 0; vGiro = 0.3; energiaAhora = 0;
@@ -924,7 +943,7 @@
     res = { total, ok, pct, rango, rI2, antes, nuevos, tengo, peor: -1 };
     hud();
     const n = ++finN;
-    aviso(`<p class="jm-t jm-t2">${G() ? T("¡GRIMORIO SELLADO!", "GRIMOIRE SEALED!") : DM() ? T("¡PUEBLO A SALVO!", "TOWN SAVED!") : T("¡VIRUS ELIMINADO!", "VIRUS REMOVED!")}</p>
+    aviso(`<p class="jm-t jm-t2">${G() ? T("¡GRIMORIO SELLADO!", "GRIMOIRE SEALED!") : DM() ? T("¡PUEBLO A SALVO!", "TOWN SAVED!") : FK() ? T("¡PISTA CONQUISTADA!", "DANCE FLOOR CONQUERED!") : T("¡VIRUS ELIMINADO!", "VIRUS REMOVED!")}</p>
       <div class="jf-cuenta">${filas.map((f) => `<p class="jf-f${f[2] ? "" : " jf-no"}" hidden><span>${f[0]}</span><b>${f[2] ? `+${f[1]}` : "- - -"}</b></p>`).join("")}<p class="jf-f jf-tot" hidden><span>TOTAL</span><b>${seis(pts)}</b></p></div>
       <p class="jf-gris">${tactil ? T("Toca para saltar", "Tap to skip") : T("Pulsa una tecla para saltar", "Press any key to skip")}</p>`);
     entraMsg();
@@ -1261,13 +1280,13 @@
     const s = seccionDe(ts);
     if (s !== secI) {
       // Salir vivo del jefe da premio
-      if (secI === JEFE && s === JEFE + 1) { if (G()) cmd("SELLAR LICHE.EXE", "SEAL LICH.EXE", "COMPLETO: el liche cae +1000", "DONE: the lich falls +1000"); else if (DM()) cmd("KILL DEMONIO.EXE", "KILL DEMON.EXE", "COMPLETO: demonio fuera +1000", "DONE: demon gone +1000"); else cmd("KILL GATO.EXE", "KILL CAT.EXE", "COMPLETO: memoria a salvo +1000", "DONE: memory safe +1000"); pts += 1000; peligro = 0; textos.push({ txt: "+1000", x: W / 2, y: H * 0.5, vida: 70, max: 70, c: "#ffe14a", e: 2 }); [659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "square", 0.04, i * 0.08)); }
+      if (secI === JEFE && s === JEFE + 1) { if (G()) cmd("SELLAR LICHE.EXE", "SEAL LICH.EXE", "COMPLETO: el liche cae +1000", "DONE: the lich falls +1000"); else if (DM()) cmd("KILL DEMONIO.EXE", "KILL DEMON.EXE", "COMPLETO: demonio fuera +1000", "DONE: demon gone +1000"); else if (FK()) cmd("STOP DJ.EXE", "STOP DJ.EXE", "COMPLETO: el DJ se rinde +1000", "DONE: the DJ gives up +1000"); else cmd("KILL GATO.EXE", "KILL CAT.EXE", "COMPLETO: memoria a salvo +1000", "DONE: memory safe +1000"); pts += 1000; peligro = 0; textos.push({ txt: "+1000", x: W / 2, y: H * 0.5, vida: 70, max: 70, c: "#ffe14a", e: 2 }); [659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "square", 0.04, i * 0.08)); }
       secI = s;
       cambio = 26;
       // Punto de control al entrar a cada escenario: si BIT cae, se reintenta desde aquí
       foto = { t: R.sec[s][0], pts, maxCombo, atrapados, cont: continues, tramos: JSON.stringify(tramos), campanas, escudo };
       // DOOM CROSSING: al pasar del pueblo al infierno, las campanas se cobran como armadura (hasta dos escudos)
-      if (DM() && mundoDe(s) !== "p" && s > 0 && mundoDe(s - 1) === "p") {
+      if (DM() && mundoDe(s) === "i" && s > 0 && mundoDe(s - 1) !== "i") {
         const n = Math.min(2 - escudo, Math.floor(campanas / CAMPANAS_ESCUDO));
         if (n > 0) { escudo += n; campanas -= n * CAMPANAS_ESCUDO; cmd("ARMADURA.EXE", "ARMOR.EXE", `COMPLETO: ${n} escudo${n > 1 ? "s" : ""} por tus campanas`, `DONE: ${n} shield${n > 1 ? "s" : ""} for your bells`); [392, 523, 784].forEach((f, i) => bip(f, 0, 0.12, "square", 0.05, i * 0.07)); }
         else if (!escudo) cmd("ARMADURA.EXE", "ARMOR.EXE", "ALERTA: sin campanas no hay escudo", "WARNING: no bells, no shield");
@@ -1295,12 +1314,21 @@
       if (secI === JEFE && !jefeAviso) { jefeAviso = true; cmdRes("ALERTA: sal de la runa de fuego", "WARNING: leave the fire rune"); }
       if (secI === 5 && en > 0.6) cmd("HOGUERA.EXE", "BONFIRE.EXE", "OK: descansa, tu luz vuelve", "OK: rest, your light returns", "hoguera");
       if (secI === 6 && en > 0.6) cmd("SELLO.EXE /cerrar", "SEAL.EXE /close", "sellando el grimorio...", "sealing the grimoire...", "sello");
+    } else if (FK()) {
+      const en = ts - R.sec[secI][0];
+      if (secI === 0 && en > 6) cmd("GROOVE.EXE", "GROOVE.EXE", tactil ? "OK: toca con el golpe y vale mas" : "OK: salta con el golpe y vale mas", tactil ? "OK: tap on the beat for more" : "OK: hop on the beat for more", "groove");
+      if (R.sec[JEFE][0] - ts < 5.6 && ts < R.sec[JEFE][0]) cmd("DJ.EXE /subir volumen", "DJ.EXE /volume up", null, null, "prejefe");
+      if (secI === JEFE && !jefeAviso) { jefeAviso = true; cmdRes("ALERTA: sal del reflector", "WARNING: leave the spotlight"); }
+      if (secI === 8 && en > 0.6) cmd("CINTA.EXE /lado B", "TAPE.EXE /side B", "OK: respira y recupera vidas", "OK: breathe and win lives back", "ladoB");
+      // El groove se apaga solo si se deja de bailar
+      if (groove > 0 && ts - grooveT > 2.4) { groove--; grooveT = ts - 1.2; }
     } else if (DM()) {
       const en = ts - R.sec[secI][0];
       if (secI === 1 && en > 0.8) cmd("CAMPANAS.EXE", "BELLS.EXE", "OK: 12 campanas = 1 escudo", "OK: 12 bells = 1 shield", "camp");
       if (R.sec[JEFE][0] - ts < 5.6 && ts < R.sec[JEFE][0]) cmd("DEMONIO.EXE /invocar", "DEMON.EXE /summon", null, null, "prejefe");
       if (secI === JEFE && !jefeAviso) { jefeAviso = true; cmdRes("ALERTA: sal de la columna de fuego", "WARNING: leave the fire column"); }
-      if (secI === 9 && en > 0.6) cmd("MUNDOS.EXE /juntar", "WORLDS.EXE /merge", "ALERTA: los dos a la vez", "WARNING: both at once", "dos");
+      if (secI === 3 && en > 0.6) cmd("PORTAL.EXE /bucle", "PORTAL.EXE /loop", "ALERTA: los mundos se turnan", "WARNING: the worlds take turns", "vaiven");
+      if (secI === 8 && en > 0.6) cmd("MUNDOS.EXE /juntar", "WORLDS.EXE /merge", "ALERTA: los dos a la vez", "WARNING: both at once", "dos");
     } else {
       if (ts > R.error + 0.4 && secI === 0) cmd("GATO.EXE", "CAT.EXE", "ERROR: proceso no autorizado", "ERROR: unauthorized process", "error");
       if (R.sec[JEFE][0] - ts < 5.6 && ts < R.sec[JEFE][0]) cmd("GATO.EXE /llenar memoria", "CAT.EXE /fill memory", null, null, "prejefe");
@@ -1422,7 +1450,7 @@
         if ((o.tipo !== "bono" || o.nota) && !o.libre && !o.cria) { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; }
         if (G()) luz = Math.min(1, luz + 0.07);
         // En el pueblo cada bug da una campana (el dorado, tres)
-        if (DM() && mundoDe(o.s) === "p" && !o.libre) campanas += o.tipo === "oro" ? 3 : 1;
+        if (DM() && mundoDe(o.s) !== "i" && !o.libre) campanas += o.tipo === "oro" ? 3 : 1;
         if (!o.h) celdas[o.c] = 9;
         if (pistaT > 40 && ++atrapadosPista >= 3) pistaT = 40;
         if (combo > maxCombo) maxCombo = combo;
@@ -1433,7 +1461,7 @@
         const base = o.tipo === "bono" ? Math.min(60, 15 + fiebreN * 3) : o.tipo === "oro" ? 50 : o.tipo === "arco" ? 100 : o.tipo === "anti" ? 30 : o.tipo === "glitch" ? 25
           : o.tipo === "gusano" ? [10, 15, 45][o.seg || 0] : o.tipo === "troyaOk" ? 100 : pareja ? 80 : BICHOS[o.tipo] ? BICHOS[o.tipo].pts : 10;
         // Los de premio no se multiplican por el combo, solo por la fiebre: si no, los puntos se disparan
-        const n = Math.round(base * (o.tipo === "bono" ? 2 : multi()));
+        const n = Math.round(base * (o.tipo === "bono" ? 2 : multi()) * (FK() ? 1 + groove / GROOVE_MAX : 1));
         pts += n;
         if (fiebre > ts) { fiebreTotal += n; if (o.tipo === "bono") fiebreN++; }
         atrapa(o, o.tipo === "oro" || o.tipo === "bono" ? "#ffe14a" : o.tipo === "arco" ? SANDE[t % SANDE.length] : o.tipo === "anti" ? "#41B883" : tono, o.tipo === "bug" ? 1 : 2);
@@ -1553,7 +1581,7 @@
       // En el vuelo los rayos no paran y van cambiando de figura: uno de arriba abajo donde esté BIT, uno de lado a lado,
       // la cruz (los dos a la vez), la jaula (dos a los lados: no te muevas), el pasillo (dos de lado a lado) y el barrido
       // (tres de arriba abajo que cruzan la pantalla uno tras otro)
-      if (!UIA()) cmd("FUEGO.EXE", "FIRE.EXE", "ALERTA: esquiva las franjas de fuego", "WARNING: dodge the fire strips", "rayosVuelo"); else cmd("RAYO.EXE", "BOLT.EXE", "ALERTA: esquiva las franjas rosas", "WARNING: dodge the pink strips", "rayosVuelo");
+      if (FK()) cmd("LASER.EXE", "LASER.EXE", "ALERTA: esquiva las franjas de luz", "WARNING: dodge the light strips", "rayosVuelo"); else if (!UIA()) cmd("FUEGO.EXE", "FIRE.EXE", "ALERTA: esquiva las franjas de fuego", "WARNING: dodge the fire strips", "rayosVuelo"); else cmd("RAYO.EXE", "BOLT.EXE", "ALERTA: esquiva las franjas rosas", "WARNING: dodge the pink strips", "rayosVuelo");
       // Avisan con dos golpes de anticipación (poco más de un segundo), para que dé tiempo de salir también con el dedo
       const tv = rG + 1 < R.golpes.length && R.golpes[rG + 1] / 100 - ts < 1.6 ? R.golpes[rG + 1] / 100 : t1;
       const bx = bit.x + 5, by = bit.y + 6, pon = (tipo, v, dt = 0) => ataques.push(tipo === "x" ? { tipo, x: Math.max(8, Math.min(W - 8, v)), t0: ts, t1: tv + dt } : { tipo, y: Math.max(18, Math.min(piso() - 8, v)), t0: ts, t1: tv + dt });
@@ -1583,16 +1611,31 @@
   function saltaA(c) {
     c = Math.max(0, Math.min(carriles - 1, c));
     if (c === bit.c) return;
+    if (FK() && modo === "ritmo" && estado === "jugando" && !vuela) alCompas();
     // Donde arrancó el salto queda una copia que tarda más en irse
     const f = fuerzaEstela();
     if (!RM) { if (f >= 2) ecos.push({ x: bit.x, y: bit.y, vida: 30, max: 30, c: SANDE[0] }); else if (!f) fantasmas.push({ x: bit.x, vida: 6 }); }
     bit.c = c;
     estira = 1;
   }
+  // FUTURE FUNK: si el salto cae a menos de una décima de segundo de un golpe de la música, sube el groove
+  function alCompas() {
+    const g = R.golpes;
+    let mejor = 9;
+    for (let i = Math.max(0, rG - 2); i < Math.min(g.length, rG + 2); i++) mejor = Math.min(mejor, Math.abs(g[i] / 100 - ts));
+    if (mejor > 0.1) return;
+    grooveT = ts; grooveFx = 9;
+    bip(2600, 0, 0.02, "square", 0.018); bip(1300, 0, 0.03, "triangle", 0.02);
+    if (groove < GROOVE_MAX && ++groove === GROOVE_MAX) {
+      textos.push({ txt: "GROOVE x2", x: W / 2, y: H * 0.4, vida: 60, max: 60, c: "#00f6ff", e: 1.5 });
+      [659, 880, 1109, 1319].forEach((f, i) => bip(f, 0, 0.09, "square", 0.035, i * 0.05));
+    }
+    if (!RM) for (let i = 0; i < 6; i++) chispas.push({ x: bit.x + 5, y: bit.y + 11, vx: azar(-1.8, 1.8), vy: azar(-1.6, -0.4), vida: 12, c: i % 2 ? "#00f6ff" : "#ff3fb4", g: 1 });
+  }
   // Qué tanta estela deja BIT: 0 nada, 1 corta y azul (partes tranquilas), 2 larga, 3 larga y a todo color (estribillos, vuelo, fiebre)
   function fuerzaEstela() {
     if (modo !== "ritmo" || secI < 0) return 0;
-    if (vuela || fiebre > ts) return 3;
+    if (vuela || fiebre > ts || (FK() && groove >= GROOVE_MAX)) return 3;
     return (R.fuerte || [1, JEFE]).includes(secI) ? 3 : (R.sube || [3, 6]).includes(secI) ? 2 : secI === 0 || secI === R.sec.length - 1 ? 0 : 1;
   }
   function dejaEstela() {
@@ -1669,6 +1712,7 @@
     chispas.forEach((c) => { c.x += c.vx; c.y += c.vy; c.vy += 0.16; c.vida--; }); chispas = chispas.filter((c) => c.vida > 0);
     if (aplasta > 0) aplasta--;
     if (destello > 0) destello--;
+    if (grooveFx > 0) grooveFx--;
     if (estado === "cierre" && cierre) { pasoCierre(); return; }
     if (estado !== "jugando") return;
     if (modo === "ritmo") { pasoRitmo(); return; }
@@ -1729,6 +1773,16 @@
     ctx.fillStyle = "rgba(0,0,0,.16)";
     for (let y = 9; y < piso(); y += 2) ctx.fillRect(0, y, W, 1);
     if (!vuela) { ctx.fillStyle = "rgba(255,255,255,.06)"; for (let c = 1; c < carriles; c++) for (let y = 11; y < piso(); y += 4) ctx.fillRect(Math.round(c * LW), y, 1, 2); }
+    // El multiplicador de la racha, enorme y tenue al fondo del recuadro: va detrás de todo, así que no tapa nada
+    if (ritmo && estado === "jugando" && nivelCombo() > 0) {
+      const nv = nivelCombo(), k = W > 150 ? 9 : 6, txt = `X${multi()}`;
+      ctx.save();
+      ctx.translate(Math.round(W / 2 - (txt.length * 4 - 1) * k / 2), Math.round(9 + (piso() - 9) * 0.5 - 2.5 * k));
+      ctx.scale(k, k);
+      ctx.globalAlpha = Math.min(0.3, 0.11 + punch * 0.1);
+      letras(txt, 0, 0, TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
+      ctx.restore();
+    }
     if (temblor) ctx.translate(temblor % 2 ? 1 : -1, 0);
     // La memoria que GATO.EXE va llenando: celdas que suben desde el piso, verdes, luego amarillas, luego rojas
     if (ritmo && peligroVis > 0.03) {
@@ -1752,7 +1806,7 @@
     }
     // Los rayos del gato: primero una franja que avisa (cada vez más marcada), luego el rayo
     // (en el GRIMORIO son columnas de fuego, en naranja)
-    const cA = UIA() ? "#ff2e7e" : "#ff7a1a", rA = UIA() ? "255,46,126" : "255,122,26";
+    const cA = UIA() ? "#ff2e7e" : FK() ? "#00f6ff" : "#ff7a1a", rA = UIA() ? "255,46,126" : FK() ? "0,246,255" : "255,122,26";
     for (const a of ataques) {
       const k = Math.min(1, (ts - a.t0) / (a.t1 - a.t0));
       const [x, y, w, hh] = a.tipo === "v" ? [Math.round(a.c * LW) + 1, 9, Math.round(LW) - 1, piso() - 9] : a.tipo === "x" ? [Math.round(a.x) - 8, 9, 16, piso() - 9] : [0, Math.round(a.y) - 7, W, 14];
@@ -1773,14 +1827,14 @@
         // El golpe: un fogonazo blanco y luego el color
         ctx.fillStyle = edad < 0.35 ? "#ffffff" : cA;
         ctx.fillRect(x, y, w, hh);
-        ctx.fillStyle = edad < 0.35 ? cA : UIA() ? "#ffffff" : "#ffe14a";
+        ctx.fillStyle = edad < 0.35 ? cA : UIA() ? "#ffffff" : FK() ? "#ff3fb4" : "#ffe14a";
         // El rayo en zigzag
         if (a.tipo === "h") { let yy = y + hh / 2; for (let i = 0; i < W; i += 4) { const ny = y + 2 + Math.random() * (hh - 4); ctx.fillRect(i, Math.round(Math.min(yy, ny)), 4, Math.max(2, Math.round(Math.abs(ny - yy)))); yy = ny; } }
         else { let xx = x + w / 2; for (let i = 9; i < piso(); i += 4) { const nx = x + 2 + Math.random() * (w - 4); ctx.fillRect(Math.round(Math.min(xx, nx)), i, Math.max(2, Math.round(Math.abs(nx - xx))), 4); xx = nx; } }
         ctx.globalAlpha = 1;
       }
     }
-    const MU = G() ? MUTA_G : DM() ? MUTA_D : MUTA;
+    const MU = G() ? MUTA_G : DM() ? MUTA_D : FK() ? MUTA_F : MUTA;
     for (const o of objs) {
       let sp, mp = null, ox = 0;
       const cuadro = (t >> 3) % 2;
@@ -1881,7 +1935,7 @@
     if (vuela) { ctx.fillStyle = "#3a4058"; for (let x = (t >> 1) % 8; x < W; x += 8) ctx.fillRect(x, py + 3, 4, 1); }
     else for (let c = 0; c < carriles; c++) {
       const x0 = Math.round(c * LW), w = Math.round(LW), ok = celdas[c] > 0, lado = ritmo && iman > ts && Math.abs(c - bit.c) === 1 && (iman - ts > 1 || (t >> 2) % 2), act = c === bit.c || lado;
-      ctx.fillStyle = ok ? col.V : lado ? col.C : act ? (ritmo && pulso > 0.7 ? "#ffffff" : col.Y) : "#3a4058";
+      ctx.fillStyle = ok ? col.V : lado ? col.C : c === bit.c && grooveFx > 3 ? "#00f6ff" : act ? (ritmo && pulso > 0.7 ? "#ffffff" : col.Y) : "#3a4058";
       ctx.fillRect(x0 + 2, py + 2, 1, 4); ctx.fillRect(x0 + 2, py + 2, 3, 1); ctx.fillRect(x0 + 2, py + 5, 3, 1);
       ctx.fillRect(x0 + w - 3, py + 2, 1, 4); ctx.fillRect(x0 + w - 5, py + 2, 3, 1); ctx.fillRect(x0 + w - 5, py + 5, 3, 1);
       if (act || ok) ctx.fillRect(x0 + 6, py + 3, w - 12, 2);
@@ -1926,9 +1980,16 @@
           ctx.fillRect(X - 12 - i, Y - 2 + i, 1, 5 - i * 2); ctx.fillRect(X + 11 + i, Y - 2 + i, 1, 5 - i * 2);
         }
       }
+      // En FUTURE FUNK, BIT lleva audífonos; con el groove al máximo, le brillan
+      if (ritmo && FK()) {
+        const X = Math.round(bit.x), Y = Math.round(yb), c = groove >= GROOVE_MAX && (t >> 2) % 2 ? "#ffffff" : "#ff3fb4";
+        ctx.fillStyle = "#05030f"; ctx.fillRect(X, Y - 2, 10, 1); ctx.fillRect(X - 1, Y - 1, 1, 3); ctx.fillRect(X + 10, Y - 1, 1, 3);
+        ctx.fillStyle = c; ctx.fillRect(X - 2, Y + 2, 2, 4); ctx.fillRect(X + 10, Y + 2, 2, 4);
+        ctx.fillStyle = "#00f6ff"; ctx.fillRect(X - 2, Y + 3, 1, 2); ctx.fillRect(X + 11, Y + 3, 1, 2);
+      }
       // En DOOM CROSSING: en el pueblo lleva una hojita en la cabeza; en el infierno, casco y hombreras. Con escudo, un marco azul
       if (ritmo && DM()) {
-        const X = Math.round(bit.x), Y = Math.round(yb), m = mundoDe(secI);
+        const X = Math.round(bit.x), Y = Math.round(yb), m = mundoVis();
         if (m === "p") { ctx.fillStyle = "#3fbf5a"; ctx.fillRect(X + 4, Y - 3, 3, 2); ctx.fillRect(X + 6, Y - 4, 2, 1); ctx.fillStyle = "#1d6b4a"; ctx.fillRect(X + 4, Y - 1, 1, 1); }
         else { ctx.fillStyle = "#3f6b2a"; ctx.fillRect(X + 1, Y - 3, 8, 1); ctx.fillRect(X, Y - 2, 10, 2); ctx.fillRect(X - 2, Y + 5, 2, 3); ctx.fillRect(X + 10, Y + 5, 2, 3); ctx.fillStyle = "#7ddc6b"; ctx.fillRect(X + 2, Y - 2, 6, 1); }
         if (escudo > 0 && ((t >> 3) % 2 || escudo > 1)) { ctx.fillStyle = "#7dd3fc"; ctx.fillRect(X - 3, Y - 5, 16, 1); ctx.fillRect(X - 3, Y + 12, 16, 1); ctx.fillRect(X - 3, Y - 5, 1, 18); ctx.fillRect(X + 12, Y - 5, 1, 18); }
@@ -1988,6 +2049,12 @@
       // Cuánta luz queda, en la orilla izquierda
       ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillRect(1, 11, 4, 22);
       ctx.fillStyle = luz < 0.3 && (t >> 2) % 2 ? col.R : "#ffe14a"; const hl = Math.round(Math.min(1, luz) * 20); ctx.fillRect(2, 12 + 20 - hl, 2, hl);
+    }
+    // FUTURE FUNK: el medidor de groove, en la orilla izquierda: ocho escalones que se encienden de rosa a cian
+    if (ritmo && FK() && estado === "jugando") {
+      ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillRect(1, 11, 7, 30);
+      letras("G", 3, 12, groove >= GROOVE_MAX ? "#00f6ff" : "W");
+      for (let i = 0; i < GROOVE_MAX; i++) { ctx.fillStyle = i < groove ? (grooveFx > 4 ? "#ffffff" : i >= 5 ? "#00f6ff" : "#ff3fb4") : "#3a4058"; ctx.fillRect(2, 38 - i * 3, 5, 2); }
     }
     // DOOM CROSSING: las campanas juntadas (se llenan hasta valer un escudo) y los escudos que ya se tienen, en la orilla izquierda
     if (ritmo && DM() && estado === "jugando") {
@@ -2479,7 +2546,32 @@
     },
   ];
 
-  /* ---------- Escenarios del nivel DOOM CROSSING: un pueblito tierno y un infierno metalero que se turnan ---------- */
+  /* ---------- Escenarios del nivel DOOM CROSSING ----------
+     Dos mundos que se turnan: un pueblito de colores pastel y un infierno rojo. Los cambios de mundo caen en los mismos
+     segundos que en el video oficial de la canción (R.cambios), y se hacen por un portal: un óvalo que crece desde el
+     centro y deja ver el otro lado. Por el fondo corre la pareja del nivel, dos robots propios del juego: TANQUE, grande
+     y de visor rosa, y ROBI, chico y redondo. En el pueblo pasean; en el infierno van mandando diablillos a volar. */
+  const TANQUE = ["....MM......", "..SSSSSSSS..", "..SVVVVVVS..", "..SSSSSSSS..", ".SSSSSSSSSS.", "SSDSSSSSSDSS", "SS.SSCCSS.SS", "SS.SSSSSS.SS", "FF.SSSSSS.FF", "...SS..SS...", "...SS..SS...", "..DDD..DDD.."];
+  const ROBI = ["...C....", "..WWWW..", ".WWWWWW.", ".WKWWKW.", ".WWWWWW.", ".WWKKWW.", "..WWWW..", "..C..C.."];
+  const COL_DUO = { S: "#5a6b9a", D: "#2a3358", V: "#ff3fb4", C: "#00f6ff", F: "#ffd23b", M: "#ff3fb4", W: "#9be8ff", K: "#05030f" };
+  // La pareja corriendo por el horizonte. modo: "p" pasean (con redes si caza), "i" a toda prisa, tirando diablillos
+  function pareja(y, modo, caza) {
+    const vel = modo === "i" ? 46 : 20, x = ((ts * vel) % (FW + 120)) - 60, paso = RM ? 0 : (t >> (modo === "i" ? 2 : 3)) % 2, s = 2;
+    const ty = y - 12 * s + (paso && modo === "i" ? -1 : 0);
+    sprFx(TANQUE.slice(0, 9), x, ty, s, COL_DUO);
+    sprFx(TANQUE.slice(9), x + (paso ? s : 0), ty + 9 * s, s, COL_DUO);
+    const rx = x - 26, ry = y - 8 * s - Math.abs(Math.sin(ts * (modo === "i" ? 9 : 5))) * 5;
+    sprFx(ROBI, rx, ry, s, COL_DUO);
+    if (caza) for (const [bx, by] of [[x + 20, ty - 6], [rx + 12, ry - 8]]) { linea("#ffd23b", bx - 6, by + 12, bx, by + 2); aro("#ffffff", bx + 2, by - 2, 4, 8, 0); }
+    if (modo !== "i") return;
+    // Tres diablillos se le echan encima y salen volando al compás
+    for (let i = 0; i < 3; i++) {
+      const f = (ts * 1.5 + i / 3) % 1, vuela = f > 0.62, k = vuela ? (f - 0.62) / 0.38 : 0;
+      const dx = vuela ? x + 30 + k * 70 : x + 30 + (1 - f / 0.62) * 80, dy = vuela ? y - 12 - Math.sin(k * 3.1) * 44 : y - 10 - Math.abs(Math.sin(ts * 8 + i)) * 3;
+      sprFx(ESPECIES.L[(t >> 2) % 2], dx, dy, 1, { R: vuela ? "#ffffff" : "#ff2a4a", W: "#ffd23b", K: "#05030f" });
+      if (vuela && k < 0.25) { rc("#ffffff", x + 26, y - 16, 6, 2); rc("#ffd23b", x + 28, y - 18, 2, 6); }
+    }
+  }
   // El pueblo, a distintas horas: 0 amanecer, 1 día, 2 tarde, 3 noche, 4 nublado en rojo, 5 atardecer
   function pueblo(hora) {
     const noche = hora === 3, rojo = hora === 4;
@@ -2530,8 +2622,32 @@
     if (!RM) for (let i = 0; i < 24 + nivel * 12; i++) rc(i % 3 ? "#ff7a1a" : "#ffe14a", h(i) * FW, FH - ((ts * (16 + h(i + 0.4) * 30) + h(i + 0.1) * FH) % FH), 1, 1);
     if (!RM && nivel && pulso > 0.85) { c2.globalAlpha = 0.12; rc("#ff2a1a", 0, 0, FW, FH); c2.globalAlpha = 1; }
   }
+  // Un portal: óvalo por el que se ve la escena 'dentro', con su aro de chispas
+  function portal(x, y, rx, dentro, e) {
+    const ry = rx * 1.6;
+    if (rx < 1) return;
+    c2.save();
+    c2.beginPath(); c2.ellipse(x, y, rx, ry, 0, 0, TAU); c2.clip();
+    dentro(e);
+    c2.restore();
+    for (let i = 0; i < 40; i++) { const a = (i / 40) * TAU + ts * 2; rc(i % 3 ? "#ff2a4a" : i % 2 ? "#ffd23b" : "#ffffff", x + Math.cos(a) * (rx + (RM ? 0 : Math.random() * 2)), y + Math.sin(a) * (ry + (RM ? 0 : Math.random() * 2)), rx > 20 ? 2 : 1, rx > 20 ? 2 : 1); }
+  }
+  // La pasarela: cortinas a rayas y reflectores rosas que barren al compás
+  function pasarela() {
+    for (let x = 0; x < FW; x += 12) rc(x % 24 ? "#7a2a6b" : "#a33a8a", x, 0, 12, FH);
+    rc("#3a1040", 0, FH * 0.7, FW, FH);
+    for (let i = 0; i < 4; i++) { const x = FW * (0.15 + i * 0.23); haz("255,200,230", 0.16 + pulso * 0.12, x, 4, x + Math.sin(ts * 1.3 + i * 1.7) * FW * 0.2, 60, 0, FH * 0.7); }
+    for (let i = 0; i < 24; i++) if ((t >> 3) % 3 === i % 3) rc("#ffffff", h(i) * FW, h(i + 0.5) * FH * 0.7, 1, 1);
+  }
+  const conPareja = (f, modo, caza) => (e) => { f(e); pareja(Math.round(FH * 0.66), modo, caza); };
+  // Cada tramo trae sus dos caras [pueblo, infierno]; los que van sueltos (jefe, túnel, pantalla partida) son una sola escena
   const ESCENAS_D = [
-    () => pueblo(0), () => pueblo(1), () => infierno(0), () => pueblo(2), () => infierno(1), () => pueblo(3), () => pueblo(4),
+    [conPareja(() => pueblo(0), "p"), conPareja(() => infierno(0), "i")],
+    [conPareja(() => pueblo(1), "p"), conPareja(() => infierno(0), "i")],
+    [conPareja(() => pueblo(1), "p"), conPareja(() => infierno(0), "i")],
+    [conPareja(() => pueblo(2), "p", true), conPareja(() => infierno(1), "i")],
+    [conPareja(() => pueblo(1), "p", true), conPareja(() => infierno(1), "i")],
+    [conPareja(pasarela, "p"), conPareja(() => infierno(1), "i")],
     // JEFE DEMONIO.EXE: una calavera con cuernos flota sobre la lava, con los ojos encendidos
     (e) => {
       infierno(2);
@@ -2539,13 +2655,11 @@
       haz("255,60,20", 0.14 + pulso * 0.14, lx, 13 * s, lx, FW * 0.7, ly, FH);
       sprFx(DEMONIO, Math.round(lx - 6.5 * s), Math.round(ly - 6 * s), s, { R: "#b3260f", W: "#e8e0d0", K: "#0a0002", Y: pulso > 0.5 ? "#ffffff" : "#ffd23b" });
     },
-    // CIELO ROJO: BIT vuela sobre el infierno; pasan nubes negras e islotes de roca
-    () => {
-      bandas(["#2a0308", "#4a060c", "#7a0d0f", "#b3260f", "#e0521a"], 0, FH);
-      disco("#ffb13b", FW * 0.5, FH * 0.95, 26 + pulso * 3);
-      for (let i = 0; i < 9; i++) { const v = 20 + h(i) * 50, x = FW - ((ts * v + h(i + 0.2) * (FW + 80)) % (FW + 80)) + 20, y = h(i + 0.5) * FH; rc("#120004", x, y, 40, 5); rc("#120004", x + 8, y - 3, 22, 4); rc("#2a0308", x + 4, y + 5, 26, 2); }
-      for (let i = 0; i < 3; i++) { const x = FW - ((ts * 12 + i * (FW / 2.2)) % (FW + 60)) + 10, y = FH * (0.3 + i * 0.22); for (let k = 0; k < 6; k++) rc("#0a0002", x + k * 2, y + k * 2, 30 - k * 4, 2); rc("#ff7a1a", x + 6, y - 2, 3, 2); }
-      if (!RM) for (let i = 0; i < 30; i++) rc(i % 3 ? "#ff7a1a" : "#ffe14a", FW - ((ts * (60 + h(i) * 90) + h(i + 0.3) * FW) % FW), h(i + 0.6) * FH, 2, 1);
+    // ENTRE DIMENSIONES: BIT vuela por el túnel entre los dos mundos; pasan portales por los que se asoma el pueblo
+    (e) => {
+      bandas(["#2a0308", "#4a060c", "#7a0d0f", "#b3260f", "#7a0d0f", "#4a060c", "#2a0308"], 0, FH);
+      if (!RM) for (let i = 0; i < 40; i++) { const v = 60 + h(i) * 140, x = FW - ((ts * v + h(i + 0.3) * FW) % FW); rc(i % 4 ? "#ff7a1a" : "#ffe14a", x, h(i + 0.6) * FH, 3 + v / 40, 1); }
+      for (let i = 0; i < 2; i++) { const x = FW + 50 - ((ts * 34 + i * (FW + 100) / 2) % (FW + 100)); portal(x, FH * (0.3 + i * 0.4), 16 + pulso * 2, () => pueblo(i ? 2 : 1), e); }
     },
     // DOS MUNDOS: la pantalla partida, el pueblo de un lado y el infierno del otro; la raya se mece con la música
     (e) => {
@@ -2557,8 +2671,262 @@
       c2.restore();
       linea(pulso > 0.6 ? "#ffffff" : "#ffd23b", corte + inc, 0, corte - inc, FH); linea("#0a0002", corte + inc + 1, 0, corte - inc + 1, FH);
     },
-    () => pueblo(5),
+    [conPareja(() => pueblo(5), "p"), conPareja(() => infierno(0), "i")],
   ];
+  // En qué mundo va el video en este segundo, y cuándo fue el último cambio y cuándo viene el siguiente
+  function mundoVideo() {
+    let m = 0, ult = -9, sig = 1e9;
+    for (const c of R.cambios || []) { if (ts >= c) { m ^= 1; ult = c; } else { sig = c; break; } }
+    return { m, ult, sig };
+  }
+  // El mundo que se ve ahora (para el traje de BIT): el del video en los tramos de dos caras; el del tramo en los demás
+  const mundoVis = () => (Array.isArray(ESCENAS_D[secI]) ? (mundoVideo().m ? "i" : "p") : mundoDe(secI));
+  // La escena del tramo. Al cambiar de mundo, el otro lado entra por un portal que crece desde el centro; si el cambio
+  // viene tras un rato largo en el mismo mundo, un par de segundos antes ya se ve el portal abierto a la derecha
+  function escenaDoom(e) {
+    const par = ESCENAS_D[secI];
+    if (!Array.isArray(par)) { par(e); return; }
+    const { m, ult, sig } = mundoVideo(), en = ts - ult;
+    if (!RM && en < 0.55) { par[m ^ 1](e); portal(e.cx, e.cy, Math.pow(en / 0.55, 2) * Math.hypot(FW, FH) * 0.5, par[m], e); return; }
+    par[m](e);
+    if (sig - ts < 2.5 && sig - ult > 6) portal(FW * 0.88, FH * 0.5, Math.min(12, (2.5 - (sig - ts)) * 8) + pulso * 1.5, par[m ^ 1], e);
+  }
+  /* ---------- Escenarios del nivel FUTURE FUNK ----------
+     Pixel art de consola de 8 bits: muy pocos colores por escena (azules de noche, o el morado al naranja del ocaso, más
+     negro, un naranja de acento y blanco), degradados hechos con trama en vez de mezclas suaves, siluetas grandes en negro
+     con un filo de luz, cielo con pocas estrellas y franjas negras de cine arriba y abajo. */
+  // Las tramas (degradados punteados) se pintan una sola vez en un lienzo guardado y luego solo se copian
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  let tramas = {};
+  const rgbDe = (hex) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  function trama(clave, w, hh, pintar) {
+    const k = `${clave}|${w}|${hh}`;
+    if (!tramas[k]) {
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = hh;
+      const x = cv.getContext("2d"), im = x.createImageData(w, hh);
+      pintar(im.data, w, hh);
+      x.putImageData(im, 0, 0);
+      tramas[k] = cv;
+    }
+    return tramas[k];
+  }
+  // El cielo: los colores van de arriba abajo y entre uno y el siguiente se mezclan con trama
+  function cieloTramado(cols, y0, y1) {
+    const hh = Math.max(1, Math.round(y1 - y0));
+    c2.drawImage(trama(`c${cols.join("")}`, FW, hh, (d, w, alto) => {
+      const C = cols.map(rgbDe), n = C.length - 1;
+      for (let y = 0; y < alto; y++) {
+        const f = (y / alto) * n, i = Math.min(n - 1, Math.floor(f)), fr = f - i;
+        for (let x = 0; x < w; x++) { const c = fr * 16 > BAYER[(x & 3) + (y & 3) * 4] + 0.5 ? C[i + 1] : C[i], p = (y * w + x) * 4; d[p] = c[0]; d[p + 1] = c[1]; d[p + 2] = c[2]; d[p + 3] = 255; }
+      }
+    }), 0, Math.round(y0));
+  }
+  // Una mancha de un solo color hecha de puntos: fn(x, y) (de 0 a 1 en cada eje) dice qué tan tupida va en cada lugar
+  function mancha(clave, c, fn) {
+    c2.drawImage(trama(`m${clave}${c}`, FW, FH, (d, w, alto) => {
+      const C = rgbDe(c);
+      for (let y = 0; y < alto; y++) for (let x = 0; x < w; x++) if (fn(x / w, y / alto) * 16 > BAYER[(x & 3) + (y & 3) * 4] + 0.5) { const p = (y * w + x) * 4; d[p] = C[0]; d[p + 1] = C[1]; d[p + 2] = C[2]; d[p + 3] = 255; }
+    }), 0, 0);
+  }
+  const PF = { k: "#000010", n1: "#0c0c6c", n2: "#1c1cb4", n3: "#2c64e4", n4: "#5cb0fc", o1: "#e86c10", o2: "#fca44c", b: "#ffffff" };
+  const NOCHE_F = [PF.n1, PF.n1, PF.n2, PF.n2, PF.n3], OCASO_F = ["#18084c", "#4c1088", "#a0247c", "#e4505c", "#fc9c4c", "#fcd87c"], ALBA_F = ["#4c1088", "#a0247c", "#e4505c", "#fc9c4c", "#fcd87c", "#fcf4c4"];
+  // Las laderas de luz punteada que suben por los dos costados, y las franjas negras de cine
+  const laderas = (c) => mancha("lad", c, (x, y) => Math.max(0, (y - 0.12 - Math.min(x, 1 - x) * 1.7) * 1.5));
+  const resplandor = (clave, c, cx, cy, r) => mancha(`r${clave}`, c, (x, y) => Math.max(0, 1 - Math.hypot((x - cx) * (FW / FH), y - cy) / r));
+  function cine() { const a = Math.round(FH * 0.09); rc("#000000", 0, 0, FW, a); rc("#000000", 0, FH - a, FW, a); }
+  // Pocas estrellas: puntos sueltos y alguna en cruz, que titila
+  function estrellasF(n, yMax, c) {
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(h(i + 0.13) * FW), y = Math.round(FH * 0.1 + h(i + 0.57) * yMax);
+      if (i % 5 === 0) { if (RM || (t >> 4) % 3 !== i % 3) { rc(c, x - 1, y, 3, 1); rc(c, x, y - 1, 1, 3); } } else rc(c, x, y, 1, 1);
+    }
+  }
+  // La luna, gordita y de orillas a escalón
+  function lunaF(x, y, r) { for (let dy = -r; dy <= r; dy++) { const w = Math.min(r, Math.round((r - Math.abs(dy)) * 1.6 + r * 0.45)); rc(PF.b, x - w, y + dy, w * 2, 1); } }
+  // El piso en rejilla, con las líneas que se acercan
+  function rejilla(c, yH, fondo) {
+    rc(fondo, 0, yH, FW, FH - yH);
+    for (let i = 0; i < 9; i++) { const k = (i + (RM ? 0 : (ts * 0.9) % 1)) / 9, y = yH + k * k * (FH - yH); rc(c, 0, y, FW, 1); }
+    for (let i = -8; i <= 8; i++) linea(c, FW / 2 + i * 9, yH, FW / 2 + i * 34, FH);
+  }
+  // El sol: un disco de dos tonos cortado por franjas del color del cielo
+  function solRetro(c1, c2b, cA, x, y, r) {
+    for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); rc(dy > r * 0.1 ? c2b : c1, x - w, y + dy, w * 2, 1); }
+    for (let i = 1; i < 6; i++) rc(cA, x - r, y + r - i * i * 0.8 - 1, r * 2, Math.max(1, Math.round(i * 0.55)));
+  }
+  // La ciudad en silueta: negra, con un filo de luz a la izquierda de cada edificio y pocas ventanas encendidas
+  function ciudad(yH, alto, filo, luces) {
+    for (let i = 0; i < 16; i++) {
+      const x = Math.round(i * (FW / 16)), w = Math.ceil(FW / 16), a = Math.round((8 + h(i + 0.2) * 24) * alto + (i % 5 === 2 ? 14 * alto : 0));
+      rc(PF.k, x, yH - a, w, a); rc(filo, x, yH - a, 1, a); rc(filo, x, yH - a, w * 0.5, 1);
+      if (i % 5 === 2) { rc(PF.k, x + w / 2 - 1, yH - a - 7, 2, 7); if ((t >> 4) % 2) rc(luces[1], x + w / 2 - 1, yH - a - 8, 2, 1); }
+      for (let k = 0; k < a / 6 - 1; k++) for (let j = 0; j < 2; j++) if (h(i * 9 + k * 3 + j + (golpeN >> 3)) > 0.7) rc(luces[(i + k + j) % luces.length], x + 3 + j * 5, yH - a + 4 + k * 6, 2, 3);
+    }
+  }
+  // Palmeras en primer plano: silueta negra con el filo de las hojas iluminado
+  function palmeras(yH, lugares, filo) {
+    lugares.forEach(([fx, alto], i) => {
+      const x = Math.round(FW * fx), y = yH + 6, m = RM ? 0 : Math.sin(ts * 1.2 + i) * 2, cima = y - alto;
+      for (let k = 0; k < alto; k++) rc(PF.k, x + Math.round(Math.sin(k * 0.05 + i) * 4), y - k, 3 + (k < 6 ? 1 : 0), 1);
+      const cx2 = x + Math.round(Math.sin(alto * 0.05 + i) * 4) + 1;
+      for (let k = -3; k <= 3; k++) {
+        const largo = alto * 0.42, ex = cx2 + k * largo * 0.36 + m, ey = cima + Math.abs(k) * largo * 0.24 - (3 - Math.abs(k)) * 2;
+        for (let g = 0; g < 3; g++) linea(PF.k, cx2, cima + g, ex, ey + g + 1);
+        linea(filo, cx2, cima - 1, ex, ey);
+      }
+      rc(PF.k, cx2 - 2, cima, 5, 4);
+    });
+  }
+  // El casete gigante del arranque y del lado B: silueta negra con filo de luz, dos carretes que giran y el avance de la cinta
+  function casete(e, ladoB) {
+    cieloTramado(NOCHE_F, 0, FH);
+    laderas(PF.n3);
+    estrellasF(26, FH * 0.5, PF.b);
+    lunaF(Math.round(FW * 0.82), Math.round(FH * 0.24), 6);
+    const w = Math.round(Math.min(160, FW * 0.62)), hh = Math.round(w * 0.6), x = Math.round(e.cx - w / 2), y = Math.round(e.cy - hh / 2), filo = ladoB ? PF.n4 : PF.o2;
+    rc(PF.k, x, y, w, hh); rc(filo, x, y, w, 1); rc(filo, x + w - 1, y, 1, hh); rc(ladoB ? PF.n3 : PF.o1, x + w - 2, y + 2, 1, hh - 2);
+    rc(PF.n1, x + 10, y + 9, w - 20, Math.round(hh * 0.5)); rc(PF.n2, x + 10, y + 9, w - 20, 1);
+    for (const lado of [-1, 1]) {
+      const cx2 = Math.round(e.cx + lado * w * 0.22), cy2 = Math.round(y + 9 + hh * 0.25), g = ts * (ladoB ? -3 : 2) * lado;
+      disco(PF.k, cx2, cy2, 12); aro(PF.b, cx2, cy2, 9, 6, g, 2); aro(filo, cx2, cy2, 4, 4, -g, 1);
+    }
+    rc(PF.n2, x + 12, y + hh - 13, w - 24, 4); rc(filo, x + 12, y + hh - 13, Math.round((w - 24) * Math.min(1, Math.max(0, (ts - e.sec[0]) / (e.sec[1] - e.sec[0])))), 4);
+    for (let i = 0; i < 4; i++) rc(PF.n2, x + 8 + i * ((w - 20) / 3), y + hh - 5, 4, 2);
+    cine();
+  }
+  const BOCINA = ["..MMMMMMMMM..", ".MSSSSSSSSSM.", "MSSWWSSSWWSSM", "MSWKKWSWKKWSM", "MSWKKWSWKKWSM", "MSSWWSSSWWSSM", "MSSSSSSSSSSSM", "MSCCCCCCCCCSM", "MSCKCKCKCKCSM", ".MSSSSSSSSSM.", "..MMMMMMMMM.."];
+  const ESCENAS_F = [
+    // 1. CASETE
+    (e) => casete(e, false),
+    // 2. ATARDECER: el sol se mete en el mar; dos palmeras enormes en primer plano
+    () => {
+      const yH = Math.round(FH * 0.64);
+      cieloTramado(OCASO_F, 0, yH);
+      estrellasF(12, FH * 0.2, PF.b);
+      solRetro("#fcd87c", "#fc9c4c", "#e4505c", Math.round(FW * 0.5), yH - 8, Math.round(24 + pulso * 2));
+      rc("#18084c", 0, yH, FW, FH - yH);
+      mancha("mar", "#e4505c", (x, y) => (y < 0.64 ? 0 : Math.max(0, 0.9 - Math.abs(x - 0.5) * 5 - (y - 0.64) * 1.2)));
+      for (let i = 0; i < 9; i++) { const y = yH + 3 + i * i * 0.9; rc("#fc9c4c", FW * 0.5 - 16 + h(i + (t >> 4)) * 26, y, 5 + h(i) * 6, 1); }
+      rc("#4c1088", 0, yH, FW, 1);
+      palmeras(yH + 8, [[0.1, 62], [0.2, 40], [0.86, 70], [0.95, 44]], "#fc9c4c");
+      rc(PF.k, 0, yH + 12, FW * 0.3, FH); rc(PF.k, FW * 0.76, yH + 14, FW, FH);
+      cine();
+    },
+    // 3. AUTOPISTA: la carretera corre hacia ti, con la ciudad en silueta contra el ocaso
+    () => {
+      const yH = Math.round(FH * 0.6);
+      cieloTramado(OCASO_F, 0, yH);
+      solRetro("#fcd87c", "#fc9c4c", "#e4505c", Math.round(FW * 0.5), yH - 4, Math.round(22 + pulso * 3));
+      ciudad(yH, 0.9, "#a0247c", ["#fcd87c", "#fc9c4c"]);
+      rejilla("#a0247c", yH, PF.k);
+      rc("#fc9c4c", 0, yH, FW, 1);
+      for (let i = 0; i < 6; i++) { const k = (i + (RM ? 0 : (ts * 1.8) % 1)) / 6, y = yH + k * k * (FH - yH); rc("#fcd87c", FW / 2 - 1 - k * 2, y, 2 + k * 4, 2 + k * 5); }
+      for (const lado of [-1, 1]) for (let i = 0; i < 3; i++) { const k = (i + (RM ? 0 : (ts * 0.9) % 1)) / 3, y = yH + k * k * (FH - yH), x = FW / 2 + lado * (40 + k * k * FW * 0.5); rc(PF.k, x, y - 12 - k * 34, 2 + k * 2, 12 + k * 34); rc("#fcd87c", x - 2, y - 14 - k * 34, 6 + k * 3, 2); }
+      cine();
+    },
+    // 4. EL CENTRO: de noche entre rascacielos en silueta, con la luna y las laderas de luz
+    () => {
+      const yH = Math.round(FH * 0.74);
+      cieloTramado(NOCHE_F, 0, FH);
+      laderas(PF.n3);
+      estrellasF(22, FH * 0.3, PF.b);
+      lunaF(Math.round(FW * 0.8), Math.round(FH * 0.22), 7);
+      ciudad(yH, 2.4, PF.n4, [PF.n4, PF.o2, PF.b]);
+      rc(PF.k, 0, yH, FW, FH); rc(PF.n4, 0, yH, FW, 1);
+      for (let i = 0; i < 7; i++) { const x = ((ts * (30 + i * 7) + h(i) * FW) % (FW + 30)) - 15; rc(i % 2 ? PF.o2 : PF.b, i % 2 ? FW - x : x, yH + 4 + i * 3, 5, 1); }
+      cine();
+    },
+    // 5. ARCADE: maquinitas en silueta; lo único encendido son las pantallas y su resplandor
+    () => {
+      const yH = Math.round(FH * 0.7);
+      rc(PF.k, 0, 0, FW, FH);
+      mancha("arc", PF.n1, (x, y) => Math.max(0, 0.75 - Math.abs(y - 0.42) * 2.4));
+      for (let i = 0; i < 8; i++) {
+        const x = Math.round(i * (FW / 8) + 4), w = Math.round(FW / 8 - 8), on = (i + (golpeN >> 2)) % 3, c = on === 0 ? PF.o2 : on === 1 ? PF.n4 : PF.n3;
+        rc("#04041c", x, yH - 50, w, 50); rc(PF.n2, x, yH - 50, 1, 50); rc(PF.n2, x, yH - 50, w, 1);
+        rc(c, x + 3, yH - 44, w - 6, 14); rc(PF.k, x + 5 + ((t >> 3) + i * 3) % Math.max(1, w - 14), yH - 40 + ((t >> 4) + i) % 6, 4, 3);
+        rc(c, x + 2, yH - 46, w - 4, 1);
+        rc(PF.o1, x + 4, yH - 22, 3, 3); rc(PF.b, x + w - 8, yH - 22, 2, 2); rc(PF.n3, x + w - 5, yH - 22, 2, 2);
+      }
+      for (let j = 0; j < 6; j++) for (let i = -1; i < FW / 14 + 1; i++) if ((i + j) % 2) rc(PF.n1, i * 14, yH + j * 8, 14, 8);
+      rc(PF.n3, 0, yH, FW, 1);
+      cine();
+    },
+    // 6. LA AZOTEA: la luna enorme, antenas y un tinaco en silueta, la ciudad chiquita al fondo
+    () => {
+      const yH = Math.round(FH * 0.78);
+      cieloTramado(NOCHE_F, 0, FH);
+      laderas(PF.n3);
+      estrellasF(34, FH * 0.55, PF.b);
+      resplandor("lu", PF.n4, 0.68, 0.34, 0.34);
+      lunaF(Math.round(FW * 0.68), Math.round(FH * 0.34), 20);
+      rc(PF.n4, FW * 0.68 - 9, FH * 0.34 - 6, 5, 3); rc(PF.n4, FW * 0.68 + 6, FH * 0.34 + 5, 4, 3); rc(PF.n4, FW * 0.68 - 2, FH * 0.34 + 10, 3, 2);
+      ciudad(yH, 0.6, PF.n3, [PF.o2, PF.n4]);
+      rc(PF.k, 0, yH, FW, FH); rc(PF.o2, 0, yH, FW, 1);
+      const ax = Math.round(FW * 0.14);
+      rc(PF.k, ax, yH - 46, 2, 46); for (let k = 0; k < 4; k++) rc(PF.k, ax - 7 + k, yH - 44 + k * 5, 16 - k * 2, 1);
+      rc((t >> 4) % 2 ? PF.o1 : PF.k, ax, yH - 48, 2, 2);
+      const tx = Math.round(FW * 0.3); rc(PF.k, tx, yH - 26, 22, 18); rc(PF.o2, tx, yH - 26, 1, 18); rc(PF.o2, tx, yH - 26, 22, 1); rc(PF.k, tx + 3, yH - 8, 2, 8); rc(PF.k, tx + 17, yH - 8, 2, 8);
+      cine();
+    },
+    // 7. PISTA DE BAILE: losetas de tres colores que se encienden con el golpe, bola de espejos y conos de luz punteada
+    (e) => {
+      const yH = Math.round(FH * 0.58), k = Math.min(1, Math.max(0, (ts - e.sec[0]) / (e.sec[1] - e.sec[0])));
+      rc(PF.k, 0, 0, FW, FH);
+      const cono = golpeN % 3;
+      mancha(`co${cono}`, [PF.n2, PF.o1, PF.n3][cono], (x, y) => { const d = Math.abs(x - 0.5 - (cono - 1) * (y - 0.12) * 0.7); return y < 0.12 ? 0 : Math.max(0, 0.6 - d * 5 / (0.4 + y)); });
+      for (let j = 0; j < 7; j++) {
+        const y0 = yH + (j * j * (FH - yH)) / 49, y1 = yH + ((j + 1) * (j + 1) * (FH - yH)) / 49;
+        for (let i = 0; i < 8; i++) { const on = h(i * 5 + j * 11 + golpeN) < 0.25 + k * 0.35, c = on ? [PF.n3, PF.o2, PF.n4, PF.b][(i + j + golpeN) % (k > 0.7 ? 4 : 3)] : (i + j) % 2 ? PF.n1 : "#04041c"; rc(c, FW / 2 + (i - 4) * (14 + j * 9), y0, 13 + j * 9, Math.max(1, y1 - y0 - 1)); }
+      }
+      const bx = Math.round(e.cx), by = Math.round(FH * 0.17);
+      rc(PF.n2, bx, 0, 1, by); disco(PF.n2, bx, by, 11);
+      for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (Math.abs(i) + Math.abs(j) < 4) rc(h(i * 3 + j * 7 + golpeN) > 0.6 ? PF.b : h(i + j * 5) > 0.5 ? PF.n4 : PF.n3, bx + i * 4 - 1 + (j & 1), by + j * 4 - 1, 3, 3);
+      cine();
+    },
+    // 8. JEFE DJ.EXE: una bocina con cara flota sobre la pista; las barras del sonido suben con la música
+    (e) => {
+      rc(PF.k, 0, 0, FW, FH);
+      mancha("dj", PF.n1, (x, y) => Math.max(0, 0.9 - Math.hypot(x - 0.5, (y - 0.4) * 0.9) * 2.2));
+      for (let i = 0; i < 14; i++) { const x = Math.round(i * (FW / 14)), w = Math.ceil(FW / 14) - 2, a = Math.round(6 + espectro12(i) * FH * 0.36); for (let y = 0; y < a; y += 4) rc(y > a - 5 ? PF.o2 : y > a * 0.6 ? PF.n4 : PF.n3, x + 1, FH - Math.round(FH * 0.09) - y - 3, w, 3); }
+      const s = Math.max(2, Math.round(Math.min(60, FW * 0.4, FH * 0.34) / 11)), lx = e.cx + Math.sin(ts * 1.2) * W * 0.3, ly = gy + H * 0.3 - pulso * 3 + Math.sin(ts * 2) * 2;
+      sprFx(BOCINA, Math.round(lx - 6.5 * s), Math.round(ly - 5.5 * s), s, { M: PF.o2, S: PF.k, W: pulso > 0.5 ? PF.b : PF.n4, K: PF.k, C: pulso > 0.5 ? PF.o2 : PF.n2 });
+      aro(PF.n4, lx, ly, 8 * s + pulso * 5, 18, ts, 1);
+      cine();
+    },
+    // 9. LADO B
+    (e) => casete(e, true),
+    // 10. CIELO DE NEON: BIT vuela sobre un mar de nubes en silueta, con el filo encendido por el ocaso
+    () => {
+      cieloTramado(OCASO_F, 0, FH);
+      estrellasF(16, FH * 0.25, PF.b);
+      solRetro("#fcd87c", "#fc9c4c", "#e4505c", Math.round(FW * 0.5), Math.round(FH * 0.8), Math.round(30 + pulso * 3));
+      for (let capa = 0; capa < 3; capa++) {
+        const c = ["#4c1088", "#18084c", PF.k][capa], filo = ["#e4505c", "#fc9c4c", "#fcd87c"][capa], vel = [10, 22, 40][capa], y0 = FH * (0.56 + capa * 0.13);
+        for (let i = 0; i < 7; i++) { const w = 50 + h(i + capa) * 50, x = FW + 40 - ((ts * vel + h(i + capa * 3 + 0.2) * (FW + 160)) % (FW + 160)), y = Math.round(y0 + h(i + capa + 0.5) * 12); rc(c, x, y, w, FH); rc(c, x + 8, y - 5, w - 20, 5); rc(c, x + 16, y - 9, w - 40, 4); rc(filo, x, y, 8, 1); rc(filo, x + 8, y - 5, 8, 1); rc(filo, x + 16, y - 9, Math.max(2, w - 40), 1); }
+      }
+      if (!RM) for (let i = 0; i < 16; i++) { const v = 70 + h(i) * 120, x = FW - ((ts * v + h(i + 0.3) * FW) % FW); rc(PF.b, x, FH * 0.12 + h(i + 0.6) * FH * 0.35, 4 + v / 30, 1); }
+      cine();
+    },
+    // 11. AMANECER FUNK: sale el sol entre rayos punteados; palmeras y ciudad en silueta
+    () => {
+      const yH = Math.round(FH * 0.64);
+      cieloTramado(ALBA_F, 0, yH);
+      const fase = golpeN % 2;
+      mancha(`ray${fase}`, "#fcf4c4", (x, y) => { if (y > 0.64) return 0; const a = Math.atan2(0.64 - y, (x - 0.5) * (FW / FH)); return (Math.floor(a / 0.2618) + fase) % 2 ? 0.34 : 0; });
+      solRetro("#fcf4c4", "#fcd87c", "#fc9c4c", Math.round(FW * 0.5), yH - 2, Math.round(28 + pulso * 3));
+      ciudad(yH, 0.7, "#e4505c", ["#fcf4c4", "#fc9c4c"]);
+      rejilla("#e4505c", yH, "#18084c");
+      rc("#fcd87c", 0, yH, FW, 1);
+      palmeras(yH + 8, [[0.08, 66], [0.92, 72]], "#fcd87c");
+      if (!RM) for (let i = 0; i < 26; i++) rc([PF.b, "#fcd87c", "#e4505c"][i % 3], (h(i) * FW + Math.sin(ts + i) * 6) % FW, (h(i + 0.5) * FH + ts * (20 + h(i + 0.2) * 30)) % FH, 2, 2);
+      cine();
+    },
+  ];
+  // Las barras del DJ: suben y bajan con la energía y el golpe
+  const espectro12 = (i) => Math.max(0.05, (0.3 + energiaAhora * 0.5) * (0.4 + 0.6 * Math.abs(Math.sin(ts * (2 + i * 0.37) + i))) * (0.6 + pulso * 0.4));
+
 
   /* ---------- El gato: quieto cuando la canción calla, girando cuando suena ----------
      La hoja images/juego/gato-uia.png trae 6 cuadros de 64 px: 0 = parado, 1 a 5 = una vuelta.
@@ -2670,12 +3038,13 @@
     if (estado === "cierre" && cierre) { dibujaCierreFx(); return; }
     // Tras el cierre, el escenario se queda apagado detrás de los resultados
     if (negro && estado === "fin") { fx.style.transform = ""; rc("#000000", 0, 0, FW, FH); if (destello > 0) { c2.globalAlpha = destello / 26; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; } return; }
-    (G() ? ESCENAS_G : DM() ? ESCENAS_D : ESCENAS)[secI]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] });
+    const esc = { cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] };
+    if (DM()) escenaDoom(esc); else (G() ? ESCENAS_G : FK() ? ESCENAS_F : ESCENAS)[secI](esc);
     if (UIA()) { dibujaGato(); rayosDelGato(); }
     // Con fiebre, una lluvia de destellos de colores por toda la pantalla
     if (fiebre > ts && !RM) for (let i = 0; i < 26; i++) rc(SANDE[(i + (t >> 2)) % SANDE.length], h(i) * FW, (h(i + 0.5) * FH + ts * (30 + h(i + 0.2) * 50)) % FH, 2, 2);
     // El destello al cambiar de escenario y el fogonazo del despegue
-    if (!RM && cambio > 0) { c2.globalAlpha = (cambio / 26) * 0.55; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
+    if (!RM && cambio > 0 && !DM()) { c2.globalAlpha = (cambio / 26) * 0.55; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
     if (!RM && UIA() && secI === 3 && ts > 98.86) { c2.globalAlpha = Math.min(1, (ts - 98.86) / 1.96) * 0.5; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
     // Al fallar un bug: la imagen se rompe en tiras y se tiñe de rojo
     if (interferencia > 0 && !RM) { tiras(5, 10, t); c2.globalAlpha = (interferencia / 12) * 0.2; rc("#ff0030", 0, 0, FW, FH); c2.globalAlpha = 1; }
@@ -2705,7 +3074,7 @@
     const k = cierre, T0 = k.t, cx = gx + W / 2, cy = gy + H * 0.5;
     fx.style.transform = "";
     rc("#000000", 0, 0, FW, FH);
-    const cols = G() ? ["#c084ff", "#ffd23b", "#ffffff", "#7a3fc0"] : DM() ? ["#ff5a4a", "#7dff3c", "#ffd23b", "#ffffff"] : ["#00f6ff", "#ff3fb4", "#ffe14a", "#ffffff"];
+    const cols = G() ? ["#c084ff", "#ffd23b", "#ffffff", "#7a3fc0"] : DM() ? ["#ff5a4a", "#7dff3c", "#ffd23b", "#ffffff"] : FK() ? ["#ff3fb4", "#00f6ff", "#ffd23b", "#ffffff"] : ["#00f6ff", "#ff3fb4", "#ffe14a", "#ffffff"];
     const p = Math.min(1, T0 / 150), sale = 1 - Math.pow(1 - p, 3), alfa = T0 < 80 ? 1 : Math.max(0, 1 - (T0 - 80) / 70);
     if (alfa > 0) {
       c2.globalAlpha = alfa;

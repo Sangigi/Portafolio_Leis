@@ -890,16 +890,20 @@ span.jc-s{cursor:default}
 .jf-reto{font-size:18px;line-height:1.1;color:var(--p-gris)}
 .jf-reto b{font-weight:400;color:var(--p-blanco)}
 .jf-v{color:var(--p-verde)}
-/* El grito de racha: la palabra cae de golpe, chueca, con contorno negro y el borde rojo y azul del CRT; el multiplicador va pegado como etiqueta */
-.j-grito{--c:var(--p-amarillo);--q:1s;position:absolute;z-index:4;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:12px;font-family:var(--f-pixel);line-height:1;white-space:nowrap;pointer-events:none;
-  animation:jgEntra .14s steps(4,end),jgSale .25s steps(4,end) calc(.14s + var(--q)) forwards}
+/* El grito de racha: un listón con la palabra que se despliega en algún lugar de la terminal, ladeado, y se va en un segundo.
+   Su material sube con la racha: papel, bronce, plata, oro y arcoíris. El multiplicador va en una etiqueta chica */
+.j-grito{--q:.9s;--rot:-3deg;--m:linear-gradient(90deg,#d8d6cc,#ffffff 50%,#d8d6cc);position:absolute;z-index:4;transform:translate(-50%,-50%) rotate(var(--rot));font-family:var(--f-pixel);line-height:1;white-space:nowrap;pointer-events:none;
+  animation:jgEntra .16s steps(5,end),jgSale .22s steps(4,end) calc(.16s + var(--q)) forwards}
 .j-grito[hidden]{display:none}
-.j-grito b{font-weight:400;font-size:clamp(24px,7.4vw,56px);color:var(--c);transform:rotate(-4deg);
-  text-shadow:-4px 0 var(--p-negro),4px 0 var(--p-negro),0 -4px var(--p-negro),0 4px var(--p-negro),-4px -4px var(--p-negro),4px -4px var(--p-negro),-4px 4px var(--p-negro),4px 4px var(--p-negro),-8px 0 rgba(255,61,61,.85),8px 0 rgba(61,123,255,.85),0 10px 0 var(--p-negro)}
-.j-grito i{padding:4px 8px;font-style:normal;font-size:clamp(8px,1.8vw,12px);letter-spacing:.06em;color:var(--p-blanco);background:var(--p-negro)}
-.j-grito em{position:absolute;right:-22px;top:-24px;padding:6px 8px;font-style:normal;font-size:clamp(12px,3vw,20px);color:var(--p-negro);background:var(--p-rosa);transform:rotate(9deg);box-shadow:0 0 0 3px var(--p-negro),5px 5px 0 var(--p-negro)}
-@keyframes jgEntra{0%{transform:translate(-50%,-50%) scale(3);opacity:0}70%{transform:translate(-50%,-50%) scale(.9)}}
-@keyframes jgSale{100%{clip-path:inset(50% 0);opacity:0}}
+.j-grito b{display:block;padding:9px 14px;font-weight:400;font-size:clamp(11px,2.6vw,20px);letter-spacing:.04em;color:var(--p-negro);background:var(--m);box-shadow:0 0 0 3px var(--p-negro),6px 6px 0 var(--p-negro)}
+.j-grito i{display:none}
+.j-grito em{position:absolute;right:-14px;top:-13px;padding:4px 5px;font-style:normal;font-size:clamp(8px,1.6vw,11px);color:var(--p-blanco);background:var(--p-negro);box-shadow:0 0 0 2px var(--p-blanco);transform:rotate(8deg)}
+.g-bronce{--m:linear-gradient(90deg,#b86a2e,#f0b27a 50%,#b86a2e)}
+.g-plata{--m:linear-gradient(90deg,#9aa3b8,#f4f7ff 50%,#9aa3b8)}
+.g-oro{--m:linear-gradient(90deg,#ffc41a,#fff7c2 50%,#ffc41a)}
+.g-arco{--m:linear-gradient(90deg,#ff5a4a,#ffd23b,#5dff7a,#00f6ff,#c84bff,#ff3fb4)}
+@keyframes jgEntra{0%{clip-path:inset(0 50%);transform:translate(-50%,-50%) rotate(var(--rot)) scale(1.25)}}
+@keyframes jgSale{100%{clip-path:inset(0 50%);opacity:0}}
 /* El telón entre pantallas: diez tiras que entran alternadas desde los dos lados, con su filo de colores, y salen por el otro */
 .j-trans{position:absolute;inset:0;z-index:6;overflow:hidden;pointer-events:none;visibility:hidden}
 .j-trans i{position:absolute;left:0;width:100%;height:10.2%;background:var(--p-negro);transform:translateX(-103%);box-shadow:8px 0 0 var(--p-amarillo),16px 0 0 var(--p-rosa),24px 0 0 var(--p-cian)}
