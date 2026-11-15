@@ -809,8 +809,8 @@ body.warming #app{animation:warm .8s ease-out}
 @media (pointer:coarse){
   .cont-juego-k{display:none}
   .juego-ayuda{font-size:0}
-  .juego-ayuda::after{content:"Arrastra el dedo para mover a BIT";font-size:19px}
-  :root[lang="en"] .juego-ayuda::after{content:"Drag your finger to move BIT"}
+  .juego-ayuda::after{content:"Desliza para mover a BIT";font-size:19px}
+  :root[lang="en"] .juego-ayuda::after{content:"Drag to move BIT"}
 }
 
 @media (prefers-reduced-motion:reduce){

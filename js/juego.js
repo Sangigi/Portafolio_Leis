@@ -4,7 +4,8 @@
    - RITMO: los bugs caen al compás de "u i a Cat" (mapa en js/ritmo-uia.js); el escenario cambia con la
      canción y ocupa toda la pantalla, no solo el recuadro del juego. Un gato (images/juego/gato-uia.png) se
      pasea por el fondo y gira más rápido o más lento según la música. No se pierde: al final hay nota.
-   BIT se mueve por 5 carriles, de un salto por toque: nada de deslizarse.
+   BIT se mueve por 5 carriles, de un salto por toque. En el hiperespacio vuela libre y esquiva rayos.
+   Los bugs cambian de especie con cada escenario y hay especiales: dorado, arcoíris (fiebre x2), glitch y antivirus.
    La canción cuenta una historia: la consola arranca, GATO.EXE la tumba con un error crítico, a media
    canción hay un JEFE (cada bug que cae sube la pista de colores y, si se llena, BIT muere) y al final
    el antivirus limpia al gato.
@@ -28,11 +29,40 @@
 
   const CORAZON = [".RR.RR.", "RWRRRRR", "RRRRRRR", ".RRRRR.", "..RRR..", "...R..."];
   const CORAZON_VACIO = CORAZON.map((f) => f.replace(/[RW]/g, "G"));
-  const BUG = [
-    [".G...G.", "..RRR..", "GRWZRRG", ".RRZRR.", "GRRZRRG", ".RRZRR.", "..R.R.."],
-    ["G.....G", ".GRRRG.", ".RWZRR.", "GRRZRRG", ".RRZRR.", "GRRZRRG", "..R.R.."],
-  ];
-  const ORO = BUG.map((f) => f.map((r) => r.replace(/R/g, "Y").replace(/Z/g, "Q")));
+  // Los bugs: cinco especies de 11×9, cada una con dos cuadros (R cuerpo, Z sombra, W ojos, K pupila, G patas).
+  // En ritmo, cada escenario trae su especie y sus colores (MUTA); en clásico cambian con cada versión.
+  const ESPECIES = {
+    // Catarina
+    A: [["..G.....G..", "...G...G...", "..RRRRRRR..", "GRRWRRRWRRG", ".RRKRZRKRR.", "GRRRRZRRRRG", ".RRZRZRZRR.", "G.RRRZRRR.G", "...RR.RR..."],
+        ["...G...G...", "...G...G...", "..RRRRRRR..", ".RRWRRRWRR.", "GRRKRZRKRRG", ".RRRRZRRRR.", "GRRZRZRZRRG", "..RRRZRRR..", "..RR...RR.."]],
+    // Araña
+    B: [["G...G.G...G", ".G..G.G..G.", "..GRRRRRG..", "..RWKRKWR..", "GGRRRRRRRGG", "..RRZRZRR..", ".GRRRRRRRG.", "G..RRZRR..G", "G.........G"],
+        [".G..G.G..G.", "..G.G.G.G..", "..GRRRRRG..", "..RWKRKWR..", ".GRRRRRRRG.", "G.RRZRZRR.G", "..RRRRRRR..", ".G.RRZRR.G.", ".G.......G."]],
+    // Mosca
+    C: [["WW.......WW", "WWW.....WWW", ".WWRRRRRWW.", "..RWKRKWR..", "..RRRRRRR..", ".GRZZZZZRG.", "..RRRRRRR..", ".G.RZZZR.G.", "....R.R...."],
+        ["...........", "WW.......WW", "WWWRRRRRWWW", ".WRWKRKWRW.", "..RRRRRRR..", ".GRZZZZZRG.", "..RRRRRRR..", ".G.RZZZR.G.", "....R.R...."]],
+    // Virus de picos
+    D: [["R...R.R...R", ".R..RRR..R.", "..RRRRRRR..", "RRRWWRWWRRR", "..RWKRKWR..", "RRRRRRRRRRR", "..RRZZZRR..", ".R.RRRRR.R.", "R...R.R...R"],
+        [".R..R.R..R.", "..R.RRR.R..", "..RRRRRRR..", ".RRWWRWWRR.", "R.RKWRWKR.R", ".RRRRRRRRR.", "R.RRZZZRR.R", "..RRRRRRR..", ".R..R.R..R."]],
+    // Medusa
+    E: [["...RRRRR...", "..RRRRRRR..", ".RRWRRRWRR.", ".RRKRRRKRR.", ".RRRRRRRRR.", "..RZRZRZR..", "..R.R.R.R..", ".R..R.R..R.", ".R.R...R.R."],
+        ["...RRRRR...", "..RRRRRRR..", ".RRWRRRWRR.", ".RRKRRRKRR.", ".RRRRRRRRR.", "..RZRZRZR..", "..R.R.R.R..", "..R.R.R.R..", "...R.R.R..."]],
+  };
+  const ORO_MAPA = { R: "Y", Z: "Q" };
+  // Por escenario: especie y cambio de colores
+  const MUTA = [["A", null], ["B", { R: "P", Z: "M" }], ["E", { R: "C", Z: "B" }], ["C", { R: "N", Z: "R" }], ["D", { R: "P", Z: "R" }],
+    ["C", { R: "Y", Z: "V", W: "C" }], ["D", { R: "V", Z: "D" }], ["B", { R: "C", Z: "M", G: "W" }], ["E", { R: "M", Z: "B" }], ["A", { R: "G", Z: "D" }]];
+  // Antivirus: solo sale con el jefe y baja la pista dos filas
+  const ANTIVIRUS = ["..WWWWWWW..", ".WWWWVWWWW.", "WWWWWVWWWWW", "WWWWWVWWWWW", "WWVVVVVVVWW", "WWWWWVWWWWW", "WWWWWVWWWWW", ".WWWWVWWWW.", "..WWWWWWW.."];
+  const BUG = ESPECIES.A;
+  const ORO = BUG.map((f) => f.map((fila) => fila.replace(/R/g, "Y").replace(/Z/g, "Q")));
+  const BW = 11, BH = 9;
+  // Niveles de combo: al llegar a cada uno sube el multiplicador medio punto y salta su letrero
+  const NIVELES = [[5, "BIEN", "NICE"], [10, "GENIAL", "GREAT"], [15, "SUPER", "SUPER"], [20, "BRUTAL", "BRUTAL"], [30, "MEGA", "MEGA"], [40, "ULTRA", "ULTRA"],
+    [50, "HIPER", "HYPER"], [75, "BESTIAL", "SAVAGE"], [100, "IMPARABLE", "UNSTOPPABLE"], [150, "LEGENDARIO", "LEGENDARY"], [200, "DIVINO", "GODLIKE"], [300, "BIT SUPREMO", "BIT SUPREME"]];
+  const TONOS_COMBO = ["#ffffff", "#38BDF8", "#41B883", "#ffe14a", "#F28C28", "#ff3fb4", "#A259FF", "#ff4d4d", "#00f6ff", "#7dff3c", "#ffd23b", "#ffffff", "#ff2e7e"];
+  // Los colores de la estela de BIT, en orden
+  const SANDE = ["#00f6ff", "#00a2ff", "#6a5cff", "#c84bff", "#ff3fb4", "#ff5a4a", "#ffb13b", "#f7ff4a", "#5dff7a"];
   const CAFE = ["..W..W..", "...W..W.", "WWWWWW..", "WQQQQWWW", "WQQQQW.W", "WQQQQWWW", ".WWWW..."];
   // Números de 3×5 para los "+10" que flotan
   const FUENTE = {
@@ -65,17 +95,23 @@
 
   let W = 200, H = 140, escala = 4, col = {}, raf = 0, ult = 0, acum = 0;
   let estado = "titulo", pts = 0, vidas = 3, nivel = 0, t = 0, sig = 0, objs = [], textos = [], grietas = [], destellos = [];
-  let bit = { c: 5, x: 105 }, izq = false, der = false, meta = null, boca = "n", bocaT = 0, parpadeo = 0, temblor = 0, mensaje = "", mensajeT = 0;
+  let bit = { c: 2, x: 95, y: 120 }, izq = false, der = false, meta = null, boca = "n", bocaT = 0, parpadeo = 0, temblor = 0, mensaje = "", mensajeT = 0;
   let record = +(lee("bitBugsRecord") || 0), nuevoRecord = false, codigo = [], deApagado = false, bloqueamos = false, volverA = null;
   const piso = () => H - 4, bitY = () => piso() - 12;
   // Carriles: BIT y los bugs van por 5 columnas (pocas, para que cada salto cuente)
   const carriles = 5;
   let LW = 40;
-  const xBit = (c) => Math.round(c * LW + LW / 2 - 5), xBug = (c) => Math.round(c * LW + LW / 2 - 3.5);
+  const xBit = (c) => Math.round(c * LW + LW / 2 - 5), xBug = (c) => Math.round(c * LW + LW / 2 - 5.5);
   let dirTecla = 0, rep = 0, fantasmas = [], chispas = [], aplasta = 0;
-  // Ecos de colores que BIT deja al saltar en las partes fuertes de la canción
-  const ECOS_FUERTE = ["#00f0ff", "#ff2bd6", "#7dff3c", "#ffe14a"], ECOS_CALMA = ["#6fb7ff", "#b08cff"];
+  // La estela de BIT: copias de colores que se quedan atrás al moverse en las partes fuertes
   let ecos = [], ecoN = 0;
+  // Lo sabroso de atrapar: ondas, brillo, golpe de cámara, el número de combo que brinca y el letrero de cada nivel
+  let ondas = [], brillo = 0, punch = 0, comboPop = 0, logro = null, fiebre = 0, burbujas = [];
+  // Vuelo libre (escenario 8): BIT deja los carriles y se mueve por todo el recuadro
+  const VUELO = 7;
+  let vuela = false, arr = false, aba = false, metaY = null, vx = 0, vy = 0, vueloAviso = false;
+  // Ataques del gato: rayos que avisan y caen con el siguiente bombo
+  let ataques = [];
   // Fallar un bug: sacudida, BIT lastimado, interferencia en el escenario y la música se apaga un instante
   let dano = 0, interferencia = 0, agachaT = 0;
   // El jefe (escenario 5): cada bug que cae sube la pista; si llega a JEFE_TOPE, BIT muere. Cada bug atrapado la baja
@@ -147,10 +183,26 @@
       B: pig("--p-azul"), C: pig("--p-cian"), P: pig("--p-rosa"), M: pig("--p-morado"), N: pig("--p-naranja"), V: pig("--p-verde"),
     };
   };
-  function pinta(rows, x, yy) {
+  // mapa: cambia unas letras por otras (los colores de cada especie)
+  function pinta(rows, x, yy, mapa) {
     const X = Math.round(x), Y = Math.round(yy);
-    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = r[i]; if (c === ".") continue; ctx.fillStyle = col[c]; ctx.fillRect(X + i, Y + j, 1, 1); } });
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = r[i]; if (c === ".") continue; ctx.fillStyle = col[(mapa && mapa[c]) || c] || (mapa && mapa[c]); ctx.fillRect(X + i, Y + j, 1, 1); } });
   }
+  // Texto con la fuente pixelada y borde negro, para los puntos que saltan y los letreros
+  function rotulo(txt, x, y, c, escala = 1) {
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y));
+    ctx.scale(escala, escala);
+    ctx.font = `8px "Press Start 2P"`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#000000";
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.fillText(txt, dx, dy);
+    ctx.fillStyle = c;
+    ctx.fillText(txt, 0, 0);
+    ctx.restore();
+  }
+  // Azar que no cambia dentro del mismo cuadro (para los efectos de interferencia)
+  const h2 = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
   // El sprite pintado de un solo color, y su contorno negro de un pixel
   function silueta(rows, x, yy, c) {
     const X = Math.round(x), Y = Math.round(yy);
@@ -184,28 +236,30 @@
     vidasEl.innerHTML = [0, 1, 2].map((i) => svg(i < vidas ? CORAZON : CORAZON_VACIO, 2)).join("");
     vidasEl.setAttribute("aria-label", `${T("Vidas", "Lives")}: ${vidas}`);
   }
-  // En ritmo, cada 10 bugs seguidos sube el multiplicador (hasta x4)
-  const multi = () => 1 + Math.min(3, Math.floor(combo / 10));
+  // Cada nivel de combo alcanzado suma medio punto al multiplicador; con fiebre, todo vale el doble
+  const nivelCombo = () => { let n = 0; while (n < NIVELES.length && combo >= NIVELES[n][0]) n++; return n; };
+  const multi = () => (1 + nivelCombo() * 0.5) * (fiebre > ts ? 2 : 1);
   function aviso(html) { msg.innerHTML = html; msg.hidden = !html; }
   function titulo() {
     detieneAudio();
     estado = "titulo";
     modo = "clasico";
-    objs = []; textos = []; grietas = []; destellos = []; fantasmas = []; chispas = []; ecos = []; mensaje = "";
+    objs = []; textos = []; grietas = []; destellos = []; fantasmas = []; chispas = []; ecos = []; ondas = []; ataques = []; burbujas = []; logro = null; mensaje = "";
+    vuela = false; fiebre = 0; combo = 0; bit.y = bitY();
     muerto = false; peligro = peligroVis = 0; dano = 0; interferencia = 0;
     hud();
     aviso(`<p class="jm-t">BIT &amp; BUGS</p>
       <p>${T("Los bugs se escapan del CRT.<br>Atrápalos antes de que lleguen a producción.", "The bugs are escaping from the CRT.<br>Catch them before they reach production.")}</p>
       <p class="jm-x">${svg(BUG[0], 3)}<span>+10</span> ${svg(ORO[0], 3)}<span>+50</span> ${svg(CAFE, 3)}<span>+1 ${T("vida", "life")}</span></p>
       <p class="jm-b jm-modos"><button type="button" data-j="empezar">${kb("1")}${T("CLASICO", "CLASSIC")}</button>${R ? `<button type="button" data-j="ritmo">${kb("2")}${T("RITMO", "RHYTHM")} ♪ U I A CAT</button>` : ""}</p>
-      ${R ? `<p class="jm-nota">${T("RITMO: los bugs caen al compás de la canción. Casi 4 minutos, con un jefe a la mitad: ahí sí se puede perder.", "RHYTHM: bugs fall to the beat of the song. Almost 4 minutes, with a boss halfway: that's where you can lose.")}</p>` : ""}`);
+      ${R ? `<p class="jm-nota">${T("RITMO: bugs al compás de la canción, combos, un jefe que lanza rayos y un tramo donde BIT vuela.", "RHYTHM: bugs to the beat of the song, combos, a boss that throws lightning and a stretch where BIT flies.")}</p>` : ""}`);
   }
   function empezar() {
     detieneAudio();
     modo = "clasico";
     estado = "jugando";
     pts = 0; vidas = 3; nivel = 0; t = 0; sig = 40; objs = []; textos = []; grietas = []; destellos = [];
-    bit = { c: carriles >> 1, x: xBit(carriles >> 1) }; fantasmas = []; chispas = []; ecos = []; dano = 0; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
+    bit = { c: carriles >> 1, x: xBit(carriles >> 1), y: bitY() }; fantasmas = []; chispas = []; ecos = []; ondas = []; logro = null; punch = 0; dano = 0; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
     aviso("");
     hud();
     bip(392, 0, 0.08); bip(523, 0, 0.08, "square", 0.05, 0.09); bip(659, 0, 0.12, "square", 0.05, 0.18);
@@ -266,12 +320,13 @@
     modo = "ritmo";
     estado = "cargando";
     pts = 0; t = 0; objs = []; textos = []; grietas = []; destellos = []; anillos = [];
-    bit = { c: carriles >> 1, x: xBit(carriles >> 1) }; fantasmas = []; chispas = []; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
+    bit = { c: carriles >> 1, x: xBit(carriles >> 1), y: bitY() }; fantasmas = []; chispas = []; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
+    ondas = []; logro = null; punch = 0; comboPop = 0; fiebre = 0; burbujas = []; ataques = []; vuela = false; vueloAviso = false; vx = vy = 0;
     ts = desde; ultA = -1; rI = 0; rG = 0; golpeN = 0; pulso = 0; secI = -1; cambio = 0; combo = 0; maxCombo = 0; atrapados = 0; giro = 0; vGiro = 0.3; energiaAhora = 0;
     ecos = []; dano = 0; interferencia = 0; agachaT = 0; peligro = 0; peligroVis = 0; muerto = false; foto = null; jefeAviso = false; desdeIni = desde; zoom = 1;
     if (guardado) { pts = guardado.pts; maxCombo = guardado.maxCombo; atrapados = guardado.atrapados; }
     // Se saltan las notas y los bombos anteriores al punto de arranque
-    while (rI * 3 < R.notas.length && R.notas[rI * 3] / 1000 < desde + 0.5) rI++;
+    while (rI * 3 < R.notas.length && R.notas[rI * 3] / 1000 < desde + 1.2) rI++;
     while (rG < R.golpes.length && R.golpes[rG] < desde * 100) rG++;
     golpeN = rG;
     gatoX = focoX = gx + W / 2; gatoY = focoY = gy + H * 0.5; gatoTam = 1; gatoQuieto = true; estela = [];
@@ -337,8 +392,12 @@
     if (!RM) { temblor = 11; interferencia = 12; }
     bip(170, 45, 0.3, "sawtooth", 0.075);
     bip(90, 40, 0.22, "square", 0.05, 0.03);
-    if (audio && !audio.muted) { audio.volume = R.volumen * 0.3; agachaT = 12; }
-    if (combo >= 10) { mensaje = T("COMBO ROTO", "COMBO LOST"); mensajeT = 60; }
+    castigo();
+  }
+  // Lo que cuesta fallar un bug o comerse un rayo: la música baja apenas, se pierde el combo y, con el jefe, sube la pista
+  function castigo() {
+    if (audio && !audio.muted) { audio.volume = R.volumen * 0.72; agachaT = 9; }
+    if (combo >= 10) { logro = { txt: T("COMBO ROTO", "COMBO LOST"), vida: 50, max: 50, c: "#ff4d4d" }; }
     combo = 0;
     if (secI === JEFE) {
       peligro = Math.min(JEFE_TOPE, peligro + 1);
@@ -346,12 +405,49 @@
     }
     hud();
   }
+  // Un rayo del gato alcanzó a BIT
+  function golpeado() {
+    boca = "o"; bocaT = 45;
+    dano = 26;
+    if (!RM) { temblor = 12; interferencia = 10; }
+    bip(900, 80, 0.22, "sawtooth", 0.07);
+    bip(60, 40, 0.25, "square", 0.05, 0.02);
+    if (secI !== JEFE) { pts = Math.max(0, pts - 50); textos.push({ txt: "-50", x: bit.x + 5, y: bit.y - 2, vida: 40, max: 40, c: "#ff4d4d", e: 1 }); }
+    castigo();
+  }
   // Qué tan fuerte va la canción en este segundo (0 a 1), suavizado entre muestra y muestra
   function energia(seg) {
     const E = R.energia, x = Math.max(0, Math.min(E.length - 1.001, seg * 2)), i = Math.floor(x), f = x - i;
     return ((+E[i]) * (1 - f) + (+E[i + 1]) * f) / 9;
   }
   const seccionDe = (seg) => { let i = 0; while (i < R.sec.length - 1 && seg >= R.sec[i][1]) i++; return i; };
+  // Los carriles de cada nota se reparten aquí para que BIT nunca se quede parado: casi cada bug obliga a saltar.
+  // De paso se eligen los especiales: dorado (+50), arcoíris (fiebre x2), glitch (cambia de carril al caer) y antivirus (jefe).
+  const mapa = { c: [], tipo: [] };
+  if (R) {
+    let sem = 20261114;
+    const rnd = () => { sem = (sem * 1664525 + 1013904223) >>> 0; return sem / 4294967296; };
+    const N = R.notas, n = N.length / 3;
+    let c = 2, dir = 1, oros = 0, normales = 0;
+    for (let i = 0; i < n; i++) {
+      const tn = N[i * 3] / 1000, dt = i ? tn - N[(i - 1) * 3] / 1000 : 9, dtSig = i < n - 1 ? N[(i + 1) * 3] / 1000 - tn : 9, sec = seccionDe(tn);
+      // Ráfagas muy rápidas: a veces repite carril; lo demás siempre se mueve, y más lejos cuanto más tiempo hay
+      let paso = dt < 0.24 ? (rnd() < 0.45 ? 0 : 1) : dt < 0.42 ? 1 : dt < 0.7 ? (rnd() < 0.65 ? 1 : 2) : 1 + Math.floor(rnd() * 3);
+      if (rnd() < 0.3) dir = -dir;
+      let nc = c + dir * paso;
+      if (nc < 0 || nc > carriles - 1) { dir = -dir; nc = c + dir * paso; }
+      c = Math.max(0, Math.min(carriles - 1, nc));
+      mapa.c.push(c);
+      let tipo = "bug";
+      if (N[i * 3 + 2]) tipo = ++oros % 3 === 0 ? "arco" : "oro";
+      else {
+        normales++;
+        if (sec === JEFE && normales % 13 === 0) tipo = "anti";
+        else if (sec >= 3 && sec !== 9 && sec !== VUELO && dt > 0.3 && dtSig > 0.45 && normales % 11 === 0) tipo = "glitch";
+      }
+      mapa.tipo.push(tipo);
+    }
+  }
   function pasoRitmo() {
     ts = tCancion() + R.desfase;
     // Al reintentar al jefe, se espera a que el audio brinque a su punto
@@ -362,17 +458,22 @@
     const s = seccionDe(ts);
     if (s !== secI) {
       // Salir vivo del jefe da premio
-      if (secI === JEFE && s === JEFE + 1) { pts += 1000; peligro = 0; textos.push({ txt: "+1000", x: W / 2 - 10, y: H * 0.5, vida: 70, c: "Y" }); [659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "square", 0.04, i * 0.08)); }
+      if (secI === JEFE && s === JEFE + 1) { pts += 1000; peligro = 0; textos.push({ txt: "+1000", x: W / 2, y: H * 0.5, vida: 70, max: 70, c: "#ffe14a", e: 2 }); [659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "square", 0.04, i * 0.08)); }
       secI = s;
       cambio = 26;
       mensaje = `${s + 1}/${R.sec.length} ${T(R.sec[s][4], R.sec[s][5])}`;
       mensajeT = 120;
       // Punto de control: lo que se llevaba al llegar al jefe
       if (s === JEFE) { foto = { pts, maxCombo, atrapados }; peligro = 0; jefeAviso = false; }
+      // En el hiperespacio BIT vuela libre; al salir, vuelve a su carril
+      vuela = s === VUELO;
+      if (vuela) { vx = vy = 0; vueloAviso = false; }
+      else bit.c = Math.max(0, Math.min(carriles - 1, Math.floor((bit.x + 5) / LW)));
+      ataques = [];
       hud();
     }
     if (cambio > 0) cambio--;
-    if (secI === JEFE && !jefeAviso && ts > R.sec[JEFE][0] + 2.2) { jefeAviso = true; mensaje = T("NO DEJES CAER NI UNO", "DON'T DROP A SINGLE ONE"); mensajeT = 99; }
+    if (vuela && !vueloAviso && ts > R.sec[VUELO][0] + 2.1) { vueloAviso = true; logro = { txt: T("¡VUELA LIBRE!", "FLY FREE!"), vida: 110, max: 110, c: "#00f6ff" }; }
     peligroVis += (peligro - peligroVis) * 0.2;
     // La cámara: late en las partes fuertes, crece en las subidas y sigue al gato en las tranquilas
     const fuerte = [1, JEFE, 7].includes(secI), sube = secI === 3 || secI === 6, calma = [2, 5, 8].includes(secI);
@@ -383,7 +484,7 @@
     focoY += ((calma ? gatoY : gy + H / 2) - focoY) * 0.04;
     // El escenario late con cada bombo
     pulso *= 0.88;
-    while (rG < R.golpes.length && R.golpes[rG] <= ts * 100) { rG++; golpeN++; pulso = 1; anillos.push(ts); if (anillos.length > 4) anillos.shift(); }
+    while (rG < R.golpes.length && R.golpes[rG] <= ts * 100) { rG++; golpeN++; pulso = 1; anillos.push(ts); if (anillos.length > 4) anillos.shift(); programaAtaque(); }
     // El gato gira según la energía de la canción: de un cuarto de vuelta por segundo a casi tres
     energiaAhora = energia(ts);
     vGiro += (0.22 + energiaAhora * energiaAhora * 2.7 - vGiro) * 0.07;
@@ -393,40 +494,88 @@
     // Cada bug sale con el tiempo justo para llegar a BIT en su nota
     const N = R.notas;
     while (rI * 3 < N.length) {
-      const tn = N[rI * 3] / 1000, d = R.sec[seccionDe(tn)][2];
+      const tn = N[rI * 3] / 1000, sec = seccionDe(tn), d = R.sec[sec][2];
       if (tn - d > ts) break;
-      const fx = N[rI * 3 + 1] / 100;
-      const c = Math.round(fx * (carriles - 1));
-      objs.push({ tipo: N[rI * 3 + 2] ? "oro" : "bug", c, tn, d, x: xBug(c), y: 0 });
-      grietas.push({ x: xBug(c) + 2, vida: 16 });
+      const c = mapa.c[rI], tipo = mapa.tipo[rI];
+      const o = { tipo, c, tn, d, s: sec, x: xBug(c), y: 0 };
+      // El glitch cambia de carril a media caída
+      if (tipo === "glitch") o.c2 = c === 0 ? 1 : c === carriles - 1 ? c - 1 : c + (rI % 2 ? 1 : -1);
+      objs.push(o);
+      grietas.push({ x: xBug(c) + 4, vida: 16 });
       rI++;
     }
-    const by = bitY(), y0 = 3, yT = by - 3;
+    const by = bitY(), y0 = 2, yT = by - 5;
     for (const o of objs) {
-      o.c = Math.min(o.c, carriles - 1);
-      o.x = xBug(o.c);
-      o.y = y0 + (yT - y0) * (1 - (o.tn - ts) / o.d);
-      if (o.y + 6 >= by + 1 && o.y <= by + 7 && o.c === bit.c) {
+      const avance = 1 - (o.tn - ts) / o.d;
+      if (o.c2 != null && !o.salto && avance > 0.52) { o.salto = true; o.c = o.c2; if (!RM) for (let i = 0; i < 6; i++) chispas.push({ x: o.x + 5, y: o.y + 4, vx: azar(-1.5, 1.5), vy: azar(-1, 1), vida: 10, c: "#00f6ff", g: 1 }); }
+      o.x += (xBug(o.c) - o.x) * (o.salto ? 0.5 : 1);
+      o.y = y0 + (yT - y0) * avance;
+      const toca = vuela
+        ? o.x < bit.x + 11 && o.x + BW > bit.x - 1 && o.y < bit.y + 12 && o.y + BH > bit.y - 1
+        : o.y + BH >= by + 1 && o.y <= by + 9 && o.c === bit.c;
+      if (toca) {
         o.fuera = true;
-        atrapa(o);
-        bip(o.tipo === "oro" ? 1568 : 1175, 0, 0.03, "square", 0.018);
+        const antes = nivelCombo();
         combo++; atrapados++;
         if (combo > maxCombo) maxCombo = combo;
-        const n = (o.tipo === "oro" ? 50 : 10) * multi();
+        const nv = nivelCombo(), tono = TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)];
+        const base = o.tipo === "oro" ? 50 : o.tipo === "arco" ? 100 : o.tipo === "anti" ? 30 : o.tipo === "glitch" ? 25 : 10;
+        const n = Math.round(base * multi());
         pts += n;
-        textos.push({ txt: `+${n}`, x: o.x, y: o.y - 4, vida: 34, c: o.tipo === "oro" ? "Y" : "W" });
+        atrapa(o, o.tipo === "oro" ? "#ffe14a" : o.tipo === "arco" ? SANDE[t % SANDE.length] : o.tipo === "anti" ? "#41B883" : tono, o.tipo === "bug" ? 1 : 2);
+        textos.push({ txt: `+${n}`, x: o.x + 5, y: o.y, vida: 38, max: 38, c: o.tipo === "bug" ? tono : "#ffe14a", e: o.tipo === "bug" ? 1 : 1.5 });
+        // Cada bug suena un poco más agudo que el anterior: la escala sube con el combo y vuelve a empezar al fallar
+        bip(523.25 * Math.pow(2, [0, 2, 4, 7, 9][combo % 5] / 12 + Math.min(2, Math.floor(combo / 10))), 0, 0.07, "triangle", 0.045);
         if (o.tipo === "oro") bip(880, 1760, 0.12, "square", 0.03);
-        if (combo % 50 === 0) { mensaje = `COMBO ${combo}!`; mensajeT = 80; }
+        if (o.tipo === "arco") {
+          fiebre = ts + 7;
+          logro = { txt: T("¡FIEBRE x2!", "FEVER x2!"), vida: 90, max: 90, c: "#ff3fb4", arco: true };
+          [659, 880, 1109, 1319, 1760].forEach((f, i) => bip(f, 0, 0.09, "square", 0.035, i * 0.05));
+        } else if (o.tipo === "anti") {
+          peligro = Math.max(0, peligro - 2);
+          logro = { txt: T("ANTIVIRUS -2", "ANTIVIRUS -2"), vida: 60, max: 60, c: "#41B883" };
+        } else if (nv > antes) {
+          // Nivel de combo nuevo: letrero, fanfarria y un golpe de cámara más fuerte
+          logro = { txt: `${T(NIVELES[nv - 1][1], NIVELES[nv - 1][2])} x${1 + nv * 0.5}`, vida: 80, max: 80, c: tono };
+          punch = 2;
+          [0, 4, 7, 12].forEach((st, i) => bip(523.25 * Math.pow(2, (st + nv) / 12), 0, 0.08, "square", 0.035, i * 0.045));
+          if (!RM) for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; chispas.push({ x: bit.x + 5, y: bit.y + 4, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3 - 0.5, vida: 20, c: i % 2 ? tono : "#ffffff", g: 2 }); }
+        }
         boca = "s"; bocaT = 24;
         if (secI === JEFE) peligro = Math.max(0, peligro - JEFE_BAJA);
         hud();
-      } else if (o.y + 6 >= piso()) {
+      } else if (o.y + BH >= piso()) {
         o.fuera = true;
         falla(o);
         if (peligro >= JEFE_TOPE) { muereBit(); return; }
       }
     }
     objs = objs.filter((o) => !o.fuera);
+    // Los rayos del gato caen justo en el bombo que avisaron
+    for (const a of ataques) {
+      if (a.hecho || ts < a.t1) continue;
+      a.hecho = true;
+      bip(1400, 200, 0.12, "sawtooth", 0.04);
+      const da = a.tipo === "v" ? bit.c === a.c && !vuela : a.tipo === "x" ? Math.abs(bit.x + 5 - a.x) < 10 : Math.abs(bit.y + 6 - a.y) < 9;
+      if (da) { golpeado(); if (peligro >= JEFE_TOPE) { muereBit(); return; } }
+    }
+    ataques = ataques.filter((a) => ts < a.t1 + 0.24);
+    if (fiebre && ts > fiebre) { fiebre = 0; hud(); }
+  }
+  // Con cada bombo el gato puede apuntar un rayo: avisa ahora y cae con el bombo siguiente
+  function programaAtaque() {
+    if (rG >= R.golpes.length) return;
+    const t1 = R.golpes[rG] / 100;
+    if (t1 - ts < 0.3 || t1 - ts > 0.9) return;
+    if (secI === JEFE && ts > R.sec[JEFE][0] + 4.5 && golpeN % 4 === 0) {
+      // Con el jefe apunta al carril de BIT, salvo que ahí vaya a caer un bug en ese mismo instante
+      const c = bit.c;
+      if (objs.some((o) => (o.c === c || o.c2 === c) && Math.abs(o.tn - t1) < 0.3)) return;
+      ataques.push({ tipo: "v", c, t0: ts, t1 });
+    } else if (vuela && energiaAhora > 0.5 && ts > R.sec[VUELO][0] + 4 && golpeN % 3 === 0) {
+      // En el hiperespacio alterna: un rayo de lado a lado a la altura de BIT, o uno de arriba abajo donde esté
+      ataques.push((golpeN / 3) % 2 ? { tipo: "h", y: bit.y + 6, t0: ts, t1 } : { tipo: "x", x: bit.x + 5, t0: ts, t1 });
+    }
   }
 
   function nace() {
@@ -434,35 +583,71 @@
     const tipo = vidas < 3 && r < 0.05 ? "cafe" : r < 0.13 ? "oro" : "bug";
     const v = (0.42 + nivel * 0.07) * (tipo === "oro" ? 1.45 : tipo === "cafe" ? 0.8 : 1) * azar(0.85, 1.15);
     const c = (Math.random() * carriles) | 0;
-    objs.push({ tipo, c, x: xBug(c), y: 1, v });
-    grietas.push({ x: xBug(c) + 2, vida: 16 });
+    objs.push({ tipo, c, x: xBug(c), y: 1, v, e: "ABCDE"[nivel % 5] });
+    grietas.push({ x: xBug(c) + 4, vida: 16 });
   }
   // BIT salta de carril en carril: un salto por toque y, si dejas la tecla, sigue saltando rápido.
   // Con el mouse o el dedo, brinca directo al carril que señalas.
   function saltaA(c) {
     c = Math.max(0, Math.min(carriles - 1, c));
     if (c === bit.c) return;
-    const x0 = bit.x;
+    // Donde arrancó el salto queda una copia que tarda más en irse
+    const f = fuerzaEstela();
+    if (!RM) { if (f >= 2) ecos.push({ x: bit.x, y: bit.y, vida: 30, max: 30, c: SANDE[0] }); else if (!f) fantasmas.push({ x: bit.x, vida: 6 }); }
     bit.c = c;
-    bit.x = xBit(c);
     aplasta = 4;
-    if (RM) return;
-    // En ritmo, el salto deja ecos de colores a lo largo del camino: más y más vivos cuanto más fuerte va la canción
-    const fuerza = modo !== "ritmo" || secI < 0 ? 0 : [1, JEFE, 7].includes(secI) ? 3 : [3, 6].includes(secI) ? 2 : secI === 0 || secI === 9 ? 0 : 1;
-    if (!fuerza) { fantasmas.push({ x: x0, vida: 6 }); return; }
-    const n = fuerza === 3 ? 5 : fuerza === 2 ? 4 : 2, pal = fuerza === 1 ? ECOS_CALMA : ECOS_FUERTE;
-    for (let i = 0; i < n; i++) { const vida = (fuerza === 1 ? 16 : 9) + i * 4; ecos.push({ x: x0 + ((bit.x - x0) * i) / n, vida, max: vida, c: pal[ecoN++ % pal.length] }); }
-    if (ecos.length > 40) ecos.splice(0, ecos.length - 40);
+  }
+  // Qué tanta estela deja BIT: 0 nada, 1 corta y azul (partes tranquilas), 2 larga, 3 larga y a todo color (estribillos, vuelo, fiebre)
+  function fuerzaEstela() {
+    if (modo !== "ritmo" || secI < 0) return 0;
+    if (vuela || fiebre > ts) return 3;
+    return [1, JEFE].includes(secI) ? 3 : [3, 6].includes(secI) ? 2 : secI === 0 || secI === 9 ? 0 : 1;
+  }
+  function dejaEstela() {
+    const f = fuerzaEstela();
+    if (!f || RM) return;
+    const vida = f === 3 ? 24 : f === 2 ? 17 : 10;
+    ecos.push({ x: bit.x, y: bit.y, vida, max: vida, c: f === 1 ? SANDE[1 + (ecoN++ % 3)] : SANDE[ecoN++ % SANDE.length] });
+    if (ecos.length > 70) ecos.splice(0, ecos.length - 70);
   }
   function moverBit() {
+    if (vuela) {
+      // Vuelo libre: flechas o WASD en las cuatro direcciones, o seguir al puntero
+      const tope = W > 150 ? 3.1 : 2.4, ax = (der ? 1 : 0) - (izq ? 1 : 0), ay = (aba ? 1 : 0) - (arr ? 1 : 0);
+      if (ax || ay) { meta = null; vx = Math.max(-tope, Math.min(tope, vx + ax * 0.75)); vy = Math.max(-tope, Math.min(tope, vy + ay * 0.75)); }
+      else if (meta != null) { vx = Math.max(-4.5, Math.min(4.5, (meta - 5 - bit.x) * 0.3)); vy = Math.max(-4.5, Math.min(4.5, (metaY - 6 - bit.y) * 0.3)); }
+      if (!ax && meta == null) vx *= 0.72;
+      if (!ay && meta == null) vy *= 0.72;
+      bit.x = Math.max(0, Math.min(W - 10, bit.x + vx));
+      bit.y = Math.max(12, Math.min(bitY(), bit.y + vy));
+      bit.c = Math.max(0, Math.min(carriles - 1, Math.floor((bit.x + 5) / LW)));
+      if (Math.abs(vx) + Math.abs(vy) > 0.7 && t % 2 === 0) dejaEstela();
+      return;
+    }
     if (dirTecla) { meta = null; if (--rep <= 0) { saltaA(bit.c + dirTecla); rep = 5; } }
     else if (meta != null) saltaA(Math.floor(meta / LW));
+    // El salto es una carrera corta de dos o tres cuadros hasta el carril nuevo, dejando estela
+    const tx = xBit(bit.c), d = tx - bit.x, v = Math.max(5, LW / 3);
+    if (d) {
+      // Dos copias por cuadro: la estela sale tupida aunque el salto dure un instante
+      const x0 = bit.x;
+      bit.x = Math.abs(d) <= v ? tx : bit.x + Math.sign(d) * v;
+      const x1 = bit.x;
+      bit.x = (x0 + x1) / 2; dejaEstela();
+      bit.x = x1; dejaEstela();
+    }
+    const dy = bitY() - bit.y;
+    bit.y = Math.abs(dy) < 1 ? bitY() : bit.y + dy * 0.3;
   }
-  // Al atrapar: chispas del color del bug y BIT se aplasta un instante
-  function atrapa(o) {
+  // Al atrapar: onda, pedazos de color que saltan, BIT brilla y se aplasta, y la cámara da un golpecito
+  function atrapa(o, color, fuerza = 1) {
     aplasta = 5;
+    brillo = 3;
+    comboPop = 7;
+    punch = Math.min(2, punch + 0.55 * fuerza);
     if (RM) return;
-    for (let i = 0; i < 7; i++) chispas.push({ x: o.x + 3, y: o.y + 4, vx: azar(-1.4, 1.4), vy: azar(-1.9, -0.3), vida: 12 + ((Math.random() * 8) | 0), c: o.tipo === "oro" ? "Y" : o.tipo === "cafe" ? "W" : i % 2 ? "R" : "W" });
+    ondas.push({ x: o.x + 5, y: o.y + 4, vida: 10, max: 10, c: color, r: 5 + fuerza * 3 });
+    for (let i = 0; i < 9 + fuerza * 5; i++) chispas.push({ x: o.x + 5, y: o.y + 4, vx: azar(-2.3, 2.3), vy: azar(-3, -0.4), vida: 14 + ((Math.random() * 10) | 0), c: i % 3 === 0 ? "#ffffff" : color, g: i % 2 ? 2 : 1 });
   }
   function paso() {
     t++;
@@ -472,9 +657,16 @@
     if (--parpadeo < -150) parpadeo = 6;
     grietas.forEach((g) => g.vida--); grietas = grietas.filter((g) => g.vida > 0);
     destellos.forEach((d) => d.vida--); destellos = destellos.filter((d) => d.vida > 0);
-    textos.forEach((x) => { x.y -= 0.35; x.vida--; }); textos = textos.filter((x) => x.vida > 0);
+    // Los puntos saltan de golpe y luego flotan
+    textos.forEach((x) => { x.y -= x.vida > (x.max || 40) - 6 ? 1.6 : 0.3; x.vida--; }); textos = textos.filter((x) => x.vida > 0);
     fantasmas.forEach((f) => f.vida--); fantasmas = fantasmas.filter((f) => f.vida > 0);
     ecos.forEach((f) => f.vida--); ecos = ecos.filter((f) => f.vida > 0);
+    ondas.forEach((f) => f.vida--); ondas = ondas.filter((f) => f.vida > 0);
+    burbujas.forEach((b) => { b.y -= 0.45; b.x += Math.sin((t + b.vida) * 0.2) * 0.3; b.vida--; }); burbujas = burbujas.filter((b) => b.vida > 0 && b.y > 10);
+    if (brillo > 0) brillo--;
+    if (comboPop > 0) comboPop--;
+    punch *= 0.8;
+    if (logro && --logro.vida <= 0) logro = null;
     if (dano > 0) dano--;
     if (interferencia > 0) interferencia--;
     chispas.forEach((c) => { c.x += c.vx; c.y += c.vy; c.vy += 0.16; c.vida--; }); chispas = chispas.filter((c) => c.vida > 0);
@@ -487,17 +679,16 @@
     const by = bitY();
     for (const o of objs) {
       o.y += o.v;
-      o.c = Math.min(o.c, carriles - 1);
       o.x = xBug(o.c);
-      if (o.y + 6 >= by + 1 && o.y <= by + 7 && o.c === bit.c) {
+      if (o.y + BH >= by + 1 && o.y <= by + 9 && o.c === bit.c) {
         o.fuera = true;
-        atrapa(o);
-        if (o.tipo === "cafe") { vidas = Math.min(3, vidas + 1); textos.push({ txt: "+1", x: o.x, y: o.y - 4, vida: 40, c: "R" }); bip(523, 0, 0.09); bip(784, 0, 0.12, "square", 0.05, 0.1); }
+        atrapa(o, o.tipo === "oro" ? "#ffe14a" : o.tipo === "cafe" ? "#ffffff" : col.R, o.tipo === "bug" ? 1 : 2);
+        if (o.tipo === "cafe") { vidas = Math.min(3, vidas + 1); textos.push({ txt: "+1", x: o.x + 5, y: o.y, vida: 40, max: 40, c: col.R, e: 1 }); bip(523, 0, 0.09); bip(784, 0, 0.12, "square", 0.05, 0.1); }
         else {
           const n = o.tipo === "oro" ? 50 : 10;
           const antes = Math.floor(pts / 100);
           pts += n;
-          textos.push({ txt: `+${n}`, x: o.x, y: o.y - 4, vida: 40, c: o.tipo === "oro" ? "Y" : "W" });
+          textos.push({ txt: `+${n}`, x: o.x + 5, y: o.y, vida: 40, max: 40, c: o.tipo === "oro" ? col.Y : col.W, e: 1 });
           bip(o.tipo === "oro" ? 880 : 660, o.tipo === "oro" ? 1760 : 990, o.tipo === "oro" ? 0.16 : 0.08);
           if (Math.floor(pts / 100) > antes) {
             nivel = Math.floor(pts / 100);
@@ -508,7 +699,7 @@
         }
         boca = "s"; bocaT = 24;
         hud();
-      } else if (o.y + 6 >= piso()) {
+      } else if (o.y + BH >= piso()) {
         o.fuera = true;
         if (o.tipo === "cafe") continue;
         vidas--;
@@ -549,14 +740,74 @@
       ctx.fillStyle = alerta && (t >> 2) % 2 ? "#ffffff" : col.R;
       for (let x = (t >> 2) % 6; x < W; x += 6) ctx.fillRect(x, 10, 3, 1);
     }
-    for (const o of objs) {
-      const sp = o.tipo === "cafe" ? CAFE : (o.tipo === "oro" ? ORO : BUG)[(t >> 3) % 2];
-      // En ritmo, un contorno negro con la forma del bug para que se distinga sobre cualquier escenario
-      if (ritmo) contorno(sp, o.x, o.y);
-      pinta(sp, o.x, o.y);
+    // El número del combo, enorme y tenue al fondo: brinca con cada bug
+    if (ritmo && combo >= 3 && estado === "jugando") {
+      ctx.save();
+      ctx.globalAlpha = 0.2 + comboPop * 0.035;
+      ctx.translate(W / 2, Math.round(H * 0.56));
+      const e = (W > 150 ? 4 : 3) + comboPop * 0.22;
+      ctx.scale(e, e);
+      ctx.font = `8px "Press Start 2P"`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = TONOS_COMBO[Math.min(nivelCombo(), TONOS_COMBO.length - 1)];
+      ctx.fillText(String(combo), 0, 4);
+      ctx.restore();
     }
-    for (const c of chispas) { ctx.fillStyle = col[c.c]; ctx.fillRect(Math.round(c.x), Math.round(c.y), 1, 1); }
-    for (const x of textos) if (x.vida > 10 || x.vida % 2) letras(x.txt, x.x, x.y, x.c);
+    // Los rayos del gato: primero una franja que avisa (cada vez más marcada), luego el rayo
+    for (const a of ataques) {
+      const k = Math.min(1, (ts - a.t0) / (a.t1 - a.t0));
+      const [x, y, w, hh] = a.tipo === "v" ? [Math.round(a.c * LW) + 1, 9, Math.round(LW) - 1, piso() - 9] : a.tipo === "x" ? [Math.round(a.x) - 8, 9, 16, piso() - 9] : [0, Math.round(a.y) - 7, W, 14];
+      if (!a.hecho) {
+        ctx.fillStyle = `rgba(255,225,74,${0.08 + 0.22 * k})`;
+        ctx.fillRect(x, y, w, hh);
+        ctx.fillStyle = (t >> 2) % 2 ? "#ffe14a" : "#ffffff";
+        if (a.tipo === "h") { for (let i = (t >> 1) % 6; i < W; i += 6) { ctx.fillRect(i, y, 3, 1); ctx.fillRect(i, y + hh - 1, 3, 1); } }
+        else { for (let i = 9 + ((t >> 1) % 6); i < piso(); i += 6) { ctx.fillRect(x, i, 1, 3); ctx.fillRect(x + w - 1, i, 1, 3); } }
+        rotulo("!", a.tipo === "h" ? 8 : x + w / 2, a.tipo === "h" ? y + 11 : 22, "#ffe14a");
+      } else {
+        const edad = (ts - a.t1) / 0.24;
+        ctx.globalAlpha = Math.max(0, 1 - edad);
+        ctx.fillStyle = "#fff36b";
+        ctx.fillRect(x, y, w, hh);
+        ctx.fillStyle = "#ffffff";
+        // El rayo en zigzag
+        if (a.tipo === "h") { let yy = y + hh / 2; for (let i = 0; i < W; i += 4) { const ny = y + 2 + Math.random() * (hh - 4); ctx.fillRect(i, Math.round(Math.min(yy, ny)), 4, Math.max(2, Math.round(Math.abs(ny - yy)))); yy = ny; } }
+        else { let xx = x + w / 2; for (let i = 9; i < piso(); i += 4) { const nx = x + 2 + Math.random() * (w - 4); ctx.fillRect(Math.round(Math.min(xx, nx)), i, Math.max(2, Math.round(Math.abs(nx - xx))), 4); xx = nx; } }
+        ctx.globalAlpha = 1;
+      }
+    }
+    for (const o of objs) {
+      let sp, mp = null, ox = 0;
+      const cuadro = (t >> 3) % 2;
+      if (o.tipo === "cafe") sp = CAFE;
+      else if (o.tipo === "anti") sp = ANTIVIRUS;
+      else if (modo !== "ritmo") { sp = ESPECIES[o.e || "A"][cuadro]; mp = o.tipo === "oro" ? ORO_MAPA : null; }
+      else {
+        const [esp, m] = MUTA[o.s];
+        sp = ESPECIES[o.tipo === "glitch" ? "D" : esp][cuadro];
+        // Especiales: dorado; arcoíris, que cambia de color sin parar; glitch, blanco y tembloroso
+        mp = o.tipo === "oro" ? ORO_MAPA : o.tipo === "arco" ? { R: SANDE[(t >> 2) % SANDE.length], Z: "#ffffff" } : o.tipo === "glitch" ? { R: "W", Z: "C" } : m;
+        if (o.tipo === "glitch" && !RM && (t >> 1) % 3 === 0) ox = Math.random() < 0.5 ? -1 : 1;
+      }
+      // En ritmo, un contorno negro con la forma del bug para que se distinga sobre cualquier escenario
+      if (ritmo) contorno(sp, o.x + ox, o.y);
+      pinta(sp, o.x + ox, o.y, mp);
+      // El glitch avisa hacia dónde va a brincar
+      if (o.tipo === "glitch" && !o.salto && (t >> 2) % 2) { const d = o.c2 > o.c ? 1 : -1; ctx.fillStyle = "#00f6ff"; ctx.fillRect(Math.round(o.x) + (d > 0 ? 12 : -4), Math.round(o.y) + 3, 3, 3); ctx.fillRect(Math.round(o.x) + (d > 0 ? 15 : -5), Math.round(o.y) + 4, 1, 1); }
+      // Dorados y arcoíris sueltan destellos
+      if ((o.tipo === "oro" || o.tipo === "arco") && !RM && t % 4 === 0) chispas.push({ x: o.x + Math.random() * BW, y: o.y + Math.random() * BH, vx: 0, vy: -0.4, vida: 8, c: o.tipo === "oro" ? "#ffe14a" : SANDE[t % SANDE.length], g: 1 });
+    }
+    for (const b of burbujas) { ctx.fillStyle = "#bfe9ff"; ctx.fillRect(Math.round(b.x), Math.round(b.y), b.g, b.g); }
+    // Ondas cuadradas que se abren donde se atrapó un bug
+    for (const f of ondas) {
+      const k = 1 - f.vida / f.max, r = Math.round(3 + k * f.r * 2), X = Math.round(f.x), Y = Math.round(f.y);
+      ctx.globalAlpha = 1 - k;
+      ctx.fillStyle = k < 0.25 ? "#ffffff" : f.c;
+      ctx.fillRect(X - r, Y - r, r * 2, 1); ctx.fillRect(X - r, Y + r, r * 2 + 1, 1); ctx.fillRect(X - r, Y - r, 1, r * 2); ctx.fillRect(X + r, Y - r, 1, r * 2);
+      ctx.globalAlpha = 1;
+    }
+    for (const c of chispas) { ctx.fillStyle = col[c.c] || c.c; ctx.fillRect(Math.round(c.x), Math.round(c.y), c.g || 1, c.g || 1); }
+    for (const x of textos) if (x.vida > 8 || x.vida % 2) rotulo(x.txt, x.x, x.y, col[x.c] || x.c, x.vida > (x.max || 40) - 5 ? (x.e || 1) * 1.5 : x.e || 1);
     // El borde del CRT, con su código: los bugs salen de ahí
     ctx.fillStyle = col.D;
     ctx.fillRect(0, 0, W, 9);
@@ -571,33 +822,87 @@
     ctx.fillRect(0, piso(), W, H - piso());
     ctx.fillStyle = col.G;
     for (let x = (t >> 2) % 4; x < W; x += 4) ctx.fillRect(x, piso() + 1, 2, 1);
-    // Marcas de los carriles en el piso; el de BIT, encendido
-    ctx.fillStyle = col.F;
-    for (let c = 1; c < carriles; c++) ctx.fillRect(Math.round(c * LW), piso(), 1, H - piso());
-    ctx.fillStyle = col.Y;
-    ctx.fillRect(Math.round(bit.c * LW) + 1, piso(), Math.round(LW) - 1, 1);
+    // Marcas de los carriles en el piso; el de BIT, encendido (volando no hay carriles)
+    if (!vuela) {
+      ctx.fillStyle = col.F;
+      for (let c = 1; c < carriles; c++) ctx.fillRect(Math.round(c * LW), piso(), 1, H - piso());
+      ctx.fillStyle = col.Y;
+      ctx.fillRect(Math.round(bit.c * LW) + 1, piso(), Math.round(LW) - 1, 1);
+    }
     for (const d of destellos) {
       // El carril donde cayó el bug: una columna roja que se apaga hacia arriba y el piso parpadeando
-      const cxl = Math.round(Math.floor((d.x + 3) / LW) * LW) + 1, anc = Math.round(LW) - 1;
+      const cxl = Math.round(Math.floor((d.x + 5) / LW) * LW) + 1, anc = Math.round(LW) - 1;
       if (ritmo && !RM) { const g = ctx.createLinearGradient(0, piso(), 0, piso() - H * 0.7); g.addColorStop(0, `rgba(255,40,60,${Math.min(0.55, d.vida / 30)})`); g.addColorStop(1, "rgba(255,40,60,0)"); ctx.fillStyle = g; ctx.fillRect(cxl, 9, anc, piso() - 9); }
       if (d.vida % 6 < 3) { ctx.fillStyle = col.R; ctx.fillRect(cxl, piso(), anc, H - piso()); }
     }
     // BIT mira hacia el bug más cercano al piso
     let cerca = null;
     for (const o of objs) if (o.tipo !== "cafe" && (!cerca || o.y > cerca.y)) cerca = o;
-    const dx = cerca ? cerca.x + 3 - (bit.x + 5) : 0;
+    const dx = cerca ? cerca.x + 5 - (bit.x + 5) : 0;
     if (P()) {
-      // La estela de cada salto, y BIT: se aplasta un pixel al caer o atrapar, y en ritmo brinca con cada bombo
       const sprite = P().bitSprite(dx < -8 ? -1 : dx > 8 ? 1 : 0, parpadeo > 0, boca);
-      for (const f of fantasmas) { ctx.globalAlpha = (f.vida / 6) * 0.45; pinta(sprite, f.x, bitY()); }
-      // Ecos de un solo color que se quedan atrás un momento
-      for (const f of ecos) { ctx.globalAlpha = (f.vida / f.max) * 0.75; silueta(sprite, f.x, bitY(), f.c); }
+      for (const f of fantasmas) { ctx.globalAlpha = (f.vida / 6) * 0.45; pinta(sprite, f.x, bit.y); }
+      // La estela: copias de BIT en un solo color que suman luz y se apagan una tras otra, de la más vieja a la más nueva
+      ctx.globalCompositeOperation = "lighter";
+      for (const f of ecos) { ctx.globalAlpha = Math.pow(f.vida / f.max, 1.4) * 0.85; silueta(sprite, f.x, f.y, f.c); }
+      ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
-      const yb = bitY() + (aplasta > 2 ? 1 : 0) - (ritmo && estado === "jugando" && pulso > 0.7 ? 1 : 0);
+      const yb = bit.y + (aplasta > 2 && !vuela ? 1 : 0) - (ritmo && estado === "jugando" && pulso > 0.7 && !vuela ? 1 : 0);
       if (ritmo) contorno(sprite, bit.x, yb);
-      // Lastimado: parpadea en rojo
+      // Lastimado parpadea en rojo; recién atrapó, brilla en blanco
       if (dano > 0 && dano % 6 < 3) silueta(sprite, bit.x, yb, col.R);
+      else if (brillo > 1) silueta(sprite, bit.x, yb, "#ffffff");
       else pinta(sprite, bit.x, yb);
+      // Bajo el agua, BIT lleva escafandra: casco de cristal, visor, tanque y manguera
+      if (ritmo && secI === 2) {
+        const X = Math.round(bit.x), Y = Math.round(yb);
+        ctx.fillStyle = "rgba(160,220,255,.22)";
+        ctx.fillRect(X - 1, Y - 2, 12, 11);
+        ctx.fillStyle = "#bfe9ff";
+        ctx.fillRect(X, Y - 3, 10, 1); ctx.fillRect(X - 2, Y - 1, 1, 9); ctx.fillRect(X + 11, Y - 1, 1, 9); ctx.fillRect(X - 1, Y - 2, 1, 1); ctx.fillRect(X + 10, Y - 2, 1, 1); ctx.fillRect(X - 1, Y + 8, 1, 1); ctx.fillRect(X + 10, Y + 8, 1, 1); ctx.fillRect(X, Y + 9, 10, 1);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(X + 1, Y - 1, 3, 1); ctx.fillRect(X + 1, Y, 1, 2);
+        ctx.fillStyle = col.G;
+        ctx.fillRect(X - 5, Y + 2, 3, 7);
+        ctx.fillStyle = "#ffd23b";
+        ctx.fillRect(X - 5, Y + 1, 3, 1); ctx.fillRect(X - 4, Y - 3, 1, 4); ctx.fillRect(X - 4, Y - 4, 4, 1);
+        if (estado === "jugando" && t % 26 === 0 && !RM) burbujas.push({ x: X + 12 + Math.random() * 2, y: Y - 4, vida: 70, g: Math.random() < 0.3 ? 2 : 1 });
+      }
+    }
+    // El letrero del nivel de combo (o fiebre, o combo roto): entra grande y se asienta
+    if (logro && estado === "jugando") {
+      const k = 1 - logro.vida / logro.max, e = k < 0.08 ? 2 : k < 0.16 ? 1.5 : 1, ancho = logro.txt.length * 8 * e;
+      const cabe = ancho > W - 6 ? (W - 6) / (logro.txt.length * 8) : e;
+      if (logro.vida > 12 || logro.vida % 4 < 2) {
+        const yl = Math.round(H * 0.29), c = logro.arco ? SANDE[(t >> 2) % SANDE.length] : logro.c;
+        if (!RM && k < 0.3) { rotulo(logro.txt, W / 2 - 2, yl, "#ff2e7e", cabe); rotulo(logro.txt, W / 2 + 2, yl, "#00f6ff", cabe); }
+        rotulo(logro.txt, W / 2, yl, c, cabe);
+      }
+    }
+    // Con fiebre, el marco del recuadro corre en colores
+    if (ritmo && fiebre > ts) {
+      for (let i = 0; i < W; i += 4) { ctx.fillStyle = SANDE[((i >> 2) + (t >> 1)) % SANDE.length]; ctx.fillRect(i, 9, 4, 1); ctx.fillRect(W - 4 - i, piso() - 1, 4, 1); }
+      const falta = (fiebre - ts) / 7;
+      ctx.fillStyle = "#ff3fb4";
+      ctx.fillRect(0, 10, Math.round(W * falta), 1);
+    }
+    // La advertencia del jefe: sale rota, con los colores separados y tiras corridas
+    if (ritmo && secI === JEFE && estado === "jugando") {
+      const tj = ts - R.sec[JEFE][0];
+      if (tj > 0.25 && tj < 3.6) {
+        const paso = Math.floor(ts * 16), lineas = T(["¡¡NO DEJES", "CAER NI UNO!!"], ["DON'T DROP", "A SINGLE ONE!!"]), y0 = Math.round(H * 0.47);
+        if (RM || h2(paso) > 0.1) {
+          ctx.fillStyle = "rgba(0,0,0,.72)";
+          ctx.fillRect(0, y0 - 13, W, 31);
+          lineas.forEach((txt, i) => {
+            const corre = RM ? 0 : h2(paso + i * 7) < 0.3 ? Math.round((h2(paso * 3 + i) - 0.5) * 10) : 0, sep = RM ? 0 : 1 + Math.round(h2(paso + 3) * 2);
+            rotulo(txt, W / 2 + corre - sep, y0 + i * 12, "#ff2e7e");
+            rotulo(txt, W / 2 + corre + sep, y0 + i * 12, "#00f6ff");
+            rotulo(txt, W / 2 + corre, y0 + i * 12, "#ffffff");
+          });
+          if (!RM) for (let i = 0; i < 3; i++) { const yy = y0 - 12 + Math.floor(h2(paso * 5 + i) * 28), dxx = Math.round((h2(paso * 9 + i) - 0.5) * 14); ctx.drawImage(lienzo, 0, yy, W, 3, dxx, yy, W, 3); }
+        }
+      }
     }
     ctx.restore();
     // En pausa o al terminar, el recuadro se oscurece para que se lea el mensaje
@@ -620,7 +925,11 @@
       ctx.fillStyle = "rgba(0,0,0,.6)";
       ctx.fillRect(0, 12, W, partes.length * 11 + 5);
       partes.forEach((txt, i) => { ctx.fillStyle = i === 0 && partes.length > 1 ? col.W : col.Y; ctx.fillText(txt, W / 2, 23 + i * 11); });
-    } else if (!ritmo && mensaje && mensajeT % 20 > 4) {
+    }
+    // El recuadro da un golpecito al atrapar y late en las partes fuertes
+    const esc = RM || estado !== "jugando" ? 1 : 1 + punch * 0.016 + (ritmo && [1, JEFE, 7].includes(secI) ? pulso * 0.012 : 0);
+    lienzo.style.transform = esc > 1.0005 ? `scale(${esc.toFixed(4)})` : "";
+    if (!ritmo && mensaje && mensajeT % 20 > 4) {
       ctx.font = `8px "Press Start 2P"`;
       ctx.textAlign = "center";
       ctx.fillStyle = /BUG/.test(mensaje) ? col.R : col.Y;
@@ -668,6 +977,32 @@
     for (let i = 0; i < n; i++) {
       const y = Math.floor(h(semilla + i) * FH), alto = 2 + Math.floor(h(semilla + i + 0.5) * 9), dx = Math.round((h(semilla + i + 0.8) - 0.5) * 2 * fuerza);
       c2.drawImage(fx, 0, y, FW, alto, dx, y, FW, alto);
+    }
+  }
+  // Pistones: barras que salen de las orillas de la pantalla y se estiran con cada bombo, cada una a su manera
+  function pistones(punta, cuerpo) {
+    const hueco = gx - 5, huecoV = gy - 4;
+    if (hueco >= 10) for (let i = 0, y = 5; y < FH - 6; y += 12, i++) {
+      const li = hueco * (0.1 + 0.9 * pulso * (0.3 + 0.7 * h(i + golpeN))), ld = hueco * (0.1 + 0.9 * pulso * (0.3 + 0.7 * h(i + 50 + golpeN)));
+      rc(cuerpo, 0, y, li, 7); rc(punta, li - 2, y, 2, 7);
+      rc(cuerpo, FW - ld, y, ld, 7); rc(punta, FW - ld, y, 2, 7);
+    }
+    // En el teléfono casi no hay orillas a los lados: salen de arriba
+    else if (huecoV >= 10) for (let i = 0, x = 3; x < FW - 6; x += 12, i++) {
+      const l = huecoV * (0.1 + 0.9 * pulso * (0.3 + 0.7 * h(i + golpeN)));
+      rc(cuerpo, x, 0, 7, l); rc(punta, x, l - 2, 7, 2);
+    }
+  }
+  // Un rayo en zigzag entre dos puntos
+  function rayo(x0, y0, x1, y1, c, grosor) {
+    const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / 7));
+    let px = x0, py = y0;
+    for (let i = 1; i <= n; i++) {
+      const k = i / n, nx = x0 + (x1 - x0) * k + (i < n ? (Math.random() - 0.5) * 9 : 0), ny = y0 + (y1 - y0) * k + (i < n ? (Math.random() - 0.5) * 9 : 0);
+      c2.fillStyle = c;
+      const pasos = Math.max(1, Math.round(Math.max(Math.abs(nx - px), Math.abs(ny - py))));
+      for (let j = 0; j <= pasos; j++) c2.fillRect(Math.round(px + ((nx - px) * j) / pasos), Math.round(py + ((ny - py) * j) / pasos), grosor, grosor);
+      px = nx; py = ny;
     }
   }
   const rgbDe = (hex) => { const n = parseInt(hex.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
@@ -744,6 +1079,7 @@
       const fase = ((ts * e.sec[3]) / 60) % 1;
       for (let k = 0; k < 8; k++) { const pp = (k + fase) / 8; rc(k % 2 ? col.M : col.P, 0, hy + (FH - hy) * pp * pp, FW, 1); }
       rc(col.P, 0, hy, FW, 1);
+      pistones(col.Y, osc(col.P, 0.45));
     },
     // 3. BAJO EL AGUA: la música suena tapada. Los rayos entran desde arriba de la pantalla y se pierden en el fondo
     () => {
@@ -789,6 +1125,7 @@
         const c = d < 0.3 ? "#555a77" : i % 5 === 0 ? col.C : i % 7 === 0 ? col.Y : "#ffffff";
         linea(c, e.cx + Math.cos(a) * r, e.cy + Math.sin(a) * r, e.cx + Math.cos(a) * (r - largo), e.cy + Math.sin(a) * (r - largo));
       }
+      pistones("#ffffff", osc(col.C, 0.3 + 0.5 * k));
     },
     // 5. JEFE, GATO.EXE: figuras planas de un solo color que avisan y golpean con cada bombo
     (e) => {
@@ -811,6 +1148,8 @@
           rc(ROSA, x - 12, y, 5, 5);
         }
       }
+      // Pistones rosas en las orillas, al compás
+      pistones("#ffffff", ROSA);
       // Barras: una línea fina avisa dónde va a caer la siguiente; con el bombo, golpea de lado a lado
       const barra = (g, grosor, c, alfa) => {
         c2.globalAlpha = alfa;
@@ -866,6 +1205,7 @@
           for (let b = 0; b < 12; b++) if ((bits >> b) & 1) c2.fillRect(c * 5 + 1 + (b % 3), y + ((b / 3) | 0), 1, 1);
         }
       }
+      pistones("#d9ffe6", osc(col.V, 0.6));
     },
     // 8. HIPERESPACIO: rayos que giran desde el centro hasta las esquinas, anillos con cada bombo y colores que cambian cada cuatro
     (e) => {
@@ -889,6 +1229,7 @@
         rc("#ffffff", cx - rx, cy - ry, 1, ry * 2); rc("#ffffff", cx + rx, cy - ry, 1, ry * 2);
         c2.globalAlpha = 1;
       }
+      pistones("#ffffff", osc(par[0], 0.85));
     },
     // 9. ABISMO: la canción se hunde. Ondas lentas de lado a lado, plancton y un resto de luz que ya casi no llega
     () => {
@@ -992,17 +1333,43 @@
       return;
     }
     pintaGato(gatoX, gatoY, lado, gatoQuieto ? null : giro, secI === 8 ? 0.8 : 1);
+    if (secI === JEFE || secI === VUELO) corona(lado);
+  }
+  // La corona de rayos del gato cuando ataca: cinco picos de electricidad que no dejan de moverse
+  function corona(lado) {
+    const y0 = gatoY - lado * 0.42, ancho = lado * 0.5, tiembla = RM ? 0 : 1;
+    let px = gatoX - ancho / 2, py = y0;
+    for (let i = 1; i <= 10; i++) {
+      const nx = gatoX - ancho / 2 + (ancho * i) / 10, pico = i % 2 ? 7 + (i === 5 ? 4 : 0) + pulso * 3 + Math.random() * 3 * tiembla : 0, ny = y0 - pico;
+      linea(i % 4 < 2 ? "#fff36b" : "#ffffff", px, py, nx, ny);
+      px = nx; py = ny;
+    }
+    rc("#fff36b", gatoX - ancho / 2, y0 + 1, ancho, 1);
+    if (!RM) for (let i = 0; i < 4; i++) rc(i % 2 ? "#00f6ff" : "#ffffff", gatoX + (Math.random() - 0.5) * lado * 0.8, y0 - Math.random() * 14, 1, 1);
+  }
+  // Los rayos salen de la corona: una chispa fina mientras avisa y el rayo entero cuando cae
+  function rayosDelGato() {
+    if (!gatoOk || !ataques.length) return;
+    const lado = Math.min(64, FW * 0.42, FH * 0.36) * gatoTam, ox = gatoX, oy = gatoY - lado * 0.5;
+    for (const a of ataques) {
+      const [dx, dy] = a.tipo === "v" ? [gx + a.c * LW + LW / 2, gy + 9] : a.tipo === "x" ? [gx + a.x, gy + 9] : [gx, gy + a.y];
+      if (!a.hecho) { if (!RM && (t >> 1) % 2) rayo(ox, oy, dx, dy, "#fff36b", 1); }
+      else { rayo(ox, oy, dx, dy, "#00f6ff", 3); rayo(ox, oy, dx, dy, "#ffffff", 2); }
+    }
   }
 
   // Todo lo que va en el lienzo de efectos: escenario, gato y, encima, destellos y apagón
   let fxLimpio = true;
   function dibujaFx() {
     const activo = modo === "ritmo" && estado !== "cargando" && secI >= 0;
-    if (!activo) { if (!fxLimpio) { c2.clearRect(0, 0, FW, FH); fx.style.transform = ""; lienzo.style.transform = ""; fxLimpio = true; } return; }
+    if (!activo) { if (!fxLimpio) { c2.clearRect(0, 0, FW, FH); fx.style.transform = ""; fxLimpio = true; } return; }
     fxLimpio = false;
     c2.globalAlpha = 1;
     ESCENAS[secI]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] });
     dibujaGato();
+    rayosDelGato();
+    // Con fiebre, una lluvia de destellos de colores por toda la pantalla
+    if (fiebre > ts && !RM) for (let i = 0; i < 26; i++) rc(SANDE[(i + (t >> 2)) % SANDE.length], h(i) * FW, (h(i + 0.5) * FH + ts * (30 + h(i + 0.2) * 50)) % FH, 2, 2);
     // El destello al cambiar de escenario y el fogonazo del despegue
     if (!RM && cambio > 0) { c2.globalAlpha = (cambio / 26) * 0.55; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
     if (!RM && secI === 3 && ts > 98.86) { c2.globalAlpha = Math.min(1, (ts - 98.86) / 1.96) * 0.5; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
@@ -1010,7 +1377,6 @@
     if (interferencia > 0 && !RM) { tiras(5, 10, t); c2.globalAlpha = (interferencia / 12) * 0.2; rc("#ff0030", 0, 0, FW, FH); c2.globalAlpha = 1; }
     // La cámara: el lienzo de efectos se acerca un poco hacia su foco; el recuadro del juego apenas late
     fx.style.transform = zoom > 1.001 ? `translate(${(focoX * (1 - zoom) * escala).toFixed(2)}px,${(focoY * (1 - zoom) * escala).toFixed(2)}px) scale(${zoom.toFixed(4)})` : "";
-    lienzo.style.transform = !RM && estado === "jugando" && [1, JEFE, 7].includes(secI) ? `scale(${(1 + pulso * 0.012).toFixed(4)})` : "";
     // El apagón final: la pantalla entera se cierra en una línea y la línea en un punto
     const falta = R.dur - ts;
     if (secI === R.sec.length - 1 && falta < 3) {
@@ -1034,17 +1400,20 @@
   // Puntero: el mouse guía a BIT al moverse sobre el juego; en el teléfono, arrastrando el dedo
   lienzo.addEventListener("pointerdown", (e) => { lienzo.setPointerCapture(e.pointerId); mueve(e); });
   lienzo.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons) mueve(e); });
-  function mueve(e) { const r = lienzo.getBoundingClientRect(); meta = ((e.clientX - r.left) / r.width) * W; }
+  function mueve(e) { const r = lienzo.getBoundingClientRect(); meta = ((e.clientX - r.left) / r.width) * W; metaY = ((e.clientY - r.top) / r.height) * H; }
 
   // Teclado: mientras el juego está abierto, todas las teclas son suyas
   function teclas(e) {
     if (el.hidden) return;
     const k = e.key.toLowerCase();
     const flechaIzq = k === "arrowleft" || k === "a", flechaDer = k === "arrowright" || k === "d";
+    const flechaArr = k === "arrowup" || k === "w", flechaAba = k === "arrowdown" || k === "s";
     if (e.type === "keyup") {
       if (flechaIzq) izq = false;
       if (flechaDer) der = false;
       if (flechaIzq || flechaDer) { dirTecla = der ? 1 : izq ? -1 : 0; rep = 6; }
+      if (flechaArr) arr = false;
+      if (flechaAba) aba = false;
       return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1056,8 +1425,10 @@
       if (flechaIzq) izq = true; else der = true;
       dirTecla = flechaIzq ? -1 : 1;
       rep = 9;
-      if (estado === "jugando") { meta = null; saltaA(bit.c + dirTecla); }
+      if (estado === "jugando" && !vuela) { meta = null; saltaA(bit.c + dirTecla); }
     }
+    else if (flechaArr) arr = true;
+    else if (flechaAba) aba = true;
     else if (k === "escape") { if (estado === "jugando") pausa(true); else cerrar(false); }
     else if (k === "p") pausa(estado === "jugando");
     else if (estado === "titulo" && (k === "1" || k === " " || k === "enter")) empezar();
@@ -1083,7 +1454,7 @@
     medir();
     hud();
     titulo();
-    izq = der = false;
+    izq = der = arr = aba = false;
     dirTecla = 0;
     meta = null;
     ult = 0;
