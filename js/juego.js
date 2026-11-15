@@ -67,14 +67,16 @@
   const SANDE = ["#00f6ff", "#00a2ff", "#6a5cff", "#c84bff", "#ff3fb4", "#ff5a4a", "#ffb13b", "#f7ff4a", "#5dff7a"];
   const CAFE = ["..W..W..", "...W..W.", "WWWWWW..", "WQQQQWWW", "WQQQQW.W", "WQQQQWWW", ".WWWW..."];
   // Números de 3×5 para los "+10" que flotan
-  const FUENTE = {
-    0: ["111", "101", "101", "101", "111"], 1: ["010", "110", "010", "010", "111"], 2: ["111", "001", "111", "100", "111"], 3: ["111", "001", "111", "001", "111"],
-    4: ["101", "101", "111", "001", "001"], 5: ["111", "100", "111", "001", "111"], 6: ["111", "100", "111", "101", "111"], 7: ["111", "001", "010", "010", "010"],
-    8: ["111", "101", "111", "101", "111"], 9: ["111", "101", "111", "001", "111"], "+": ["000", "010", "111", "010", "000"],
-    B: ["110", "101", "110", "101", "110"], I: ["111", "010", "010", "010", "111"], T: ["111", "010", "010", "010", "010"], E: ["111", "100", "110", "100", "111"],
-    X: ["101", "101", "010", "101", "101"], C: ["111", "100", "100", "100", "111"], ".": ["000", "000", "000", "000", "010"], ":": ["000", "010", "000", "010", "000"],
-    "\\": ["100", "100", "010", "001", "001"], ">": ["100", "010", "001", "010", "100"], M: ["101", "111", "111", "101", "101"], "%": ["101", "001", "010", "100", "101"],
-  };
+  const FUENTE = {};
+  // Letras, números y signos de 3×5: cada uno son 15 unos y ceros, renglón por renglón
+  Object.entries({
+    0: "111101101101111", 1: "010110010010111", 2: "111001111100111", 3: "111001111001111", 4: "101101111001001", 5: "111100111001111", 6: "111100111101111", 7: "111001010010010", 8: "111101111101111", 9: "111101111001111",
+    A: "010101111101101", B: "110101110101110", C: "111100100100111", D: "110101101101110", E: "111100110100111", F: "111100110100100", G: "011100101101011", H: "101101111101101", I: "111010010010111",
+    J: "001001001101010", K: "101101110101101", L: "100100100100111", M: "101111111101101", N: "110101101101101", O: "010101101101010", P: "110101110100100", Q: "010101101110011", R: "110101110101101",
+    S: "011100010001110", T: "111010010010010", U: "101101101101111", V: "101101101101010", W: "101101111111101", X: "101101010101101", Y: "101101010010010", Z: "111001010100111",
+    "+": "000010111010000", "-": "000000111000000", ".": "000000000000010", ":": "000010000010000", "\\": "100100010001001", ">": "100010001010100", "/": "001001010100100", "%": "101001010100101",
+    "!": "010010010000010", "_": "000000000000111", ",": "000000000010100", "?": "110001010000010", "=": "000111000111000", "'": "010010000000000", "*": "000101010101000",
+  }).forEach(([k, v]) => { FUENTE[k] = [0, 3, 6, 9, 12].map((i) => v.slice(i, i + 3)); });
   const svg = (rows, px) => (P() ? P().svg(rows, px) : "");
 
   const el = document.createElement("div");
@@ -94,14 +96,13 @@
     </div>
     <div class="juego-marco"><canvas class="juego-lienzo"></canvas><div class="juego-msg" aria-live="polite"></div></div>
     <p class="juego-ayuda">← → o A D para mover · P pausa · ESC salir</p>
-    <div class="j-log" hidden aria-live="polite"><div class="jl-bar"><i></i><span>CMD.EXE</span></div><div class="jl-c"><p class="jl-1"></p><p class="jl-2"></p></div></div>
+    
     <div class="j-ventana" hidden aria-hidden="true"><div class="jv-bar"><i></i><span>COMBO.EXE</span><em>x</em></div><div class="jv-c"><b class="jv-n">0</b><span class="jv-t"></span></div></div>`;
   document.body.appendChild(el);
   const lienzo = $(".juego-lienzo", el), ctx = lienzo.getContext("2d"), fx = $(".juego-fx", el), c2 = fx.getContext("2d"), marco = $(".juego-marco", el), msg = $(".juego-msg", el);
-  const logEl = $(".j-log", el), log1 = $(".jl-1", el), log2 = $(".jl-2", el);
-  // Seis ventanitas iguales: se usan las que hagan falta según la racha
+  // Doce ventanitas iguales: se usan las que hagan falta según la racha
   const vBase = $(".j-ventana", el), VENT = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 12; i++) {
     const v = i ? vBase.cloneNode(true) : vBase;
     if (i) el.appendChild(v);
     VENT.push({ el: v, tit: $(".jv-bar span", v), num: $(".jv-n", v), txt: $(".jv-t", v), T: 0, lugar: -1 });
@@ -144,11 +145,29 @@
   // El espectro del horizonte en la Ciudad Neón: cada barra persigue su altura para moverse suave
   const espectro = [];
   // Cuánto tarda un bug en cruzar el recuadro en el vuelo, y desde cuándo entran por el otro lado
-  const CRUCE = 2.3, CRUCE_LENTO = 3.3;
+  const CRUCE = 3.3, CRUCE_LENTO = 4.3;
   // Fallar un bug: sacudida, BIT lastimado, interferencia en el escenario y la música se apaga un instante
   let dano = 0, interferencia = 0, agachaT = 0;
   // El jefe (escenario 5): cada bug que cae sube la pista; si llega a JEFE_TOPE, BIT muere. Cada bug atrapado la baja
-  const JEFE = 4, JEFE_TOPE = 8, JEFE_BAJA = 0.34;
+  const JEFE = 4, JEFE_BAJA = 0.34;
+  let JEFE_TOPE = 8;
+  /* Dificultad del modo ritmo. vidas: cuántas tiene BIT · paso: cuántos bugs caídos cuestan una vida · regen: cada cuántos
+     seguidos recupera una · vel: cuánto tarda en caer un bug (más = más lento) · gap / gapVuelo: separación mínima entre bugs
+     (los que quedan más juntos no salen) · tope: filas de memoria del jefe · rayo / rayoV: cada cuántos bombos dispara el gato
+     (jefe / vuelo) · invul: cuadros a salvo tras perder una vida · arcoVuelo: cada cuántos bugs del vuelo sale un arcoíris */
+  const DIFS = {
+    facil: { n: ["FACIL", "EASY"], vidas: 5, paso: 3, regen: 25, vel: 1.18, gap: 0.34, gapVuelo: 0.66, tope: 10, rayo: 5, rayoV: 4, invul: 100, arcoVuelo: 12 },
+    medio: { n: ["MEDIO", "NORMAL"], vidas: 4, paso: 2, regen: 35, vel: 1, gap: 0, gapVuelo: 0.54, tope: 8, rayo: 4, rayoV: 3, invul: 75, arcoVuelo: 15 },
+    dificil: { n: ["DIFICIL", "HARD"], vidas: 3, paso: 1, regen: 45, vel: 0.86, gap: 0, gapVuelo: 0.42, tope: 6, rayo: 3, rayoV: 2, invul: 55, arcoVuelo: 19 },
+  };
+  let dif = DIFS[lee("bitBugsDif")] ? lee("bitBugsDif") : "medio", D = DIFS[dif];
+  let vidasR = 4, fallosVida = 0, invul = 0, continues = 0, vidaFx = 0;
+  // Qué notas salen en esta partida (según la dificultad) y de qué tipo
+  let activa = [], tipoRun = [], totalNotas = 0;
+  // La línea de comandos dentro de la terminal de BIT: ahí se escribe cada cambio (C:\\>VUELO.EXE ... COMPLETO)
+  let orden = null;
+  // Ventanas que esperan turno para abrirse (así salen escalonadas, no todas en el mismo instante)
+  let colaV = [], ultN = 10;
   let peligro = 0, peligroVis = 0, muerto = false, foto = null, jefeAviso = false, desdeIni = 0;
   // Cámara del escenario: un acercamiento leve que late en las partes fuertes y sigue al gato en las tranquilas
   let zoom = 1, focoX = 0, focoY = 0;
@@ -157,7 +176,7 @@
   // Modo ritmo
   let modo = "clasico", audio = null, intentoN = 0, ts = 0, ultA = -1, ultP = 0, rI = 0, rG = 0, golpeN = 0, pulso = 0, secI = -1, cambio = 0;
   let combo = 0, maxCombo = 0, atrapados = 0, giro = 0, vGiro = 0.3, energiaAhora = 0, anillos = [];
-  let recordR = +(lee("bitBugsRitmoRecord") || 0);
+  let recordR = 0;
 
   // Sonidos de 8 bits hechos al vuelo (respetan el botón de sonido del sitio)
   let ac = null;
@@ -211,7 +230,7 @@
     }
   }
   // Si el marcador cambia de alto (en el teléfono ocupa dos renglones en ritmo), el recuadro se vuelve a medir
-  if (window.ResizeObserver) new ResizeObserver(() => { if (!el.hidden) { medir(); if (!logEl.hidden) colocaLog(); } }).observe(marco);
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!el.hidden) medir(); }).observe(marco);
   const leeCol = () => {
     col = {
       W: pig("--p-blanco"), Y: pig("--p-amarillo"), R: pig("--p-rojo"), G: pig("--p-gris"), K: pig("--p-negro"), Q: pig("--amarillo-oscuro"),
@@ -258,7 +277,7 @@
     rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] !== ".") ctx.fillRect(X + i - 1, Y + j - 1, 3, 3); });
   }
   function letras(txt, x, yy, c) {
-    ctx.fillStyle = col[c];
+    ctx.fillStyle = col[c] || c;
     [...txt].forEach((ch, k) => (FUENTE[ch] || []).forEach((r, j) => { for (let i = 0; i < 3; i++) if (r[i] === "1") ctx.fillRect(Math.round(x) + k * 4 + i, Math.round(yy) + j, 1, 1); }));
   }
   const seis = (n) => String(n).padStart(6, "0");
@@ -269,8 +288,8 @@
       recEl.textContent = seis(Math.max(recordR, pts));
       verK.textContent = "BPM";
       verEl.textContent = R.sec[Math.max(0, secI)][3];
-      vidasEl.innerHTML = `<span class="j-combo">COMBO <b>${String(combo).padStart(3, "0")}</b> <i>x${multi()}</i></span>`;
-      vidasEl.setAttribute("aria-label", `Combo: ${combo}`);
+      vidasEl.innerHTML = Array.from({ length: D.vidas }, (_, i) => svg(i < vidasR ? CORAZON : CORAZON_VACIO, 2)).join("") + `<span class="j-combo"><i>x${multi()}</i></span>`;
+      vidasEl.setAttribute("aria-label", `${T("Vidas", "Lives")}: ${vidasR}. Combo: ${combo}`);
       pintaVentana();
       return;
     }
@@ -280,78 +299,46 @@
     vidasEl.innerHTML = [0, 1, 2].map((i) => svg(i < vidas ? CORAZON : CORAZON_VACIO, 2)).join("");
     vidasEl.setAttribute("aria-label", `${T("Vidas", "Lives")}: ${vidas}`);
   }
-  /* La consola de atrás: detrás de la terminal del juego se abre otra ventana de comandos que escribe lo que pasa,
-     por ejemplo  C:\\>create object VUELO.EXE  ...  finished: vuela con las 4 flechas.  Asoma por un lado (o por abajo
-     en el teléfono), teclea su línea, da el resultado y se cierra sola.  clave: para avisar algo una sola vez por partida. */
-  function cmd(es, en, resEs, resEn, clave, grande) {
+  /* Los avisos se escriben dentro de la propia terminal de BIT, en el primer renglón, como un comando:
+       C:\\>VUELO.EXE_          (se teclea letra por letra, en blanco)
+       COMPLETO: VUELA CON LAS 4 FLECHAS   (el resultado, en verde; los errores y alertas, en rojo)
+     cmd(...) teclea el comando y enseguida da su resultado. Si el resultado va en null, el comando se queda esperando
+     hasta que cmdRes(...) lo complete: así el vuelo y el jefe se anuncian unos segundos antes de empezar. */
+  const limpiaTxt = (txt) => txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[¡¿]/g, "").toUpperCase();
+  const esMal = (txt) => /^(ERROR|ALERTA|WARNING)/.test(txt);
+  function cmd(es, en, resEs, resEn, clave) {
     if (estado !== "jugando") return;
     if (clave) { if (dichos[clave]) return; dichos[clave] = 1; }
-    // Los avisos grandes (el jefe, el vuelo) no van en la ventanita: se escriben enormes, detrás de todo
-    if (grande) { gig = { cmd: `C:\\>${T(es, en)}`, res: T(resEs, resEn), n: 0, mal: /^(ERROR|ALERTA|WARNING)/.test(T(resEs, resEn)) }; bip(1200, 0, 0.02, "square", 0.02); return; }
-    logCmd = `C:\\>${T(es, en)}`;
-    logRes = T(resEs, resEn);
-    logN = 0;
-    logT = Math.round(logCmd.length / 0.9) + 16 + 200;
-    log1.textContent = "";
-    log2.textContent = "";
-    logEl.classList.toggle("mal", /^(ERROR|ALERTA|WARNING)/.test(logRes));
-    logLado++;
-    colocaLog();
-    logEl.hidden = false;
-    if (!RM) { logEl.classList.remove("abre"); void logEl.offsetWidth; logEl.classList.add("abre"); }
-    el.classList.add("con-log");
+    const res = resEs == null ? null : limpiaTxt(T(resEs, resEn));
+    orden = { cmd: limpiaTxt(`C:\\>${T(es, en)}`), n: 0, res, mal: res ? esMal(res) : false, fin: null };
     bip(1200, 0, 0.02, "square", 0.02); bip(900, 0, 0.02, "square", 0.02, 0.05);
   }
-  function colocaLog() {
-    if (!rectL) return;
-    const r = rectL, ancho = r.left >= 170, der2 = logLado % 2 === 1;
-    logEl.classList.toggle("abajo", !ancho);
-    logEl.classList.toggle("der", ancho && der2);
-    if (ancho) {
-      // Asoma por un lado (hasta 260 px, según el espacio); el resto queda tapado por la terminal
-      const vis = Math.max(170, Math.min(260, r.left - 18));
-      logEl.style.setProperty("--vis", `${vis - 12}px`);
-      logEl.style.width = `${vis + 120}px`;
-      logEl.style.left = `${Math.round(der2 ? r.right - 120 : r.left - vis)}px`;
-      logEl.style.top = `${Math.round(r.top + r.height * (der2 ? 0.16 : 0.5))}px`;
-    } else {
-      // En el teléfono asoma por abajo, donde va el texto de ayuda
-      logEl.style.width = `${Math.round(r.width - 12)}px`;
-      logEl.style.left = `${Math.round(r.left + 6)}px`;
-      logEl.style.top = `${Math.round(r.bottom - 6)}px`;
+  function cmdRes(es, en) {
+    const res = limpiaTxt(T(es, en));
+    if (!orden) orden = { cmd: "", n: 999, res, mal: esMal(res), fin: null };
+    else { orden.res = res; orden.mal = esMal(res); }
+    orden.fin = orden.n;
+    bip(660, 0, 0.05, "triangle", 0.035); bip(990, 0, 0.08, "triangle", 0.03, 0.05);
+  }
+  function pasoLog() {
+    if (!orden) return;
+    orden.n++;
+    // Con resultado ya dado: aparece al terminar de teclear y se queda unos cuatro segundos
+    if (orden.res != null) {
+      if (orden.fin == null && orden.n > orden.cmd.length / 0.7 + 16) { orden.fin = orden.n; bip(660, 0, 0.04, "triangle", 0.03); }
+      if (orden.fin != null && orden.n > orden.fin + 240) orden = null;
     }
   }
-  // Teclea el comando letra por letra, luego suelta el resultado y, al rato, se cierra
-  function pasoLog() {
-    if (logT <= 0) return;
-    logT--;
-    const escrito = Math.min(logCmd.length, Math.floor(++logN * 0.9));
-    if (log1.textContent.length !== escrito + 1) log1.textContent = logCmd.slice(0, escrito) + (escrito < logCmd.length ? "_" : " ");
-    if (logN > logCmd.length / 0.9 + 16 && !log2.textContent) { log2.textContent = logRes; bip(660, 0, 0.04, "triangle", 0.03); }
-    if (logT === 0) { logEl.hidden = true; el.classList.remove("con-log"); }
-  }
-  function cierraLog() { logEl.hidden = true; logT = 0; gig = null; el.classList.remove("con-log"); }
-  // El comando gigante: letras enormes detrás de la terminal, tecleadas una por una, a lo ancho de toda la pantalla
-  function dibujaGigante() {
-    if (!gig) return;
-    gig.n++;
-    // La cámara acerca el escenario: se escribe solo en la parte que de verdad se ve
-    const visX = focoX * (1 - 1 / zoom), visY = focoY * (1 - 1 / zoom), visW = FW / zoom, visH = FH / zoom;
-    const e = visW >= 250 ? 2 : 1, cabe = Math.max(8, Math.floor((visW - 14) / (8 * e))), escrito = Math.floor(gig.n * 0.8), fin = gig.cmd.length / 0.8 + 18;
-    if (gig.n > fin + 260) { gig = null; return; }
-    // Parte un texto en renglones sin cortar palabras
-    const parte = (txt) => { const out = []; let ren = ""; for (const p of txt.split(" ")) { if ((ren + " " + p).trim().length > cabe && ren) { out.push(ren); ren = p; } else ren = (ren + " " + p).trim(); } if (ren) out.push(ren); return out; };
-    const l1 = parte(gig.cmd), l2 = gig.n > fin ? parte(gig.res) : [], alto = 11 * e, total = (l1.length + l2.length) * alto;
-    let y = Math.round(visY + visH * 0.5 - total / 2), quedan = escrito;
-    const alfa = gig.n > fin + 220 ? (fin + 260 - gig.n) / 40 : 1;
-    c2.globalAlpha = 0.5 * alfa;
-    rc("#000000", 0, y - 6, FW, total + 12);
-    c2.font = `8px "Press Start 2P"`;
-    c2.textAlign = "left";
-    const pon = (txt, c) => { c2.save(); c2.translate(Math.round(visX) + 7, y + 8 * e); c2.scale(e, e); c2.globalAlpha = alfa; c2.fillStyle = "#000000"; c2.fillText(txt, 1, 1); c2.fillStyle = c; c2.fillText(txt, 0, 0); c2.restore(); y += alto; };
-    for (const ren of l1) { if (quedan <= 0) break; pon(ren.slice(0, quedan) + (quedan < ren.length && (t >> 3) % 2 ? "_" : ""), col.V); quedan -= ren.length + 1; }
-    for (const ren of l2) pon(ren, gig.mal ? "#ff2e7e" : "#ffffff");
-    c2.globalAlpha = 1;
+  function cierraLog() { orden = null; }
+  function dibujaOrden() {
+    if (!orden || estado !== "jugando") return;
+    const cabe = Math.floor((W - 6) / 4), listo = orden.res != null && orden.fin != null;
+    const txt = listo ? orden.res : orden.cmd.slice(0, Math.floor(orden.n * 0.7)) + ((t >> 3) % 2 ? "_" : "");
+    ctx.fillStyle = "rgba(0,0,0,.82)";
+    ctx.fillRect(0, 9, W, 9);
+    // Recién llega el resultado, parpadea un instante
+    if (listo && orden.n - orden.fin < 16 && (t >> 1) % 2) return;
+    letras(txt.slice(0, cabe), 3, 11, listo ? (orden.mal ? "#ff4d4d" : "#41B883") : "#ffffff");
   }
 
   /* Las ventanas del combo: ventanitas de terminal que se abren un momento sobre la orilla de la terminal de BIT
@@ -359,15 +346,27 @@
      la racha salen más seguido y caben más a la vez, hasta parecer una lluvia de terminales. Unas traen la cuenta del
      combo, otras los puntos; las de nivel nuevo y bug arcoíris salen en colores. Cada una suena a premio. */
   function lugaresVentana() {
-    const r = rectL, ancho = r.left >= 170;
-    // Con espacio a los lados: doce puntos alrededor del marco. En el teléfono: solo arriba y abajo, para no tapar carriles
-    return ancho
-      ? [[r.left, r.top + r.height * 0.16], [r.right, r.top + r.height * 0.22], [r.left, r.top + r.height * 0.42], [r.right, r.top + r.height * 0.5], [r.left, r.top + r.height * 0.7], [r.right, r.top + r.height * 0.78],
-         [r.left + r.width * 0.16, r.top], [r.left + r.width * 0.5, r.top - 6], [r.left + r.width * 0.84, r.top], [r.left + r.width * 0.2, r.bottom], [r.left + r.width * 0.52, r.bottom + 8], [r.left + r.width * 0.82, r.bottom]]
-      : [[r.left + r.width * 0.2, r.top], [r.left + r.width * 0.5, r.top - 6], [r.left + r.width * 0.8, r.top], [r.left + r.width * 0.25, r.bottom + 12], [r.left + r.width * 0.75, r.bottom + 12]];
+    const r = rectL, ancho = r.left >= 170, L = [];
+    // Con espacio a los lados: dieciséis puntos alrededor del marco. En el teléfono: solo arriba y abajo, para no tapar carriles
+    if (ancho) {
+      for (let i = 0; i < 5; i++) { L.push([r.left, r.top + r.height * (0.12 + i * 0.19)]); L.push([r.right, r.top + r.height * (0.2 + i * 0.19)]); }
+      for (let i = 0; i < 3; i++) { L.push([r.left + r.width * (0.18 + i * 0.32), r.top - (i === 1 ? 8 : 0)]); L.push([r.left + r.width * (0.2 + i * 0.3), r.bottom + (i === 1 ? 10 : 0)]); }
+    } else {
+      for (let i = 0; i < 4; i++) L.push([r.left + r.width * (0.14 + i * 0.24), r.top - (i % 2 ? 8 : 0)]);
+      for (let i = 0; i < 3; i++) L.push([r.left + r.width * (0.2 + i * 0.3), r.bottom + 12]);
+    }
+    return L;
   }
-  // Cuántas caben a la vez según la racha
-  const cupoVentanas = () => (rectL && rectL.left >= 170 ? (combo < 10 ? 1 : combo < 25 ? 2 : combo < 45 ? 3 : combo < 80 ? 4 : 6) : combo < 15 ? 1 : combo < 45 ? 2 : 3);
+  // Cuántas caben a la vez según la racha: desde los 3 seguidos ya son dos, y de ahí sube rápido
+  const cupoVentanas = () => (rectL && rectL.left >= 170
+    ? (combo < 3 ? 1 : combo < 8 ? 2 : combo < 15 ? 3 : combo < 30 ? 5 : combo < 60 ? 7 : combo < 100 ? 9 : 12)
+    : combo < 3 ? 1 : combo < 10 ? 2 : combo < 30 ? 3 : combo < 80 ? 4 : 5);
+  // Pide una o varias ventanas: salen escalonadas, con unos cuadros entre una y otra
+  function pideVentanas(n, clase, dato) {
+    let espera = 0;
+    for (let i = 0; i < n; i++) { colaV.push({ T: espera, clase: i ? (Math.random() < 0.5 ? "pts" : "combo") : clase, dato }); espera += 4 + ((Math.random() * 9) | 0); }
+    if (colaV.length > 14) colaV.splice(0, colaV.length - 14);
+  }
   // clase: "combo" (la cuenta), "pts" (puntos), "nivel" (nivel nuevo, en colores), "especial" (bug especial; el arcoíris, en colores)
   function abreCombo(clase, dato) {
     if (modo !== "ritmo" || estado !== "jugando" || !rectL) return;
@@ -381,7 +380,7 @@
     const nv = nivelCombo(), arco = clase === "nivel" || dato === "arco" || fiebre > ts;
     v.el.className = `j-ventana${rectL.left >= 170 ? "" : " chica"}${arco ? " arco" : ""}${clase === "pts" ? " mini" : ""}`;
     if (arco) v.el.style.removeProperty("--c"); else v.el.style.setProperty("--c", clase === "especial" ? "#ffe14a" : TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
-    if (clase === "pts") { v.tit.textContent = "SCORE.EXE"; v.num.textContent = `+${dato}`; v.txt.textContent = seis(pts); }
+    if (clase === "pts") { v.tit.textContent = "SCORE.EXE"; v.num.textContent = `+${typeof dato === "number" ? dato : ultN}`; v.txt.textContent = seis(pts); }
     else if (clase === "nivel") { v.tit.textContent = "NIVEL.EXE"; v.num.textContent = `x${multi()}`; v.txt.textContent = T(NIVELES[nv - 1][1], NIVELES[nv - 1][2]); }
     else if (clase === "especial") { v.tit.textContent = "BONUS.EXE"; v.num.textContent = { oro: "+50", arco: "x2", anti: "MEM-", glitch: "+25" }[dato] || "+"; v.txt.textContent = { oro: T("DORADO", "GOLDEN"), arco: T("FIEBRE", "FEVER"), anti: "ANTIVIRUS", glitch: "GLITCH" }[dato] || ""; }
     else { v.tit.textContent = "COMBO.EXE"; v.num.textContent = combo; v.txt.textContent = (nv ? `${T(NIVELES[nv - 1][1], NIVELES[nv - 1][2])} x${multi()}` : `x${multi()}`) + (secI === JEFE ? ` · MEM ${Math.round((peligro / JEFE_TOPE) * 100)}%` : ""); }
@@ -390,21 +389,28 @@
     v.el.style.left = `${Math.round(Math.max(w / 2 + 6, Math.min(window.innerWidth - w / 2 - 6, x)))}px`;
     v.el.style.top = `${Math.round(Math.max(hh / 2 + 6, Math.min(window.innerHeight - hh / 2 - 6, y)))}px`;
     if (!RM) { void v.el.offsetWidth; v.el.classList.add("abre"); }
-    v.T = 75 + ((Math.random() * 45) | 0);
+    // Juegan con los tiempos: unas apenas parpadean, la mayoría dura un segundo y pico, y algunas se quedan un buen rato
+    const azarT = Math.random();
+    v.T = azarT < 0.3 ? 20 + ((Math.random() * 18) | 0) : azarT < 0.8 ? 55 + ((Math.random() * 45) | 0) : 130 + ((Math.random() * 70) | 0);
     // Premio para el oído: tres notas brillantes que suben, más agudas con cada nivel. Si salen muy juntas, suena solo un toque
     const base = 783.99 * Math.pow(2, Math.min(nv, 12) / 12) * (clase === "pts" ? 1.26 : 1);
     if (t - vUltSon > 14) { bip(base, 0, 0.09, "triangle", 0.055); bip(base * 1.5, 0, 0.12, "triangle", 0.045, 0.055); bip(base * 2, 0, 0.2, "sine", 0.04, 0.11); bip(base * 4, 0, 0.05, "square", 0.01, 0.11); }
-    else bip(base * 2, 0, 0.07, "triangle", 0.03);
+    else if (t - vUltSon > 4) bip(base * 2, 0, 0.06, "triangle", 0.022);
     vUltSon = t;
   }
   // Al romperse el combo, las que estén abiertas se ponen rojas y se cierran
   function pintaVentana(roto) {
     if (modo !== "ritmo") { cierraVentana(); return; }
     if (!roto) return;
+    colaV = [];
     for (const v of VENT) if (v.T > 0) { v.el.classList.remove("arco"); v.el.classList.add("rota"); v.txt.textContent = T("COMBO ROTO", "COMBO LOST"); v.T = Math.min(v.T, 26); }
   }
-  function pasoVentanas() { for (const v of VENT) if (v.T > 0 && --v.T === 0) v.el.hidden = true; }
-  function cierraVentana() { for (const v of VENT) { v.el.hidden = true; v.T = 0; v.lugar = -1; } }
+  function pasoVentanas() {
+    for (const v of VENT) if (v.T > 0 && --v.T === 0) v.el.hidden = true;
+    for (const q of colaV) q.T--;
+    while (colaV.length && colaV[0].T <= 0) { const q = colaV.shift(); abreCombo(q.clase, q.dato); }
+  }
+  function cierraVentana() { colaV = []; for (const v of VENT) { v.el.hidden = true; v.T = 0; v.lugar = -1; } }
   // Cada nivel de combo alcanzado suma medio punto al multiplicador; con fiebre, todo vale el doble
   const nivelCombo = () => { let n = 0; while (n < NIVELES.length && combo >= NIVELES[n][0]) n++; return n; };
   const multi = () => (1 + nivelCombo() * 0.5) * (fiebre > ts ? 2 : 1);
@@ -425,6 +431,20 @@
       <p class="jm-b jm-modos"><button type="button" data-j="empezar">${kb("1")}${T("CLASICO", "CLASSIC")}</button>${R ? `<button type="button" data-j="ritmo">${kb("2")}${T("RITMO", "RHYTHM")} ♪ U I A CAT</button>` : ""}</p>
       ${R ? `<p class="jm-nota">${T("RITMO: bugs al compás de la canción, combos, un jefe que lanza rayos y un tramo donde BIT vuela.", "RHYTHM: bugs to the beat of the song, combos, a boss that throws lightning and a stretch where BIT flies.")}</p>` : ""}`);
   }
+  // Antes del modo ritmo se elige dificultad (se recuerda la última)
+  function eligeDif() {
+    estado = "dificultad";
+    const fila = (k, n, d) => `<button type="button" data-j="d-${k}" class="${k === dif ? "jm-sel" : ""}">${kb(n)}${T(DIFS[k].n[0], DIFS[k].n[1])}</button><span>${d}</span>`;
+    aviso(`<p class="jm-t">${T("DIFICULTAD", "DIFFICULTY")}</p>
+      <div class="jm-dif">
+        ${fila("facil", 1, T("5 vidas · bugs más lentos y espaciados · cada 3 caídos, una vida", "5 lives · slower, sparser bugs · every 3 dropped, one life"))}
+        ${fila("medio", 2, T("4 vidas · cada 2 bugs caídos, una vida", "4 lives · every 2 bugs dropped, one life"))}
+        ${fila("dificil", 3, T("3 vidas · bugs más rápidos · cada bug caído, una vida", "3 lives · faster bugs · every bug dropped, one life"))}
+      </div>
+      <p class="jm-nota">${T("Un rayo siempre cuesta una vida. Las rachas largas las devuelven.", "A lightning bolt always costs a life. Long streaks give them back.")}</p>
+      <p class="jm-b"><button type="button" data-j="titulo">${kb("M")}${T("VOLVER", "BACK")}</button></p>`);
+  }
+  function conDif(k) { dif = k; D = DIFS[k]; guarda("bitBugsDif", k); empezarRitmo(); }
   function empezar() {
     detieneAudio();
     modo = "clasico";
@@ -462,7 +482,7 @@
   msg.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-j]");
     if (!b) return;
-    ({ empezar, ritmo: () => empezarRitmo(), jefe: reintentaJefe, titulo, encender: () => cerrar(true), salir: () => cerrar(false), seguir: () => pausa(false) })[b.dataset.j]();
+    ({ empezar, ritmo: eligeDif, "d-facil": () => conDif("facil"), "d-medio": () => conDif("medio"), "d-dificil": () => conDif("dificil"), otra: () => empezarRitmo(), jefe: reintentaJefe, titulo, encender: () => cerrar(true), salir: () => cerrar(false), seguir: () => pausa(false) })[b.dataset.j]();
   });
 
   /* ---------- Modo ritmo: la canción manda ---------- */
@@ -500,6 +520,13 @@
     ts = desde; ultA = -1; rI = 0; rG = 0; golpeN = 0; pulso = 0; secI = -1; cambio = 0; combo = 0; maxCombo = 0; atrapados = 0; giro = 0; vGiro = 0.3; energiaAhora = 0;
     ecos = []; dano = 0; interferencia = 0; agachaT = 0; peligro = 0; peligroVis = 0; muerto = false; foto = null; jefeAviso = false; desdeIni = desde; zoom = 1;
     if (guardado) { pts = guardado.pts; maxCombo = guardado.maxCombo; atrapados = guardado.atrapados; }
+    // Dificultad: vidas completas (también al reintentar un tramo), memoria del jefe y las notas que tocan
+    D = DIFS[dif];
+    JEFE_TOPE = D.tope;
+    vidasR = D.vidas; fallosVida = 0; invul = 0; vidaFx = 0; colaV = [];
+    continues = guardado ? (guardado.cont || 0) + 1 : 0;
+    recordR = +(lee(`bitBugsRitmoRecord_${dif}`) || 0);
+    preparaNotas();
     // Se saltan las notas y los bombos anteriores al punto de arranque
     while (rI * 3 < R.notas.length && R.notas[rI * 3] / 1000 < desde + 1.2) rI++;
     while (rG < R.golpes.length && R.golpes[rG] < desde * 100) rG++;
@@ -536,15 +563,15 @@
     estado = "fin";
     if (audio) audio.pause();
     objs = [];
-    const total = R.notas.length / 3, pct = Math.round((atrapados / total) * 100);
+    const total = totalNotas, pct = Math.min(100, Math.round((atrapados / total) * 100));
     const rango = pct >= 95 ? "S" : pct >= 85 ? "A" : pct >= 70 ? "B" : pct >= 50 ? "C" : "D";
-    if (pts > recordR) { recordR = pts; nuevoRecord = true; guarda("bitBugsRitmoRecord", String(recordR)); }
+    if (pts > recordR) { recordR = pts; nuevoRecord = true; guarda(`bitBugsRitmoRecord_${dif}`, String(recordR)); }
     hud();
     [523, 659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.12, "square", 0.04, i * 0.1));
     aviso(`<p class="jm-t">${T("¡VIRUS ELIMINADO!", "VIRUS REMOVED!")}</p>
       <p class="jm-rango jm-r${rango}">${rango}</p>
-      <p class="jm-p">${T("PUNTOS", "SCORE")} ${seis(pts)}<br>BUGS ${atrapados}/${total} · ${pct}%<br>COMBO MAX ${maxCombo}${nuevoRecord ? `<br><span class="jm-nuevo">${T("¡NUEVO RECORD!", "NEW HIGH SCORE!")}</span>` : ""}</p>
-      ${botonesFin("ritmo")}`);
+      <p class="jm-p">${T("PUNTOS", "SCORE")} ${seis(pts)}<br>BUGS ${Math.min(atrapados, total)}/${total} · ${pct}%<br>COMBO MAX ${maxCombo}<br>${T(D.n[0], D.n[1])} · ${T("VIDAS", "LIVES")} ${vidasR}/${D.vidas} · ${T("REINTENTOS", "RETRIES")} ${continues}${nuevoRecord ? `<br><span class="jm-nuevo">${T("¡NUEVO RECORD!", "NEW HIGH SCORE!")}</span>` : ""}</p>
+      ${botonesFin("otra")}`);
   }
   // El jefe llenó la pista: BIT muere. Se puede reintentar desde el arranque del jefe, con los puntos que se traían
   function muereBit() {
@@ -558,11 +585,12 @@
     cierraVentana();
     cierraLog();
     aviso(`<p class="jm-t jm-rojo">CRASH</p>
-      <p>*** ${T("MEMORIA LLENA", "OUT OF MEMORY")} ***<br>${T("GATO.EXE saturó la memoria y BIT.EXE dejó de responder.", "CAT.EXE flooded the memory and BIT.EXE stopped responding.")}</p>
+      <p>${vidasR <= 0 ? `*** ${T("SIN VIDAS", "OUT OF LIVES")} ***<br>${T("BIT.EXE dejó de responder.", "BIT.EXE stopped responding.")}` : `*** ${T("MEMORIA LLENA", "OUT OF MEMORY")} ***<br>${T("GATO.EXE saturó la memoria y BIT.EXE dejó de responder.", "CAT.EXE flooded the memory and BIT.EXE stopped responding.")}`}</p>
       <p class="jm-p">${T("PUNTOS", "SCORE")} ${seis(pts)}</p>
-      <p class="jm-b"><button type="button" data-j="jefe">${kb("R")}${T("REINTENTAR JEFE", "RETRY BOSS")}</button><button type="button" data-j="titulo">${kb("M")}${T("MODOS", "MODES")}</button>${deApagado ? `<button type="button" data-j="encender">${kb("Y")}${T("ENCENDER CONSOLA", "POWER ON")}</button>` : ""}<button type="button" data-j="salir">${kb("ESC")}${T("SALIR", "QUIT")}</button></p>`);
+      <p class="jm-b"><button type="button" data-j="jefe">${kb("R")}${T("REINTENTAR TRAMO", "RETRY SECTION")}</button><button type="button" data-j="titulo">${kb("M")}${T("MODOS", "MODES")}</button>${deApagado ? `<button type="button" data-j="encender">${kb("Y")}${T("ENCENDER CONSOLA", "POWER ON")}</button>` : ""}<button type="button" data-j="salir">${kb("ESC")}${T("SALIR", "QUIT")}</button></p>`);
   }
-  const reintentaJefe = () => empezarRitmo(R.sec[JEFE][0] - 1.9, foto || { pts: 0, maxCombo: 0, atrapados: 0 });
+  // Reintentar: desde el inicio del escenario donde cayó, con los puntos que traía al llegar ahí
+  const reintentaJefe = () => (foto && foto.t > 2 ? empezarRitmo(foto.t - 1.9, foto) : empezarRitmo(0, { pts: 0, maxCombo: 0, atrapados: 0, cont: continues }));
   // Fallar se tiene que sentir: sacudida, BIT lastimado, el carril en rojo, interferencia y la música se hunde un instante
   function falla(o) {
     destellos.push({ x: o.x, vida: 30 });
@@ -572,15 +600,29 @@
     bip(170, 45, 0.3, "sawtooth", 0.075);
     bip(90, 40, 0.22, "square", 0.05, 0.03);
     castigo();
+    // Fuera del jefe (ahí lo que se llena es la memoria), cada tantos bugs caídos cuestan una vida
+    if (secI !== JEFE && ++fallosVida >= D.paso) { fallosVida = 0; pierdeVida(); }
+  }
+  // BIT pierde una vida y queda un instante a salvo, para que una mala racha no se las lleve todas de golpe
+  function pierdeVida() {
+    if (invul > 0 || fiebre > ts || vidasR <= 0) return;
+    vidasR--;
+    invul = D.invul;
+    vidaFx = 40;
+    if (!RM) { temblor = 16; interferencia = 18; }
+    bip(440, 110, 0.35, "sawtooth", 0.08);
+    bip(220, 55, 0.4, "square", 0.06, 0.05);
+    textos.push({ txt: T("-1 VIDA", "-1 LIFE"), x: bit.x + 5, y: bit.y - 4, vida: 50, max: 50, c: "#ff4d4d", e: 1 });
+    hud();
   }
   // Lo que cuesta fallar un bug o comerse un rayo: la música baja apenas, se pierde el combo y, con el jefe, sube la pista
-  function castigo() {
+  function castigo(rayo) {
     if (audio && !audio.muted) { audio.volume = R.volumen * 0.72; agachaT = 9; }
     pintaVentana(true);
     combo = 0;
-    if (secI === JEFE) {
+    if (secI === JEFE && !rayo) {
       peligro = Math.min(JEFE_TOPE, peligro + 1);
-      if (peligro >= JEFE_TOPE - 2 && peligro < JEFE_TOPE) cmd("mem /estado", "mem /status", "ALERTA: memoria casi llena", "WARNING: memory almost full");
+      if (peligro === JEFE_TOPE - 2) cmd("MEM", "MEM", "ALERTA: memoria casi llena", "WARNING: memory almost full");
     }
     hud();
   }
@@ -591,13 +633,29 @@
     if (!RM) { temblor = 12; interferencia = 10; }
     bip(900, 80, 0.22, "sawtooth", 0.07);
     bip(60, 40, 0.25, "square", 0.05, 0.02);
-    if (secI !== JEFE) { pts = Math.max(0, pts - 50); textos.push({ txt: "-50", x: bit.x + 5, y: bit.y - 2, vida: 40, max: 40, c: "#ff4d4d", e: 1 }); }
-    castigo();
+    // Un rayo siempre cuesta una vida entera
+    castigo(true);
+    pierdeVida();
   }
   // Qué tan fuerte va la canción en este segundo (0 a 1), suavizado entre muestra y muestra
   function energia(seg) {
     const E = R.energia, x = Math.max(0, Math.min(E.length - 1.001, seg * 2)), i = Math.floor(x), f = x - i;
     return ((+E[i]) * (1 - f) + (+E[i + 1]) * f) / 9;
+  }
+  // Arma la partida: quita los bugs que quedarían demasiado juntos para esta dificultad (en el vuelo, bastantes más,
+  // porque ahí se persiguen de uno en uno) y reparte arcoíris extra en el vuelo, que es donde más se disfruta la fiebre
+  function preparaNotas() {
+    const N = R.notas, n = N.length / 3;
+    activa = []; tipoRun = mapa.tipo.slice(); totalNotas = 0;
+    let ult = -9, enVuelo = 0;
+    for (let i = 0; i < n; i++) {
+      const tn = N[i * 3] / 1000, sec = seccionDe(tn);
+      if (tn - ult < (sec === VUELO ? D.gapVuelo : D.gap)) { activa.push(false); continue; }
+      activa.push(true);
+      ult = tn;
+      totalNotas++;
+      if (sec === VUELO && ++enVuelo % D.arcoVuelo === 4) tipoRun[i] = "arco";
+    }
   }
   const seccionDe = (seg) => { let i = 0; while (i < R.sec.length - 1 && seg >= R.sec[i][1]) i++; return i; };
   // Los carriles de cada nota se reparten aquí para que BIT nunca se quede parado: casi cada bug obliga a saltar.
@@ -618,7 +676,8 @@
       c = Math.max(0, Math.min(carriles - 1, nc));
       mapa.c.push(c);
       let tipo = "bug";
-      if (N[i * 3 + 2]) tipo = ++oros % 2 === 0 ? "arco" : "oro";
+      // El arcoíris (el que desata la fiebre) nunca sale en los escenarios tranquilos
+      if (N[i * 3 + 2]) tipo = ++oros % 2 === 0 && ![0, 2, 5, 8, 9].includes(sec) ? "arco" : "oro";
       else {
         normales++;
         if (sec === JEFE && normales % 13 === 0) tipo = "anti";
@@ -633,15 +692,18 @@
     if (ts < desdeIni - 1) return;
     if (ts >= R.dur - 0.05) { finRitmo(); return; }
     if (agachaT > 0 && --agachaT === 0 && audio) audio.volume = R.volumen;
+    if (invul > 0) invul--;
+    if (vidaFx > 0) vidaFx--;
     // Cambio de escenario
     const s = seccionDe(ts);
     if (s !== secI) {
       // Salir vivo del jefe da premio
-      if (secI === JEFE && s === JEFE + 1) { cmd("kill GATO.EXE /memoria", "kill CAT.EXE /memory", "finished: memoria a salvo, +1000", "finished: memory safe, +1000"); pts += 1000; peligro = 0; textos.push({ txt: "+1000", x: W / 2, y: H * 0.5, vida: 70, max: 70, c: "#ffe14a", e: 2 }); [659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "square", 0.04, i * 0.08)); }
+      if (secI === JEFE && s === JEFE + 1) { cmd("KILL GATO.EXE", "KILL CAT.EXE", "COMPLETO: memoria a salvo +1000", "DONE: memory safe +1000"); pts += 1000; peligro = 0; textos.push({ txt: "+1000", x: W / 2, y: H * 0.5, vida: 70, max: 70, c: "#ffe14a", e: 2 }); [659, 784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "square", 0.04, i * 0.08)); }
       secI = s;
       cambio = 26;
-      // Punto de control: lo que se llevaba al llegar al jefe
-      if (s === JEFE) { foto = { pts, maxCombo, atrapados }; peligro = 0; jefeAviso = false; }
+      // Punto de control al entrar a cada escenario: si BIT cae, se reintenta desde aquí
+      foto = { t: R.sec[s][0], pts, maxCombo, atrapados, cont: continues };
+      if (s === JEFE) { peligro = 0; jefeAviso = false; }
       // En el hiperespacio BIT vuela libre; al salir, vuelve a su carril
       if (s !== JEFE) peligro = 0;
       vuela = s === VUELO;
@@ -652,14 +714,15 @@
     }
     if (cambio > 0) cambio--;
     // Al empezar a volar, BIT sube solo a media altura: así se entiende que ya no hay carriles
-    if (vuela && !vueloAviso) { vueloAviso = true; vy = -3.2; if (tactil) cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "finished: arrastra el dedo para volar", "finished: drag your finger to fly", null, true); else cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "finished: vuela con las 4 flechas", "finished: fly with all 4 arrows", null, true); }
-    // La consola de atrás avisa de cada reto justo antes de que empiece
-    if (pistaT === 400) { if (tactil) cmd("run BIT.EXE", "run BIT.EXE", "ok: toca un carril o desliza el dedo", "ok: tap a lane or slide your finger", "controles"); else cmd("run BIT.EXE", "run BIT.EXE", "ok: flechas o A/D, un salto por toque", "ok: arrows or A/D, one hop per tap", "controles"); }
+    if (vuela && !vueloAviso) { vueloAviso = true; vy = -3.2; if (tactil) cmdRes("COMPLETO: arrastra para volar", "DONE: drag to fly"); else cmdRes("COMPLETO: vuela con las 4 flechas", "DONE: fly with all 4 arrows"); }
+    // La terminal escribe cada reto: el vuelo y el jefe, unos segundos antes de que empiecen
+    if (pistaT === 400) { if (tactil) cmd("BIT.EXE", "BIT.EXE", "OK: toca un carril o desliza", "OK: tap a lane or slide", "controles"); else cmd("BIT.EXE", "BIT.EXE", "OK: flechas o A/D, un salto por toque", "OK: arrows or A/D, one hop per tap", "controles"); }
     if (ts > R.error + 0.4 && secI === 0) cmd("GATO.EXE", "CAT.EXE", "ERROR: proceso no autorizado", "ERROR: unauthorized process", "error");
-    if (secI === JEFE && ts > R.sec[JEFE][0] + 0.3) cmd("GATO.EXE /llenar MEMORIA", "CAT.EXE /fill MEMORY", "ALERTA: no dejes caer ni uno", "WARNING: don't drop a single one", "jefe", true);
-    if (R.sec[VUELO][0] - ts < 2.3 && ts < R.sec[VUELO][0]) cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "cargando... prepárate para volar", "loading... get ready to fly", "prevuelo", true);
-    if (secI === 9 && limpieza() >= 1) cmd("scan GATO.EXE", "scan CAT.EXE", "finished: virus eliminado", "finished: virus removed", "limpio");
-    if (secI === 9 && ts > R.sec[9][0] + 1.2) cmd("run ANTIVIRUS.EXE /limpiar", "run ANTIVIRUS.EXE /clean", "limpiando GATO.EXE...", "cleaning CAT.EXE...", "limpia");
+    if (R.sec[JEFE][0] - ts < 5.6 && ts < R.sec[JEFE][0]) cmd("GATO.EXE /llenar memoria", "CAT.EXE /fill memory", null, null, "prejefe");
+    if (secI === JEFE && !jefeAviso) { jefeAviso = true; cmdRes("ALERTA: que no caiga ni uno", "WARNING: do not drop any"); }
+    if (R.sec[VUELO][0] - ts < 6.6 && ts < R.sec[VUELO][0]) cmd("VUELO.EXE", "FLIGHT.EXE", null, null, "prevuelo");
+    if (secI === 9 && limpieza() >= 1) cmd("SCAN GATO.EXE", "SCAN CAT.EXE", "COMPLETO: virus eliminado", "DONE: virus removed", "limpio");
+    if (secI === 9 && ts > R.sec[9][0] + 1.2) cmd("ANTIVIRUS.EXE /limpiar", "ANTIVIRUS.EXE /clean", "limpiando GATO.EXE...", "cleaning CAT.EXE...", "limpia");
     pasoVentanas();
     pasoLog();
     if (pistaT > 0) pistaT--;
@@ -689,11 +752,12 @@
     // Cada bug sale con el tiempo justo para llegar a BIT en su nota
     const N = R.notas;
     while (rI * 3 < N.length) {
+      if (!activa[rI]) { rI++; continue; }
       const tn = N[rI * 3] / 1000, sec = seccionDe(tn), cruza = sec === VUELO;
       // En el vuelo los bugs no caen: cruzan el recuadro de lado, más despacio al principio para dar tiempo de agarrarle
-      const cr = cruza ? (tn < R.sec[VUELO][0] + 6.5 ? CRUCE_LENTO : CRUCE) : 0, d = cruza ? cr * 0.56 : R.sec[sec][2];
+      const cr = cruza ? (tn < R.sec[VUELO][0] + 6.5 ? CRUCE_LENTO : CRUCE) * D.vel : 0, d = cruza ? cr * 0.56 : R.sec[sec][2] * D.vel;
       if (tn - d > ts) break;
-      const c = mapa.c[rI], enFiebre = fiebre > ts, tipo = enFiebre ? "bono" : mapa.tipo[rI];
+      const c = mapa.c[rI], enFiebre = fiebre > ts, tipo = enFiebre ? "bono" : tipoRun[rI];
       const o = { tipo, c, tn, d, s: sec, x: xBug(c), y: 0 };
       // Entran por la derecha; después del silencio a media sección, por la izquierda
       if (enFiebre) o.nota = true;
@@ -705,7 +769,7 @@
       rI++;
     }
     // Fiebre: lluvia de bugs dorados de premio cerca de BIT. No cuentan como fallo si se escapan
-    if (fiebre > ts && t % 9 === 0) {
+    if (fiebre > ts && t % (vuela ? 6 : 9) === 0) {
       const c = Math.max(0, Math.min(carriles - 1, bit.c + Math.round(azar(-2.4, 2.4)))), d = vuela ? CRUCE * 0.56 : 0.8;
       const o = { tipo: "bono", c, tn: ts + d, d, s: secI, x: xBug(c), y: 0 };
       if (vuela) { o.h = 1; o.cr = CRUCE; o.x = W + 2; }
@@ -753,12 +817,12 @@
           // Mientras dure, TODO lo que cae es de premio: los que ya venían se convierten, no hay rayos y fallar no castiga
           for (const b of objs) if (b !== o && b.tipo !== "bono") { b.nota = true; b.tipo = "bono"; b.c2 = null; }
           ataques = [];
-          cmd("run FIEBRE.EXE", "run FEVER.EXE", "finished: todo vale x2", "finished: everything counts x2");
+          cmd("FIEBRE.EXE", "FEVER.EXE", "COMPLETO: todo vale x2", "DONE: everything counts x2");
           punch = 2;
           [659, 880, 1109, 1319, 1760].forEach((f, i) => bip(f, 0, 0.09, "square", 0.035, i * 0.05));
         } else if (o.tipo === "anti") {
           peligro = Math.max(0, peligro - 2);
-          cmd("run ANTIVIRUS.EXE", "run ANTIVIRUS.EXE", "finished: memoria liberada", "finished: memory freed");
+          cmd("ANTIVIRUS.EXE", "ANTIVIRUS.EXE", "COMPLETO: memoria liberada", "DONE: memory freed");
         } else if (nv > antes) {
           // Nivel de combo nuevo: la ventana del combo brinca de lugar, con fanfarria y un golpe de cámara más fuerte
           punch = 2;
@@ -766,22 +830,23 @@
           if (!RM) for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; chispas.push({ x: bit.x + 5, y: bit.y + 4, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3 - 0.5, vida: 20, c: i % 2 ? tono : "#ffffff", g: 2 }); }
         }
         boca = "s"; bocaT = 24;
-        // La ventana del combo salta cada 5 seguidos, con cada nivel y con cada especial; en la fiebre, casi sin parar
-        // Las ventanas salen con ritmo: la primera a los 3 seguidos, luego cada 5, y con rachas largas cada 4 y cada 3.
-        // Con cada nivel y cada bug especial sale otra; en la fiebre, casi con cada bug
-        const cada = combo < 20 ? 5 : combo < 50 ? 4 : 3;
-        if (nv > antes) abreCombo("nivel");
-        else if (o.tipo !== "bug" && o.tipo !== "bono") abreCombo("especial", o.tipo);
-        else if (o.tipo === "bono") { if (fiebreN % 2 === 0) abreCombo("pts", n); }
-        else if (combo === 3 || (combo >= 5 && combo % cada === 0)) abreCombo("combo");
-        else if (combo >= 25 && combo % 7 === 0) abreCombo("pts", n);
+        // La epidemia de terminales: desde los 3 seguidos ya se nota, y crece rápido hasta el bum, bum, bum.
+        // 3 a 9 seguidos: una cada dos bugs · 10 a 24: casi una por bug · 25 a 59: una y a veces dos · 60 a 99: una o dos · 100 o más: dos o tres
+        ultN = n;
+        const cuantas = combo < 3 ? 0 : combo < 10 ? (combo % 2 ? 1 : 0) : combo < 25 ? (Math.random() < 0.75 ? 1 : 0) : combo < 60 ? 1 + (Math.random() < 0.35 ? 1 : 0) : combo < 100 ? 1 + (Math.random() < 0.65 ? 1 : 0) : 2 + (Math.random() < 0.5 ? 1 : 0);
+        if (nv > antes) pideVentanas(1 + Math.min(3, cuantas), "nivel");
+        else if (o.tipo !== "bug" && o.tipo !== "bono") pideVentanas(1 + cuantas, "especial", o.tipo);
+        else if (o.tipo === "bono") pideVentanas(Math.max(1, cuantas), "pts", n);
+        else if (cuantas) pideVentanas(cuantas, Math.random() < 0.6 ? "combo" : "pts", n);
+        // Cada tantos seguidos, BIT recupera una vida
+        if (combo % D.regen === 0 && vidasR < D.vidas) { vidasR++; vidaFx = 40; textos.push({ txt: T("+1 VIDA", "+1 LIFE"), x: W / 2, y: H * 0.4, vida: 60, max: 60, c: "#41B883", e: 1 }); [784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "triangle", 0.05, i * 0.07)); }
         if (secI === JEFE) peligro = Math.max(0, peligro - JEFE_BAJA);
         hud();
       } else if (o.h ? ts - o.tn > o.cr * 0.56 : o.y + BH >= piso()) {
         o.fuera = true;
         if (o.tipo === "bono") continue;
         falla(o);
-        if (peligro >= JEFE_TOPE) { muereBit(); return; }
+        if (peligro >= JEFE_TOPE || vidasR <= 0) { muereBit(); return; }
       }
     }
     objs = objs.filter((o) => !o.fuera);
@@ -791,13 +856,13 @@
       a.hecho = true;
       bip(1400, 200, 0.12, "sawtooth", 0.04);
       const da = a.tipo === "v" ? bit.c === a.c && !vuela : a.tipo === "x" ? Math.abs(bit.x + 5 - a.x) < 10 : Math.abs(bit.y + 6 - a.y) < 9;
-      if (da) { golpeado(); if (peligro >= JEFE_TOPE) { muereBit(); return; } }
+      if (da && invul <= 0) { golpeado(); if (vidasR <= 0) { muereBit(); return; } }
     }
     ataques = ataques.filter((a) => ts < a.t1 + 0.24);
     // Se acaba la fiebre: la cuenta de lo ganado
     if (fiebre && ts > fiebre) {
       fiebre = 0;
-      cmd("close FIEBRE.EXE", "close FEVER.EXE", `finished: +${fiebreTotal} puntos`, `finished: +${fiebreTotal} points`);
+      cmd("FIEBRE.EXE /fin", "FEVER.EXE /end", `COMPLETO: +${fiebreTotal} puntos`, `DONE: +${fiebreTotal} points`);
       [784, 988, 1175, 1568].forEach((f, i) => bip(f, 0, 0.1, "square", 0.035, i * 0.07));
       hud();
     }
@@ -812,10 +877,10 @@
       const c = bit.c;
       if (objs.some((o) => (o.c === c || o.c2 === c) && Math.abs(o.tn - t1) < 0.3)) return;
       ataques.push({ tipo: "v", c, t0: ts, t1 });
-      cmd("create object RAYO.EXE", "create object BOLT.EXE", "finished: sal de la franja rosa", "finished: leave the pink strip", "rayos");
+      cmd("RAYO.EXE", "BOLT.EXE", "ALERTA: sal de la franja rosa", "WARNING: leave the pink strip", "rayos");
     } else if (vuela && energiaAhora > 0.5 && ts > R.sec[VUELO][0] + 7.5 && golpeN % 3 === 0) {
       // En el hiperespacio alterna: un rayo de lado a lado a la altura de BIT, o uno de arriba abajo donde esté
-      cmd("create object RAYO.EXE", "create object BOLT.EXE", "finished: esquiva las franjas rosas", "finished: dodge the pink strips", "rayosVuelo");
+      cmd("RAYO.EXE", "BOLT.EXE", "ALERTA: esquiva las franjas rosas", "WARNING: dodge the pink strips", "rayosVuelo");
       ataques.push((golpeN / 3) % 2 ? { tipo: "h", y: bit.y + 6, t0: ts, t1 } : { tipo: "x", x: bit.x + 5, t0: ts, t1 });
     }
   }
@@ -923,7 +988,7 @@
     if (aplasta > 0) aplasta--;
     if (estado !== "jugando") return;
     if (modo === "ritmo") { pasoRitmo(); return; }
-    if (pistaT > 0 && --pistaT === 280) { if (tactil) cmd("run BIT.EXE", "run BIT.EXE", "ok: toca un carril o desliza el dedo", "ok: tap a lane or slide your finger", "controles"); else cmd("run BIT.EXE", "run BIT.EXE", "ok: flechas o A/D, un salto por toque", "ok: arrows or A/D, one hop per tap", "controles"); }
+    if (pistaT > 0 && --pistaT === 280) { if (tactil) cmd("BIT.EXE", "BIT.EXE", "OK: toca un carril o desliza", "OK: tap a lane or slide", "controles"); else cmd("BIT.EXE", "BIT.EXE", "OK: flechas o A/D, un salto por toque", "OK: arrows or A/D, one hop per tap", "controles"); }
     pasoLog();
     moverBit();
     // Bugs: cada versión salen más seguido y más rápido
@@ -972,8 +1037,7 @@
     ctx.save();
     // En ritmo el recuadro es una ventana: el escenario se ve a través, apenas oscurecido para que los bugs resalten
     if (ritmo) ctx.clearRect(0, 0, W, H);
-    // Mientras se escribe el comando gigante de atrás, el fondo de la terminal se aclara para que se lea a través
-    ctx.fillStyle = ritmo ? (gig ? "rgba(2,4,10,.3)" : "rgba(2,4,10,.56)") : col.F;
+    ctx.fillStyle = ritmo ? "rgba(2,4,10,.56)" : col.F;
     ctx.fillRect(0, 0, W, H);
     // Por dentro es una terminal: renglones de barrido y una guía tenue entre carriles
     ctx.fillStyle = "rgba(0,0,0,.16)";
@@ -1063,10 +1127,17 @@
     let titulo2 = "C:\\BIT.EXE";
     if (ritmo && tension > 0 && h2(Math.floor(ts * 9)) < tension * 0.55) titulo2 = [...titulo2].map((ch, i) => (h2(Math.floor(ts * 9) * 3 + i) < 0.4 ? "X%:01E>."[(h2(i + Math.floor(ts * 9)) * 8) | 0] : ch)).join("");
     letras(titulo2, 3, 2, "K");
+    // Las vidas de BIT, en la barra de su terminal: corazones rojos; los perdidos, grises. El recién perdido o ganado parpadea
+    if (ritmo) for (let i = 0; i < D.vidas; i++) {
+      const hx = W - 32 - i * 6, viva = i < vidasR, cambia = vidaFx > 0 && (i === vidasR || i === vidasR - 1) && (t >> 2) % 2;
+      ctx.fillStyle = cambia ? "#ffffff" : viva ? col.R : "#8f8c80";
+      ctx.fillRect(hx, 2, 2, 2); ctx.fillRect(hx + 3, 2, 2, 2); ctx.fillRect(hx, 3, 5, 2); ctx.fillRect(hx + 1, 5, 3, 1); ctx.fillRect(hx + 2, 6, 1, 1);
+    }
     for (let i = 0; i < 3; i++) { ctx.fillStyle = col.F; ctx.fillRect(W - 8 - i * 8, 1, 6, 6); ctx.fillStyle = "#c9c6b8"; ctx.fillRect(W - 6 - i * 8, i === 2 ? 5 : 3, 2, i === 2 ? 1 : 2); }
     ctx.fillStyle = col.F;
     ctx.fillRect(0, 8, W, 1);
     for (const g of grietas) { ctx.fillStyle = g.vida % 4 < 2 ? col.R : "#c9c6b8"; ctx.fillRect(g.x - 1, 6, 5, 3); }
+    dibujaOrden();
     // En ritmo, la orilla de abajo de la barra marca cuánto va de la canción
     if (ritmo) { ctx.fillStyle = col.Y; ctx.fillRect(0, 8, Math.round((W * ts) / R.dur), 1); }
     // El piso es la línea de comandos: una casilla entre corchetes por carril. La de BIT va encendida,
@@ -1110,7 +1181,8 @@
       if (ex !== 1) { ctx.translate(bit.x + 5, yb + 12); ctx.scale(ex, ey); ctx.translate(-(bit.x + 5), -(yb + 12)); }
       if (ritmo) contorno(sprite, bit.x, yb);
       // Lastimado parpadea en rojo; recién atrapó, brilla en blanco
-      if (dano > 0 && dano % 6 < 3) silueta(sprite, bit.x, yb, col.R);
+      if (invul > 0 && dano <= 0 && (t >> 1) % 2) { /* a salvo un instante: parpadea */ }
+      else if (dano > 0 && dano % 6 < 3) silueta(sprite, bit.x, yb, col.R);
       else if (brillo > 1) silueta(sprite, bit.x, yb, "#ffffff");
       else pinta(sprite, bit.x, yb);
       ctx.restore();
@@ -1605,7 +1677,6 @@
     ESCENAS[secI]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] });
     dibujaGato();
     rayosDelGato();
-    dibujaGigante();
     // Con fiebre, una lluvia de destellos de colores por toda la pantalla
     if (fiebre > ts && !RM) for (let i = 0; i < 26; i++) rc(SANDE[(i + (t >> 2)) % SANDE.length], h(i) * FW, (h(i + 0.5) * FH + ts * (30 + h(i + 0.2) * 50)) % FH, 2, 2);
     // El destello al cambiar de escenario y el fogonazo del despegue
@@ -1672,7 +1743,10 @@
     else if (k === "escape") { if (estado === "jugando") pausa(true); else cerrar(false); }
     else if (k === "p") pausa(estado === "jugando");
     else if (estado === "titulo" && (k === "1" || k === " " || k === "enter")) empezar();
-    else if (estado === "titulo" && k === "2") empezarRitmo();
+    else if (estado === "titulo" && k === "2") eligeDif();
+    else if (estado === "dificultad" && (k === "1" || k === "2" || k === "3")) conDif(["facil", "medio", "dificil"][+k - 1]);
+    else if (estado === "dificultad" && (k === " " || k === "enter")) conDif(dif);
+    else if (estado === "dificultad" && k === "m") titulo();
     else if (estado === "pausa" && (k === " " || k === "enter")) pausa(false);
     else if ((estado === "pausa" || estado === "fin") && k === "m") titulo();
     else if (estado === "fin" && (k === "r" || k === " " || k === "enter")) (modo !== "ritmo" ? empezar : muerto ? reintentaJefe : empezarRitmo)();

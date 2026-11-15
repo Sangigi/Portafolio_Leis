@@ -801,26 +801,12 @@ body.warming #app{animation:warm .8s ease-out}
 .juego.ritmo .juego-msg{text-shadow:0 2px 0 var(--p-negro),0 0 8px var(--p-negro)}
 /* El recuadro del juego es una ventana de terminal: marco claro, borde negro y sombra dura */
 .juego-lienzo{box-shadow:0 0 0 2px #c9c6b8,0 0 0 4px var(--p-negro),8px 8px 0 4px rgba(0,0,0,.55)}
-/* La consola de atrás: una línea de comandos que asoma por detrás de la terminal del juego y avisa de cada reto */
-.j-log{position:absolute;z-index:0;box-sizing:border-box;font-family:var(--f-term);font-size:18px;line-height:1.1;color:var(--p-verde);background:#05070d;
-  box-shadow:0 0 0 2px var(--p-gris),0 0 0 4px var(--p-negro),6px 6px 0 4px rgba(0,0,0,.5);pointer-events:none}
-.j-log[hidden]{display:none}
-.j-log.abre{animation:jlAbre .22s steps(4,end)}
-@keyframes jlAbre{0%{clip-path:inset(0 0 100% 0)}}
-.jl-bar{display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--p-gris);color:var(--p-negro);font-family:var(--f-pixel);font-size:8px;letter-spacing:.06em}
-.jl-bar i{width:6px;height:6px;background:var(--p-negro)}
-.jl-c{width:var(--vis,188px);min-height:62px;padding:7px 8px 9px}
-.jl-c p{margin:0;overflow-wrap:anywhere}
-.jl-2{color:var(--p-blanco)}
-.j-log.mal .jl-2{color:var(--p-rojo)}
-/* Cuando asoma por la derecha, lo que se lee va del lado que queda a la vista */
-.j-log.der .jl-c{margin-left:auto}
-.j-log.der .jl-bar{justify-content:flex-end}
-/* En el teléfono asoma por abajo: sin barra, y el texto empieza donde termina la terminal */
-.j-log.abajo{font-size:15px;line-height:1.05}
-.j-log.abajo .jl-bar{display:none}
-.j-log.abajo .jl-c{width:auto;min-height:0;padding:9px 8px 6px}
-.juego.con-log .juego-ayuda{visibility:hidden}
+/* Elegir dificultad: tres renglones, botón y lo que cambia */
+.jm-dif{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 14px;max-width:min(560px,92vw);text-align:left;pointer-events:auto}
+.jm-dif button{padding:10px 12px;border:0;background:none;color:var(--p-amarillo);font-family:var(--f-pixel);font-size:11px;letter-spacing:.06em;cursor:pointer;text-align:left}
+.jm-dif button:hover,.jm-dif button:focus-visible,.jm-dif button.jm-sel{outline:none;background:var(--p-amarillo);color:var(--p-negro)}
+.jm-dif span{font-size:19px;line-height:1.1;color:var(--p-gris)}
+.j-vidas .j-combo{margin-left:8px}
 /* La ventana del combo: otra terminalita que se abre en un rincón y cambia de lugar */
 .j-ventana{--c:var(--p-blanco);position:absolute;z-index:2;transform:translate(-50%,-50%);min-width:136px;font-family:var(--f-pixel);color:var(--c);background:var(--p-negro);
   box-shadow:0 0 0 2px var(--c),0 0 0 4px var(--p-negro),6px 6px 0 4px rgba(0,0,0,.5);pointer-events:none}
@@ -867,5 +853,5 @@ body.warming #app{animation:warm .8s ease-out}
 
 @media (prefers-reduced-motion:reduce){
   .chcp,.envio.abre .envio-win,.envio.sale,.envio.completa .descarga-barra i.on,.ev-picado,.ev-gran-t,.ev-gran.feliz .ev-gran-n,
-  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-log.abre,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,:root[data-evento="valentin"] .foot .spr{animation:none}
+  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,:root[data-evento="valentin"] .foot .spr{animation:none}
 }
