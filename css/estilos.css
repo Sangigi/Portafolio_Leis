@@ -792,7 +792,7 @@ body.warming #app{animation:warm .8s ease-out}
 .juego-ayuda{margin:0;font-family:var(--f-term);font-size:19px;color:var(--p-gris);text-align:center}
 /* El lienzo de efectos del modo ritmo cubre toda la pantalla, detrás del juego */
 .juego{overflow:hidden}
-.juego-fx{position:absolute;left:0;top:0;z-index:0;image-rendering:pixelated;pointer-events:none}
+.juego-fx{position:absolute;left:0;top:0;z-index:0;image-rendering:pixelated;pointer-events:none;transform-origin:0 0;will-change:transform}
 .juego-hud,.juego-ayuda{position:relative;z-index:1}
 .juego-marco{z-index:1}
 /* El fondo oscuro de los textos va con sombra, no con relleno: así el recuadro del juego no cambia de tamaño */
