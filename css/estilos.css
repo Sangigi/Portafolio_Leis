@@ -865,6 +865,39 @@ span.jc-s{cursor:default}
 .jf-reto{font-size:18px;line-height:1.1;color:var(--p-gris)}
 .jf-reto b{font-weight:400;color:var(--p-blanco)}
 .jf-v{color:var(--p-verde)}
+/* El grito de racha: la palabra cae de golpe, chueca, con contorno negro y el borde rojo y azul del CRT; el multiplicador va pegado como etiqueta */
+.j-grito{--c:var(--p-amarillo);--q:1s;position:absolute;z-index:4;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:12px;font-family:var(--f-pixel);line-height:1;white-space:nowrap;pointer-events:none;
+  animation:jgEntra .14s steps(4,end),jgSale .25s steps(4,end) calc(.14s + var(--q)) forwards}
+.j-grito[hidden]{display:none}
+.j-grito b{font-weight:400;font-size:clamp(24px,7.4vw,56px);color:var(--c);transform:rotate(-4deg);
+  text-shadow:-4px 0 var(--p-negro),4px 0 var(--p-negro),0 -4px var(--p-negro),0 4px var(--p-negro),-4px -4px var(--p-negro),4px -4px var(--p-negro),-4px 4px var(--p-negro),4px 4px var(--p-negro),-8px 0 rgba(255,61,61,.85),8px 0 rgba(61,123,255,.85),0 10px 0 var(--p-negro)}
+.j-grito i{padding:4px 8px;font-style:normal;font-size:clamp(8px,1.8vw,12px);letter-spacing:.06em;color:var(--p-blanco);background:var(--p-negro)}
+.j-grito em{position:absolute;right:-22px;top:-24px;padding:6px 8px;font-style:normal;font-size:clamp(12px,3vw,20px);color:var(--p-negro);background:var(--p-rosa);transform:rotate(9deg);box-shadow:0 0 0 3px var(--p-negro),5px 5px 0 var(--p-negro)}
+@keyframes jgEntra{0%{transform:translate(-50%,-50%) scale(3);opacity:0}70%{transform:translate(-50%,-50%) scale(.9)}}
+@keyframes jgSale{100%{clip-path:inset(50% 0);opacity:0}}
+/* El telón entre pantallas: diez tiras que entran alternadas desde los dos lados, con su filo de colores, y salen por el otro */
+.j-trans{position:absolute;inset:0;z-index:6;overflow:hidden;pointer-events:none;visibility:hidden}
+.j-trans i{position:absolute;left:0;width:100%;height:10.2%;background:var(--p-negro);transform:translateX(-103%);box-shadow:8px 0 0 var(--p-amarillo),16px 0 0 var(--p-rosa),24px 0 0 var(--p-cian)}
+.j-trans i:nth-child(even){transform:translateX(103%);box-shadow:-8px 0 0 var(--p-amarillo),-16px 0 0 var(--p-rosa),-24px 0 0 var(--p-cian)}
+.j-trans i:nth-child(1){top:0%;transition-delay:0ms}.j-trans i:nth-child(2){top:10%;transition-delay:16ms}.j-trans i:nth-child(3){top:20%;transition-delay:32ms}.j-trans i:nth-child(4){top:30%;transition-delay:48ms}.j-trans i:nth-child(5){top:40%;transition-delay:64ms}.j-trans i:nth-child(6){top:50%;transition-delay:80ms}.j-trans i:nth-child(7){top:60%;transition-delay:96ms}.j-trans i:nth-child(8){top:70%;transition-delay:112ms}.j-trans i:nth-child(9){top:80%;transition-delay:128ms}.j-trans i:nth-child(10){top:90%;transition-delay:144ms}
+.j-trans.cubre,.j-trans.abre,.j-trans.tapado{visibility:visible;pointer-events:auto}
+.j-trans.cubre i,.j-trans.abre i{transition-property:transform;transition-duration:.22s;transition-timing-function:steps(9,end)}
+.j-trans.cubre i,.j-trans.tapado i,.j-trans.cubre i:nth-child(even),.j-trans.tapado i:nth-child(even){transform:translateX(0)}
+.j-trans.abre i{transform:translateX(103%)}
+.j-trans.abre i:nth-child(even){transform:translateX(-103%)}
+/* Lo que trae la pantalla nueva llega en cascada; los disquetes caen a su estante y la cinta crece desde abajo */
+.juego-msg.entra>*{animation:jmEntra .3s steps(6,end) both}
+.juego-msg.entra>:nth-child(2){animation-delay:.07s}.juego-msg.entra>:nth-child(3){animation-delay:.14s}.juego-msg.entra>:nth-child(4){animation-delay:.21s}
+.juego-msg.entra>:nth-child(5){animation-delay:.28s}.juego-msg.entra>:nth-child(6){animation-delay:.35s}.juego-msg.entra>:nth-child(n+7){animation-delay:.42s}
+@keyframes jmEntra{0%{opacity:0;transform:translateY(16px);clip-path:inset(0 0 100% 0)}}
+.juego-msg.entra .jd{animation:jdCae .45s cubic-bezier(.3,1.6,.5,1) both}
+.juego-msg.entra .jd:nth-child(1){animation-delay:.16s}.juego-msg.entra .jd:nth-child(2){animation-delay:.24s}.juego-msg.entra .jd:nth-child(3){animation-delay:.32s}.juego-msg.entra .jd:nth-child(4){animation-delay:.4s}
+@keyframes jdCae{0%{opacity:0;transform:translateY(-90px) rotate(-9deg)}}
+.juego-msg.entra .jc-s{transform-origin:50% 100%;animation:jcSube .3s steps(5,end) both}
+.juego-msg.entra .jc-s:nth-child(n){animation-delay:calc(.2s + var(--i,0) * 1s)}
+.juego-msg.entra .jc-s:nth-child(2){--i:.03}.juego-msg.entra .jc-s:nth-child(3){--i:.06}.juego-msg.entra .jc-s:nth-child(4){--i:.09}.juego-msg.entra .jc-s:nth-child(5){--i:.12}.juego-msg.entra .jc-s:nth-child(6){--i:.15}
+.juego-msg.entra .jc-s:nth-child(7){--i:.18}.juego-msg.entra .jc-s:nth-child(8){--i:.21}.juego-msg.entra .jc-s:nth-child(9){--i:.24}.juego-msg.entra .jc-s:nth-child(10){--i:.27}
+@keyframes jcSube{0%{transform:scaleY(0)}}
 /* AUDIO.EXE: el crédito de la canción. Se abre al centro del recuadro y luego se guarda en su esquina de abajo a la derecha */
 .j-audio{position:absolute;z-index:2;min-width:150px;font-family:var(--f-pixel);color:var(--p-cian);background:var(--p-negro);pointer-events:none;
   box-shadow:0 0 0 2px var(--p-cian),0 0 0 4px var(--p-negro),6px 6px 0 4px rgba(0,0,0,.5);transition:left .4s steps(8,end),top .4s steps(8,end),transform .4s steps(8,end)}
@@ -962,5 +995,5 @@ span.jc-s{cursor:default}
 
 @media (prefers-reduced-motion:reduce){
   .chcp,.envio.abre .envio-win,.envio.sale,.envio.completa .descarga-barra i.on,.ev-picado,.ev-gran-t,.ev-gran.feliz .ev-gran-n,
-  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,.jf-sello .jd-r,.jf-tot,.j-audio.centro,.jc-fin .jc-s.jm-sel,:root[data-evento="valentin"] .foot .spr{animation:none}
+  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,.jf-sello .jd-r,.jf-tot,.j-grito,.juego-msg.entra>*,.juego-msg.entra .jd,.juego-msg.entra .jc-s,.j-audio.centro,.jc-fin .jc-s.jm-sel,:root[data-evento="valentin"] .foot .spr{animation:none}
 }

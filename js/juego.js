@@ -112,6 +112,46 @@
     ["dificil", "SIN MIEDO", "FEARLESS", "termina un disco DIFICIL", "finish a HARD disk"],
     ["tripleS", "TRIPLE S", "TRIPLE S", "saca S en los tres discos de una canción", "get S on all three disks of a song"],
   ];
+  /* Bichos con maña: cada uno cambia lo que hay que hacer. sp = su dibujo (11×9) · m = sus colores · pts = lo que vale
+     · aviso = lo que escribe la terminal la primera vez que sale uno (ES, EN) */
+  const BICHOS = {
+    // Cae en tres pedazos por el mismo carril: hay que quedarse quieto. El tercero vale triple
+    gusano: { n: "GUSANO", pts: 10, m: { V: "#7dff3c", Z: "#2f8a1a" }, aviso: ["OK: no te muevas, son tres", "OK: hold still, there are three"],
+      sp: ["...........", "..VVV......", ".VWVWV.....", ".VVVVVVV...", "..VVZVVVVV.", "....VVZVVVV", "......VVZVV", ".......VVV.", "..........."] },
+    // Parece dorado. Si a media caída enseña los ojos rojos (troya), es trampa y no se toca; si no (troyaOk), vale +100
+    troya: { n: "TROYANO", pts: 0, m: { Q: "Q" }, aviso: ["ALERTA: con ojos rojos no tocar", "WARNING: red eyes, do not touch"],
+      sp: ["..G.....G..", "...G...G...", "..YYYYYYY..", "GYYRYYYRYYG", ".YYKYQYKYY.", "GYYYYQYYYYG", ".YYQYQYQYY.", "G.YYYQYYY.G", "...YY.YY..."] },
+    // Dos unidos por un rayo en carriles distintos: al atrapar uno, el otro espera medio segundo. Si se alcanza, valen doble
+    gemelo: { n: "GEMELOS", pts: 20, m: null, aviso: ["OK: atrapa uno y corre por el otro", "OK: catch one, dash for the other"],
+      sp: [".CC.....CC.", "CWCC...CCWC", "CKCC...CCKC", "CCCCWWWCCCC", ".CC.WWW.CC.", "CCCCWWWCCCC", "C.CC...CC.C", "C..C...C..C", "..........."] },
+    // Con casco: el primer toque lo hace rebotar al carril de al lado; el segundo lo atrapa
+    acorazado: { n: "ACORAZADO", pts: 40, m: { G: "#c9c6b8", Z: "#8a4a10" }, aviso: ["OK: hay que atraparlo dos veces", "OK: it takes two catches"],
+      sp: ["..GGGGGGG..", ".GGGWGWGGG.", "GGGGGGGGGGG", "GNNNNNNNNNG", ".NWNNNNNWN.", ".NKNNZNNKN.", "GNNNNZNNNNG", ".NNZNZNZNN.", "..NN...NN.."] },
+    // Se ve al salir y al llegar; en medio desaparece
+    fantasma: { n: "FANTASMA", pts: 25, m: { W: "#dce6ff" }, aviso: ["ALERTA: recuerda su carril", "WARNING: remember its lane"],
+      sp: ["...WWWWW...", "..WWWWWWW..", ".WWKWWWKWW.", ".WWKWWWKWW.", ".WWWWWWWWW.", ".WWWWKWWWW.", ".WWWWWWWWW.", ".WW.WWW.WW.", ".W...W...W."] },
+    // Al atraparla estalla y se lleva todo lo que haya en pantalla
+    bomba: { n: "BOMBA", pts: 30, m: { K: "#565c78", G: "#c9c6b8" }, aviso: ["OK: atrapala y limpia todo", "OK: catch it to clear the screen"],
+      sp: [".......Y...", "......N....", ".....G.....", "...KKKKK...", "..KKWKKKK..", ".KKWKKKKKK.", ".KKKKKKKKK.", "..KKKKKKK..", "...KKKKK..."] },
+    // Baja en zigzag: cambia de carril con cada golpe de la música
+    polilla: { n: "POLILLA", pts: 25, m: null, aviso: ["ALERTA: cambia de carril al golpe", "WARNING: it switches lanes on beat"],
+      sp: ["M.........M", "MM.......MM", "MMM.PPP.MMM", "MMMMPWPMMMM", ".MMMPKPMMM.", "..MMPPPMM..", "...M.P.M...", "....P.P....", "..........."] },
+    // Un huevo lento: si toca el piso, suelta tres crías que rebotan y vuelven a caer
+    nido: { n: "NIDO", pts: 50, m: null, aviso: ["ALERTA: que no toque el piso", "WARNING: keep it off the floor"],
+      sp: ["....WWW....", "...WWWWW...", "..WWWVWWW..", "..WWVVWWW..", ".WWWWWWVWW.", ".WWVWWWWWW.", ".WWWWWVWWW.", "..WWWWWWW..", "...WWWWW..."] },
+    // De ayuda: por unos segundos BIT atrapa también los carriles de al lado. No castiga si se escapa
+    reloj: { n: "RELOJ", pts: 20, m: null, aviso: ["OK: ayuda, atrapas 3 carriles", "OK: help, you catch 3 lanes"],
+      sp: ["...CCCCC...", "..CWWWWWC..", ".CWWWKWWWC.", ".CWWWKWWWC.", ".CWWWKKKWC.", ".CWWWWWWWC.", ".CWWWWWWWC.", "..CWWWWWC..", "...CCCCC..."] },
+  };
+  BICHOS.troyaOk = BICHOS.troya;
+  const GUSANO_CUERPO = ["...........", "...........", "...VVVVV...", "..VVVVVVV..", "..VVZVZVV..", "..VVVVVVV..", "...VVVVV...", "...........", "..........."];
+  const CRIA = ["...........", "...........", "...........", "....VVV....", "...VWVWV...", "...VVVVV...", "....V.V....", "...........", "..........."];
+  // Qué bichos con maña salen en cada tramo de cada canción (se van turnando). En el vuelo no sale ninguno
+  const REPARTO = {
+    uia: [[], ["gusano", "polilla"], ["fantasma", "nido"], ["gemelo", "acorazado", "troya", "gusano"], ["bomba", "polilla", "bomba"], ["fantasma", "reloj", "nido"], ["gemelo", "troyaOk", "acorazado", "troya"], [], ["fantasma", "nido", "reloj"], []],
+    grimorio: [[], ["gusano", "polilla"], ["gemelo", "acorazado"], ["bomba", "polilla", "acorazado"], [], ["nido", "reloj"], ["gemelo", "bomba", "polilla", "troyaOk"]],
+  };
+  const esTrampa = (o) => o.tipo === "mal" || o.tipo === "troya";
   const ANTIVIRUS = ["..WWWWWWW..", ".WWWWVWWWW.", "WWWWWVWWWWW", "WWWWWVWWWWW", "WWVVVVVVVWW", "WWWWWVWWWWW", "WWWWWVWWWWW", ".WWWWVWWWW.", "..WWWWWWW.."];
   const BUG = ESPECIES.A;
   const ORO = BUG.map((f) => f.map((fila) => fila.replace(/R/g, "Y").replace(/Z/g, "Q")));
@@ -156,6 +196,7 @@
     <div class="juego-marco"><canvas class="juego-lienzo"></canvas><div class="juego-msg" aria-live="polite"></div></div>
     <p class="juego-ayuda">← → o A D para mover · P pausa · ESC salir</p>
     <div class="j-ventana" hidden aria-hidden="true"><div class="jv-bar"><i></i><span>COMBO.EXE</span><em>x</em></div><div class="jv-c"><b class="jv-n">0</b><span class="jv-t"></span></div></div>
+    <div class="j-trans" aria-hidden="true">${"<i></i>".repeat(10)}</div>
     <div class="j-grito" hidden aria-hidden="true"><em></em><b></b><i></i></div>
     <div class="j-audio" hidden aria-hidden="true"><div class="ja-bar"><i></i><span>AUDIO.EXE</span><em>x</em></div><div class="ja-c"><b class="ja-t"></b><span class="ja-a"></span><span class="ja-d"></span></div></div>`;
   document.body.appendChild(el);
@@ -167,7 +208,7 @@
     if (i) el.appendChild(v);
     VENT.push({ el: v, tit: $(".jv-bar span", v), num: $(".jv-n", v), txt: $(".jv-t", v), T: 0, lugar: -1 });
   }
-  const aEl = $(".j-audio", el), gEl = $(".j-grito", el);
+  const aEl = $(".j-audio", el), gEl = $(".j-grito", el), trEl = $(".j-trans", el);
   const ptsEl = $(".j-pts", el), recEl = $(".j-rec", el), verEl = $(".j-ver", el), verK = $(".j-ver-k", el), vidasEl = $(".j-vidas", el);
 
   /* ---------- 3. Estado de la partida ---------- */
@@ -217,9 +258,9 @@
      (los que quedan más juntos no salen) · tope: filas de memoria del jefe · rayo / rayoV: cada cuántos bombos dispara el gato
      (jefe / vuelo) · invul: cuadros a salvo tras perder una vida · arcoVuelo: cada cuántos bugs del vuelo sale un arcoíris */
   const DIFS = {
-    facil: { n: ["FACIL", "EASY"], vidas: 5, paso: 3, regen: 25, vel: 1.18, gap: 0.34, gapVuelo: 0.66, tope: 10, rayo: 5, rayoV: 4, invul: 100, arcoVuelo: 12 },
-    medio: { n: ["MEDIO", "NORMAL"], vidas: 4, paso: 2, regen: 35, vel: 1, gap: 0, gapVuelo: 0.54, tope: 8, rayo: 4, rayoV: 3, invul: 75, arcoVuelo: 15 },
-    dificil: { n: ["DIFICIL", "HARD"], vidas: 3, paso: 1, regen: 45, vel: 0.86, gap: 0, gapVuelo: 0.42, tope: 6, rayo: 3, rayoV: 2, invul: 55, arcoVuelo: 19 },
+    facil: { n: ["FACIL", "EASY"], vidas: 5, paso: 3, regen: 25, vel: 1.18, gap: 0.34, gapVuelo: 0.66, tope: 10, rayo: 5, rayoV: 4, invul: 100, arcoVuelo: 18 },
+    medio: { n: ["MEDIO", "NORMAL"], vidas: 4, paso: 2, regen: 35, vel: 1, gap: 0, gapVuelo: 0.54, tope: 8, rayo: 4, rayoV: 3, invul: 75, arcoVuelo: 23 },
+    dificil: { n: ["DIFICIL", "HARD"], vidas: 3, paso: 1, regen: 45, vel: 0.86, gap: 0, gapVuelo: 0.42, tope: 6, rayo: 3, rayoV: 2, invul: 55, arcoVuelo: 29 },
   };
   let dif = DIFS[lee("bitBugsDif")] ? lee("bitBugsDif") : "medio", D = DIFS[dif];
   // Vidas de BIT en ritmo, bugs caídos desde la última vida perdida, cuadros a salvo, reintentos y el parpadeo del corazón
@@ -239,6 +280,8 @@
   let vuela = false, vx = 0, vy = 0, vueloAviso = false;
   // Ataques del gato: rayos que avisan y caen con el siguiente bombo
   let ataques = [], rayoN = 0;
+  // Hasta qué segundo dura la ayuda del reloj (BIT atrapa también los carriles de al lado)
+  let iman = 0;
   // El jefe del gato también llena la memoria por su cuenta: cuándo toca el siguiente llenado y si ya lo anunció
   let llenaT = 0, llenaAviso = false, llenaN = 0;
 
@@ -259,6 +302,13 @@
   let selDisco = Math.max(0, Math.min(3, +(lee("bitBugsDisco") || 0) || 0)), selTramo = 0, practica = null, finModo = "", finN = 0, res = null;
   // Bugs atrapados y totales de cada tramo [ok, total], y los créditos del arranque (cuadros desde que empezó; -1 = ya pasaron)
   let tramos = [], cred = -1;
+  // El cierre de un nivel: destello con estrellas, todo a negro y la llave que hay que recoger para ver los resultados.
+  // cierre = { t: cuadros que lleva, fase: "luz" | "llave" | "toma" | "fin", c: carril de la llave, y: su altura, tt: cuadros de la fase }
+  // negro = el escenario se queda apagado detrás de los resultados · destello = el fogonazo con que aparecen
+  let cierre = null, negro = false, destello = 0;
+  // El telón entre pantallas: mientras cubre, no se atienden teclas
+  let enTrans = false, transN = 0;
+  const LLAVE = [".YYYYY.", "YY...YY", "Y.....Y", "YY...YY", ".YYYYY.", "...Y...", "...Y...", "...YYY.", "...Y...", "...YYY.", "...Y..."];
   const espectro = [];
 
   /* ---------- 4. Sonido, medidas y dibujo básico ---------- */
@@ -380,7 +430,7 @@
   const limpiaTxt = (txt) => txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[¡¿]/g, "").toUpperCase();
   const esMal = (txt) => /^(ERROR|ALERTA|WARNING)/.test(txt);
   function cmd(es, en, resEs, resEn, clave) {
-    if (estado !== "jugando") return;
+    if (estado !== "jugando" && estado !== "cierre") return;
     if (clave) { if (dichos[clave]) return; dichos[clave] = 1; }
     const res = resEs == null ? null : limpiaTxt(T(resEs, resEn));
     orden = { cmd: limpiaTxt(`C:\\>${T(es, en)}`), n: 0, res, mal: res ? esMal(res) : false, fin: null };
@@ -404,7 +454,7 @@
   }
   function cierraOrden() { orden = null; }
   function dibujaOrden() {
-    if (!orden || estado !== "jugando") return;
+    if (!orden || (estado !== "jugando" && estado !== "cierre")) return;
     const cabe = Math.floor((W - 6) / 4), listo = orden.res != null && orden.fin != null;
     const txt = listo ? orden.res : orden.cmd.slice(0, Math.floor(orden.n * 0.7)) + ((t >> 3) % 2 ? "_" : "");
     ctx.fillStyle = "rgba(0,0,0,.82)";
@@ -456,7 +506,7 @@
     if (arco) v.el.style.removeProperty("--c"); else v.el.style.setProperty("--c", clase === "especial" ? "#ffe14a" : TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
     if (clase === "pts") { v.tit.textContent = "SCORE.EXE"; v.num.textContent = `+${typeof dato === "number" ? dato : ultN}`; v.txt.textContent = seis(pts); }
     else if (clase === "nivel") { v.tit.textContent = "NIVEL.EXE"; v.num.textContent = `x${multi()}`; v.txt.textContent = T(NIVELES[nv - 1][1], NIVELES[nv - 1][2]); }
-    else if (clase === "especial") { v.tit.textContent = "BONUS.EXE"; v.num.textContent = { oro: "+50", arco: "x2", anti: "MEM-", glitch: "+25" }[dato] || "+"; v.txt.textContent = { oro: T("DORADO", "GOLDEN"), arco: T("FIEBRE", "FEVER"), anti: "ANTIVIRUS", glitch: "GLITCH" }[dato] || ""; }
+    else if (clase === "especial") { v.tit.textContent = "BONUS.EXE"; v.num.textContent = { oro: "+50", arco: "x2", anti: "MEM-", glitch: "+25" }[dato] || (BICHOS[dato] ? `+${typeof ultN === "number" ? ultN : ""}` : "+"); v.txt.textContent = { oro: T("DORADO", "GOLDEN"), arco: T("FIEBRE", "FEVER"), anti: "ANTIVIRUS", glitch: "GLITCH" }[dato] || (BICHOS[dato] ? BICHOS[dato].n : ""); }
     else { v.tit.textContent = "COMBO.EXE"; v.num.textContent = combo; v.txt.textContent = (nv ? `${T(NIVELES[nv - 1][1], NIVELES[nv - 1][2])} x${multi()}` : `x${multi()}`) + (secI === JEFE ? ` · MEM ${Math.round((peligro / JEFE_TOPE) * 100)}%` : ""); }
     v.el.hidden = false;
     const [x, y] = L[lugar], w = v.el.offsetWidth || 136, hh = v.el.offsetHeight || 60;
@@ -487,14 +537,14 @@
   let gritoN = 0;
   function grita(nv) {
     if (!rectL || nv < 1) return;
-    const n = ++gritoN, queda = Math.min(1.1, 0.7 + nv * 0.04);
+    const n = ++gritoN, queda = Math.min(1.6, 1 + nv * 0.05);
     $("b", gEl).textContent = GRITOS[Math.min(nv, GRITOS.length) - 1];
     $("em", gEl).textContent = `x${1 + nv * 0.5}`;
     $("i", gEl).textContent = `${NIVELES[Math.min(nv, NIVELES.length) - 1][0]} ${T("SEGUIDOS", "IN A ROW")}`;
     gEl.style.setProperty("--c", TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
     gEl.style.setProperty("--q", `${queda}s`);
     gEl.style.left = `${rectL.left + rectL.width / 2}px`;
-    gEl.style.top = `${rectL.top + rectL.height * 0.27}px`;
+    gEl.style.top = `${rectL.top + rectL.height * 0.3}px`;
     // Se reinicia la animación aunque el grito anterior siga en pantalla
     gEl.hidden = true; void gEl.offsetWidth; gEl.hidden = false;
     setTimeout(() => { if (n === gritoN) gEl.hidden = true; }, (0.12 + queda + 0.25) * 1000);
@@ -506,6 +556,41 @@
 
   /* ---------- 8. Pantallas: estante de disquetes, selector de tramos, pausa y final del modo clásico ---------- */
   function aviso(html) { msg.innerHTML = html; msg.hidden = !html; }
+  /* Entre pantalla y pantalla no hay cortes: un telón de diez tiras entra desde los dos lados, cubre, y al abrirse
+     el contenido nuevo llega en cascada (los disquetes caen a su estante uno por uno).
+     irA(fn): cubre, cambia la pantalla con fn y abre. telon(): la pantalla ya cambió (al arrancar una partida el audio
+     tiene que sonar dentro del mismo clic), así que empieza cubierto y solo se abre. */
+  function entraMsg() { if (RM) return; msg.classList.remove("entra"); void msg.offsetWidth; msg.classList.add("entra"); }
+  function irA(fn) {
+    if (RM || el.hidden) { fn(); return; }
+    if (enTrans) return;
+    const n = ++transN;
+    enTrans = true;
+    trEl.className = "j-trans cubre";
+    bip(196, 784, 0.22, "square", 0.022); bip(98, 392, 0.22, "triangle", 0.03);
+    setTimeout(() => {
+      if (n !== transN) return;
+      enTrans = false;
+      if (el.hidden) { trEl.className = "j-trans"; return; }
+      fn();
+      entraMsg();
+      trEl.className = "j-trans abre";
+      bip(784, 196, 0.24, "square", 0.02);
+      setTimeout(() => { if (n === transN) trEl.className = "j-trans"; }, 460);
+    }, 390);
+  }
+  function telon() {
+    if (RM || el.hidden) return;
+    const n = ++transN;
+    enTrans = false;
+    trEl.className = "j-trans tapado";
+    void trEl.offsetWidth;
+    trEl.className = "j-trans abre";
+    bip(784, 196, 0.24, "square", 0.02);
+    setTimeout(() => { if (n === transN) trEl.className = "j-trans"; }, 460);
+  }
+  // De la cuenta al resultado, también con telón
+  function pasaAResultado() { if (finModo !== "conteo") return; finModo = "pasa"; irA(resultado); }
   // Claves de lo que se guarda en este navegador, por canción y dificultad
   const idC = () => (R && R.id) || "uia";
   const kRec = (d) => (idC() === "uia" ? `bitBugsRitmoRecord_${d}` : `bitBugsRitmoRecord_${idC()}_${d}`);
@@ -537,7 +622,7 @@
     detieneAudio();
     estado = "titulo";
     modo = "clasico";
-    practica = null; finModo = ""; finN++;
+    practica = null; finModo = ""; finN++; cierre = null; negro = false;
     objs = []; textos = []; grietas = []; destellos = []; fantasmas = []; chispas = []; ecos = []; ondas = []; ataques = []; burbujas = []; mensaje = "";
     vuela = false; fiebre = 0; combo = 0; bit.y = bitY();
     muerto = false; peligro = peligroVis = 0; dano = 0; interferencia = 0;
@@ -631,6 +716,7 @@
   }
   function empezar() {
     detieneAudio();
+    telon();
     modo = "clasico";
     estado = "jugando";
     pts = 0; vidas = 3; nivel = 0; t = 0; sig = 40; objs = []; textos = []; grietas = []; destellos = [];
@@ -668,11 +754,11 @@
     if (d && estado === "titulo") { eligeDisco(+d.dataset.disco, true); return; }
     if (tr && estado === "tramos") { if (+tr.dataset.tramo === selTramo) practicar(); else { bip(880, 0, 0.03, "square", 0.03); verTramos(+tr.dataset.tramo); } return; }
     if (!b) return;
-    ({ empezar, jugar, "can-": () => cambiaCancion(-1), "can+": () => cambiaCancion(1), tramos: () => verTramos(practica), practica: () => practicar(), flojo: () => practicar(res ? res.peor : 0),
-      otra: () => (practica != null ? practicar(practica) : empezarRitmo()), jefe: reintenta, titulo, encender: () => cerrar(true), salir: () => cerrar(false), seguir: () => pausa(false) })[b.dataset.j]();
+    ({ empezar, jugar, "can-": () => cambiaCancion(-1), "can+": () => cambiaCancion(1), tramos: () => irA(() => verTramos(practica)), practica: () => practicar(), flojo: () => practicar(res ? res.peor : 0),
+      otra: () => (practica != null ? practicar(practica) : empezarRitmo()), jefe: reintenta, titulo: () => irA(titulo), encender: () => cerrar(true), salir: () => cerrar(false), seguir: () => pausa(false) })[b.dataset.j]();
   });
   // Durante la cuenta del final, un toque en cualquier parte la salta
-  el.addEventListener("pointerdown", () => { if (estado === "fin" && finModo === "conteo") resultado(); });
+  el.addEventListener("pointerdown", () => { if (estado === "fin" && finModo === "conteo") pasaAResultado(); });
 
   /* ---------- 9. Modo ritmo: audio, arranque, final, daño y vidas ---------- */
   function detieneAudio() {
@@ -699,11 +785,13 @@
     if (!R) return;
     desde = typeof desde === "number" ? desde : 0;
     detieneAudio();
+    telon();
+    cierre = null; negro = false; destello = 0;
     modo = "ritmo";
     estado = "cargando";
     pts = 0; t = 0; objs = []; textos = []; grietas = []; destellos = []; anillos = [];
     bit = { c: carriles >> 1, x: xBit(carriles >> 1), y: bitY() }; fantasmas = []; chispas = []; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
-    ondas = []; punch = 0; fiebre = 0; burbujas = []; ataques = []; rayoN = 0; llenaT = 0; llenaAviso = false; gatoFrente = 0; vuela = false; vueloAviso = false; vx = vy = 0;
+    ondas = []; punch = 0; fiebre = 0; burbujas = []; ataques = []; rayoN = 0; iman = 0; llenaT = 0; llenaAviso = false; gatoFrente = 0; vuela = false; vueloAviso = false; vx = vy = 0;
     celdas = [0, 0, 0, 0, 0]; pistaT = desde > 0 ? 0 : 420; atrapadosPista = 0; cierraVentana();
     cierraOrden(); dichos = {};
     luz = luzVis = 0.75; res = null; finModo = ""; finN++; cred = desde > 0 ? -1 : 0;
@@ -733,8 +821,8 @@
       a.preload = "auto";
       a.addEventListener("ended", () => {
         if (a !== audio || el.hidden) return;
-        if (modo === "ritmo" && estado === "jugando") finRitmo();
-        else if (R.sigue && estado === "fin") { try { a.currentTime = R.dur; } catch (e) { /* se queda en silencio */ } a.play().catch(() => {}); }
+        if (modo === "ritmo" && estado === "jugando") { if (practica != null) finRitmo(); else empiezaCierre(); }
+        else if (R.sigue && (estado === "fin" || estado === "cierre")) { try { a.currentTime = R.dur; } catch (e) { /* se queda en silencio */ } a.play().catch(() => {}); }
       });
       a.addEventListener("error", errorAudio);
     }
@@ -791,6 +879,7 @@
     aviso(`<p class="jm-t jm-t2">${G() ? T("¡GRIMORIO SELLADO!", "GRIMOIRE SEALED!") : T("¡VIRUS ELIMINADO!", "VIRUS REMOVED!")}</p>
       <div class="jf-cuenta">${filas.map((f) => `<p class="jf-f${f[2] ? "" : " jf-no"}" hidden><span>${f[0]}</span><b>${f[2] ? `+${f[1]}` : "- - -"}</b></p>`).join("")}<p class="jf-f jf-tot" hidden><span>TOTAL</span><b>${seis(pts)}</b></p></div>
       <p class="jf-gris">${tactil ? T("Toca para saltar", "Tap to skip") : T("Pulsa una tecla para saltar", "Press any key to skip")}</p>`);
+    entraMsg();
     const fs = [...msg.querySelectorAll(".jf-f")];
     fs.forEach((f, i) => setTimeout(() => {
       if (n !== finN || finModo !== "conteo") return;
@@ -798,7 +887,7 @@
       const ultima = i === fs.length - 1;
       if (f.classList.contains("jf-no")) bip(180, 0, 0.06, "square", 0.03);
       else bip(523.25 * Math.pow(2, (i * 2) / 12), 0, ultima ? 0.25 : 0.08, "square", 0.04);
-      if (ultima) setTimeout(() => { if (n === finN && finModo === "conteo") resultado(); }, 900);
+      if (ultima) setTimeout(() => { if (n === finN && finModo === "conteo") pasaAResultado(); }, 900);
     }, 350 + i * 380));
   }
   function resultado() {
@@ -845,6 +934,7 @@
     guardaTramos(i, i + 1);
     hud();
     [523, 659, 784].forEach((f, k) => bip(f, 0, 0.1, "square", 0.04, k * 0.09));
+    setTimeout(entraMsg, 0);
     aviso(`<p class="jm-t jm-t2">${T("TRAMO COMPLETO", "SECTION CLEAR")}</p>
       <p class="jc-n">${i + 1} · ${nomSec(i)}</p>
       <p class="jm-rango ${p >= 90 ? "jf-v" : p >= 70 ? "" : "jm-rojo"}">${p}%</p>
@@ -866,7 +956,7 @@
   }
   // BIT cae: se quedó sin vidas o GATO.EXE llenó la memoria. Se puede reintentar desde el inicio de ese escenario
   function muereBit() {
-    estado = "fin"; finModo = "crash";
+    estado = "fin"; finModo = "crash"; cierre = null;
     muerto = true;
     if (audio) audio.pause();
     if (practica == null) guardaTramos(0, secI);
@@ -876,6 +966,7 @@
     hud();
     cierraVentana();
     cierraOrden();
+    setTimeout(entraMsg, 0);
     aviso(`<p class="jm-t jm-rojo">CRASH</p>
       <p>${vidasR <= 0 || G() ? `*** ${T("SIN VIDAS", "OUT OF LIVES")} ***<br>${T("BIT.EXE dejó de responder.", "BIT.EXE stopped responding.")}` : `*** ${T("MEMORIA LLENA", "OUT OF MEMORY")} ***<br>${T("GATO.EXE saturó la memoria y BIT.EXE dejó de responder.", "CAT.EXE flooded the memory and BIT.EXE stopped responding.")}`}</p>
       <p class="jm-p">${T("PUNTOS", "SCORE")} ${seis(pts)}</p>
@@ -920,12 +1011,12 @@
     hud();
   }
   // Nivel GRIMORIO: BIT tocó un bug maldito. Pierde el combo y parte de su luz, y cuenta como un bug caído
-  function maldito(o) {
+  function maldito(o, nombre) {
     boca = "o"; bocaT = 45;
     dano = 26;
     if (!RM) { temblor = 11; interferencia = 10; }
     bip(140, 50, 0.3, "sawtooth", 0.07); bip(70, 40, 0.25, "square", 0.05, 0.04);
-    textos.push({ txt: T("MALDITO", "CURSED"), x: o.x + 5, y: o.y, vida: 45, max: 45, c: "#d44bff", e: 1 });
+    textos.push({ txt: nombre || T("MALDITO", "CURSED"), x: o.x + 5, y: o.y, vida: 45, max: 45, c: "#d44bff", e: 1 });
     castigo(true);
     luz = Math.max(0.1, luz - 0.25);
     if (++fallosVida >= D.paso) { fallosVida = 0; pierdeVida(); }
@@ -953,12 +1044,14 @@
   function preparaNotas() {
     const N = R.notas, n = N.length / 3;
     activa = []; tipoRun = mapa.tipo.slice(); totalNotas = 0;
-    let ult = -9, enVuelo = 0;
+    let ult = -9, enVuelo = 0, aireHasta = 0;
     for (let i = 0; i < n; i++) {
       const tn = N[i * 3] / 1000, sec = seccionDe(tn);
-      if (tn - ult < (sec === VUELO ? D.gapVuelo : D.gap)) { activa.push(false); continue; }
+      // No salen los que quedan muy juntos, ni los comunes que caerían en el aire que pidió un bicho con maña
+      if (tn - ult < (sec === VUELO ? D.gapVuelo : D.gap) || (tn < aireHasta && tipoRun[i] === "bug")) { activa.push(false); continue; }
       activa.push(true);
       ult = tn;
+      if (mapa.aire[i]) aireHasta = tn + mapa.aire[i] * D.vel;
       totalNotas++;
       if (sec === VUELO && ++enVuelo % D.arcoVuelo === 4) tipoRun[i] = "arco";
     }
@@ -966,13 +1059,14 @@
   const seccionDe = (seg) => { let i = 0; while (i < R.sec.length - 1 && seg >= R.sec[i][1]) i++; return i; };
   // Los carriles de cada nota se reparten aquí para que BIT nunca se quede parado: casi cada bug obliga a saltar.
   // De paso se eligen los especiales: dorado (+50), arcoíris (fiebre x2), glitch (cambia de carril al caer) y antivirus (jefe).
-  const mapa = { c: [], tipo: [] };
+  const mapa = { c: [], tipo: [], aire: [] };
   function armaMapa() {
-    mapa.c = []; mapa.tipo = [];
+    mapa.c = []; mapa.tipo = []; mapa.aire = [];
     let sem = 20261114;
     const rnd = () => { sem = (sem * 1664525 + 1013904223) >>> 0; return sem / 4294967296; };
     const N = R.notas, n = N.length / 3, calma = R.calma || [0, 2, 5, 8, 9], g = G(), fin = R.sec.length - 1;
-    let c = 2, dir = 1, oros = 0, normales = 0;
+    const reparto = REPARTO[idC()] || [];
+    let c = 2, dir = 1, oros = 0, normales = 0, toca = false, turno = 0;
     for (let i = 0; i < n; i++) {
       const tn = N[i * 3] / 1000, dt = i ? tn - N[(i - 1) * 3] / 1000 : 9, dtSig = i < n - 1 ? N[(i + 1) * 3] / 1000 - tn : 9, sec = seccionDe(tn), cAntes = c;
       // Ráfagas muy rápidas: a veces repite carril; lo demás siempre se mueve, y más lejos cuanto más tiempo hay
@@ -981,26 +1075,117 @@
       let nc = c + dir * paso;
       if (nc < 0 || nc > carriles - 1) { dir = -dir; nc = c + dir * paso; }
       c = Math.max(0, Math.min(carriles - 1, nc));
-      let tipo = "bug";
+      let tipo = "bug", aire = 0;
       // El arcoíris (el que desata la fiebre) nunca sale en los escenarios tranquilos
-      if (N[i * 3 + 2]) tipo = ++oros % 2 === 0 && !calma.includes(sec) ? "arco" : "oro";
+      if (N[i * 3 + 2]) tipo = ++oros % 3 === 0 && !calma.includes(sec) ? "arco" : "oro";
       else {
         normales++;
         if (sec === JEFE && !g && normales % 13 === 0) tipo = "anti";
         // GRIMORIO: el maldito cae justo donde BIT se quedó parado, para obligarlo a quitarse. Solo si hay tiempo de verlo
         else if (g && (sec === 2 || sec === 6) && i > 0 && dt > 0.55 && dtSig > 0.55 && normales % 6 === 0) { tipo = "mal"; c = cAntes; }
         else if (sec >= (g ? 2 : 3) && sec !== fin && sec !== VUELO && dt > 0.3 && dtSig > 0.45 && normales % 11 === 0) tipo = "glitch";
+        // Los bichos con maña: uno cada tantos bugs, pero solo donde hay aire antes y después para reaccionar
+        if (normales % 8 === 5) toca = true;
+        const lista = reparto[sec] || [];
+        if (toca && tipo === "bug" && lista.length && sec !== VUELO && i > 0 && dt > 0.28) {
+          // Cada uno pide su espacio: el gusano y los gemelos, tiempo después; el acorazado, más (tiene que rebotar);
+          // el troyano tramposo, tiempo antes para verle los ojos. Se toma el primero de la lista al que le alcance
+          const cabe = (k) => (k === "troya" ? dt > 0.5 && dtSig > 0.4 : k === "gemelo" ? dt > 0.4 : true);
+          for (let k = 0; k < lista.length; k++) {
+            const cual = lista[(turno + k) % lista.length];
+            if (!cabe(cual)) continue;
+            tipo = cual; turno += k + 1; toca = false;
+            // Los que necesitan aire después (rebotar, correr por el gemelo, tragarse al gusano entero) lo piden:
+            // los bugs comunes que caerían en ese rato no salen
+            aire = { acorazado: 0.85, gemelo: 0.75, gusano: 0.6 }[cual] || 0;
+            // El troyano tramposo cae donde BIT se quedó parado, igual que el maldito
+            if (tipo === "troya") c = cAntes;
+            break;
+          }
+        }
       }
       mapa.c.push(c);
       mapa.tipo.push(tipo);
+      mapa.aire.push(aire);
     }
   }
   if (R) ponCancion(cancionI);
+  /* El cierre de un nivel. Al acabar la canción: un destello y estrellas del color del nivel que salen del centro y se
+     desvanecen hasta dejar todo en negro. Entonces baja una llave por un carril y se queda en el piso: al recogerla, BIT la
+     levanta, todo se apaga con otro destello y aparecen los resultados. */
+  function empiezaCierre() {
+    cierraVentana();
+    cierraOrden();
+    estado = "cierre";
+    objs = []; ataques = []; vuela = false; fiebre = 0; iman = 0; tension = 0; zoom = 1; punch = 0; dano = 0; interferencia = 0;
+    bit.c = Math.max(0, Math.min(carriles - 1, Math.floor((bit.x + 5) / LW)));
+    if (audio && R.sigue) audio.volume = R.volumen * 0.6;
+    cierre = { t: 0, fase: "luz", c: (bit.c + 2 + ((Math.random() * 2) | 0)) % carriles, y: 10, tt: 0 };
+    negro = true;
+    hud();
+    [1047, 1319, 1568, 2093].forEach((f, i) => bip(f, 0, 0.3, "triangle", 0.04, i * 0.08));
+  }
+  function pasoCierre() {
+    const k = cierre, suelo = bitY() + 1;
+    k.t++;
+    pasoOrden();
+    if (k.fase === "luz" || k.fase === "llave") moverBit();
+    if (k.fase === "luz" && k.t > 150) {
+      k.fase = "llave";
+      if (tactil) cmd("LLAVE.EXE", "KEY.EXE", "OK: toca la llave", "OK: tap the key"); else cmd("LLAVE.EXE", "KEY.EXE", "OK: recoge la llave", "OK: grab the key");
+    }
+    if (k.fase === "llave") {
+      if (k.y < suelo) { k.y = Math.min(suelo, k.y + 0.9); if (k.y >= suelo) { bip(1568, 0, 0.08, "triangle", 0.05); bip(2093, 0, 0.14, "triangle", 0.04, 0.06); } }
+      else if (k.t % 45 === 0) bip(1976, 0, 0.05, "sine", 0.02);
+      if (k.y > suelo - 16 && bit.c === k.c && Math.abs(bit.x - xBit(k.c)) < 3) {
+        k.fase = "toma"; k.tt = 0;
+        boca = "s"; bocaT = 90;
+        cierraOrden();
+        [784, 988, 1175, 1568, 1976, 2349].forEach((f, i) => bip(f, 0, 0.14, "square", 0.04, i * 0.08));
+      }
+    } else if (k.fase === "toma") {
+      brinco = 6;
+      if (++k.tt > 64) { k.fase = "fin"; k.tt = 0; bip(2000, 200, 0.5, "sawtooth", 0.035); }
+    } else if (k.fase === "fin" && ++k.tt > 20) { cierre = null; destello = 26; finRitmo(); }
+  }
+  function dibujaLlave() {
+    const k = cierre;
+    if (k.fase === "llave") {
+      const enPiso = k.y >= bitY() + 1, x = xBit(k.c) + 1, y = Math.round(k.y + (enPiso ? Math.sin(t * 0.12) * 1.5 - 2 : 0));
+      // Un haz de luz marca su carril
+      ctx.fillStyle = `rgba(255,225,74,${0.09 + 0.05 * Math.sin(t * 0.2)})`;
+      ctx.fillRect(Math.round(k.c * LW) + 1, 9, Math.round(LW) - 1, piso() - 9);
+      contorno(LLAVE, x, y);
+      pinta(LLAVE, x, y, (t >> 2) % 6 === 0 ? { Y: "W" } : null);
+      if (!RM && t % 5 === 0) chispas.push({ x: x + azar(0, 7), y: y + azar(0, 10), vx: 0, vy: -1.2, vida: 9, c: "#ffe14a", g: 1 });
+    } else if (k.fase === "toma") {
+      // BIT la levanta sobre su cabeza, entre rayos que giran
+      const p = Math.min(1, k.tt / 18), x = Math.round(bit.x) + 2, y = Math.round(bit.y - 6 - p * 12);
+      for (let i = 0; i < 8; i++) {
+        const a = t * 0.07 + (i / 8) * Math.PI * 2, r1 = 11 + p * 12 + Math.sin(t * 0.3 + i) * 2;
+        ctx.fillStyle = i % 2 ? "#ffe14a" : "#ffffff";
+        for (let r = 8; r < r1; r += 2) ctx.fillRect(Math.round(x + 3 + Math.cos(a) * r), Math.round(y + 5 + Math.sin(a) * r), 1, 1);
+      }
+      contorno(LLAVE, x, y);
+      pinta(LLAVE, x, y, (t >> 1) % 2 ? { Y: "W" } : null);
+    } else if (k.fase === "fin") { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, k.tt / 13)})`; ctx.fillRect(0, 0, W, H); }
+  }
+  // Lo que trae cada bicho con maña al nacer: su aviso (solo la primera vez) y sus acompañantes.
+  // libre = no es una nota de la canción: si se escapa no castiga ni cuenta
+  function naceBicho(o) {
+    const b = BICHOS[o.tipo];
+    cmd(`${b.n}.EXE`, `${b.n}.EXE`, b.aviso[0], b.aviso[1], `bicho-${b.n}`);
+    if (o.tipo === "gusano") { o.seg = 0; for (let k = 1; k < 3; k++) objs.push({ tipo: "gusano", seg: k, libre: true, c: o.c, tn: o.tn + k * 0.21, d: o.d, s: o.s, x: o.x, y: 0 }); }
+    else if (o.tipo === "gemelo") { const c2 = o.c >= 2 ? o.c - 2 : o.c + 2, g = { tipo: "gemelo", libre: true, c: c2, tn: o.tn, d: o.d, s: o.s, x: xBug(c2), y: 0, par: o }; o.par = g; objs.push(g); grietas.push({ x: xBug(c2) + 4, vida: 16 }); }
+    else if (o.tipo === "polilla") { o.cf = o.c; o.dirP = o.c === 0 ? 1 : o.c === carriles - 1 ? -1 : Math.floor(o.tn * 10) % 2 ? 1 : -1; o.salto = true; }
+    else if (o.tipo === "nido") o.d *= 1.35;
+  }
   function pasoRitmo() {
     ts = tCancion() + R.desfase;
     // Al reintentar al jefe, se espera a que el audio brinque a su punto
     if (ts < desdeIni - 1) return;
-    if (ts >= R.dur - 0.05 || (practica != null && secI === practica && ts >= R.sec[practica][1] - 0.05)) { finRitmo(); return; }
+    if (practica != null && secI === practica && ts >= R.sec[practica][1] - 0.05) { finRitmo(); return; }
+    if (ts >= R.dur - 0.05) { if (practica != null) finRitmo(); else empiezaCierre(); return; }
     // Los créditos del arranque: la terminal inicializa la canción, se abre AUDIO.EXE al centro y luego se guarda en la esquina
     if (cred >= 0) {
       cred++;
@@ -1055,7 +1240,7 @@
         if (!llenaAviso && ts > llenaT - 1.7) { llenaAviso = true; const c = [["GATO.EXE /malloc 64MB", "CAT.EXE /malloc 64MB"], ["GATO.EXE /copiar *.*", "CAT.EXE /copy *.*"], ["GATO.EXE /abrir 99 ventanas", "CAT.EXE /open 99 windows"], ["GATO.EXE /fork", "CAT.EXE /fork"]][llenaN % 4]; cmd(c[0], c[1], null, null); }
         if (ts > llenaT) {
           const sube = Math.max(2, JEFE_TOPE * 0.34);
-          peligro = Math.min(JEFE_TOPE - 1, peligro + sube);
+          peligro = Math.max(peligro, Math.min(JEFE_TOPE - 2, peligro + sube));
           cmdRes(`ALERTA: memoria +${Math.round((sube / JEFE_TOPE) * 100)}%, bajala`, `WARNING: memory +${Math.round((sube / JEFE_TOPE) * 100)}%, bring it down`);
           if (!RM) { temblor = 12; interferencia = 10; }
           punch = 2;
@@ -1109,6 +1294,7 @@
       // El glitch cambia de carril a media caída
       if (tipo === "glitch") o.c2 = c === 0 ? 1 : c === carriles - 1 ? c - 1 : c + (rI % 2 ? 1 : -1);
       objs.push(o);
+      if (BICHOS[tipo]) naceBicho(o);
       if (!cruza) grietas.push({ x: xBug(c) + 4, vida: 16 });
       rI++;
     }
@@ -1128,30 +1314,51 @@
         o.x = W / 2 - BW / 2 + ((o.h * (o.tn - ts)) / o.cr) * W;
         o.y = 15 + o.c * ((by - 15) / (carriles - 1)) + Math.sin(ts * 4 + o.tn * 3) * 3;
       } else {
+        // La polilla cambia de carril con cada golpe y llega a su carril de verdad en el último
+        if (o.tipo === "polilla") o.c = o.cf + (Math.max(0, Math.floor((o.tn - ts) / (60 / R.sec[o.s][3]))) % 2 ? o.dirP : 0);
         o.x += (xBug(o.c) - o.x) * (o.salto ? 0.5 : 1);
-        o.y = y0 + (yT - y0) * avance;
+        // El gemelo que espera se queda flotando a la altura de BIT; los que rebotan (acorazado, crías) se mueven suave
+        const yy = o.cuelga ? yT - 3 + Math.sin(ts * 22) : y0 + (yT - y0) * avance;
+        o.y = o.suave ? o.y + (yy - o.y) * 0.3 : yy;
       }
-      const toca = vuela || o.h
+      // Se acabó la espera del gemelo: se va sin castigo
+      if (o.cuelga && ts > o.cuelga) { o.fuera = true; textos.push({ txt: T("SE FUE", "GONE"), x: o.x + 5, y: o.y, vida: 34, max: 34, c: "#8f93a8", e: 1 }); continue; }
+      // Con la ayuda del reloj, BIT alcanza también los carriles de al lado (las trampas no: esas hay que tocarlas a propósito)
+      const alcance = iman > ts && !esTrampa(o) ? 1 : 0;
+      const toca = !(o.noAntes > ts) && (vuela || o.h
         ? o.x < bit.x + 11 && o.x + BW > bit.x - 1 && o.y < bit.y + 12 && o.y + BH > bit.y - 1
-        : o.y + BH >= by + 1 && o.y <= by + 9 && o.c === bit.c;
-      if (toca && o.tipo === "mal") {
-        // El maldito no se atrapa: tocarlo castiga
+        : o.y + BH >= by + 1 && o.y <= by + 9 && Math.abs(o.c - bit.c) <= alcance);
+      if (toca && esTrampa(o)) {
+        // El maldito y el troyano tramposo no se atrapan: tocarlos castiga
         o.fuera = true;
         tramos[o.s][1]++;
-        maldito(o);
+        maldito(o, o.tipo === "troya" ? T("TROYANO", "TROJAN") : null);
         if (vidasR <= 0) { muereBit(); return; }
+      } else if (toca && o.tipo === "acorazado" && !o.golpe) {
+        // Primer toque al acorazado: pierde el casco, rebota y vuelve a caer en el carril de al lado
+        o.golpe = 1; o.suave = true; o.salto = true;
+        o.c += o.c < 2 ? 1 : o.c > 2 ? -1 : Math.floor(o.tn * 10) % 2 ? 1 : -1;
+        o.tn = ts + 0.66; o.d = 1.2; o.noAntes = ts + 0.34;
+        pts += 5; aplasta = 5; punch = Math.min(2, punch + 0.6);
+        bip(1500, 700, 0.08, "square", 0.05); bip(2100, 0, 0.04, "triangle", 0.04, 0.03);
+        textos.push({ txt: "CLANK", x: o.x + 5, y: o.y, vida: 34, max: 34, c: "#c9c6b8", e: 1 });
+        if (!RM) for (let i = 0; i < 8; i++) chispas.push({ x: o.x + 5, y: o.y + 2, vx: azar(-2, 2), vy: azar(-2.6, -0.6), vida: 14, c: "#c9c6b8", g: 1 });
+        hud();
       } else if (toca) {
         o.fuera = true;
         const antes = nivelCombo();
         combo++;
-        if (o.tipo !== "bono" || o.nota) { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; }
+        if ((o.tipo !== "bono" || o.nota) && !o.libre && !o.cria) { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; }
         if (G()) luz = Math.min(1, luz + 0.07);
         if (!o.h) celdas[o.c] = 9;
         if (pistaT > 40 && ++atrapadosPista >= 3) pistaT = 40;
         if (combo > maxCombo) maxCombo = combo;
         const nv = nivelCombo(), tono = TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)];
         // Los de premio valen cada vez más mientras dure la fiebre
-        const base = o.tipo === "bono" ? Math.min(60, 15 + fiebreN * 3) : o.tipo === "oro" ? 50 : o.tipo === "arco" ? 100 : o.tipo === "anti" ? 30 : o.tipo === "glitch" ? 25 : 10;
+        // Gusano: 10, 15 y el tercero 45 · troyano de verdad: 100 · gemelos: doble si se alcanzan los dos
+        const pareja = o.tipo === "gemelo" && o.par && o.par.cogido;
+        const base = o.tipo === "bono" ? Math.min(60, 15 + fiebreN * 3) : o.tipo === "oro" ? 50 : o.tipo === "arco" ? 100 : o.tipo === "anti" ? 30 : o.tipo === "glitch" ? 25
+          : o.tipo === "gusano" ? [10, 15, 45][o.seg || 0] : o.tipo === "troyaOk" ? 100 : pareja ? 80 : BICHOS[o.tipo] ? BICHOS[o.tipo].pts : 10;
         // Los de premio no se multiplican por el combo, solo por la fiebre: si no, los puntos se disparan
         const n = Math.round(base * (o.tipo === "bono" ? 2 : multi()));
         pts += n;
@@ -1166,11 +1373,37 @@
           fiebre = ts + 7;
           fiebreN = 0; fiebreTotal = 0;
           // Mientras dure, TODO lo que cae es de premio: los que ya venían se convierten, no hay rayos y fallar no castiga
-          for (const b of objs) if (b !== o && b.tipo !== "bono") { b.nota = true; b.tipo = "bono"; b.c2 = null; }
+          for (const b of objs) if (b !== o && b.tipo !== "bono") { b.nota = !b.libre && !b.cria; b.tipo = "bono"; b.c2 = null; b.cuelga = 0; }
           if (!vuela) ataques = [];
           if (G()) cmd("RUNA.EXE", "RUNE.EXE", "COMPLETO: luz total, todo vale x2", "DONE: full light, everything counts x2"); else cmd("FIEBRE.EXE", "FEVER.EXE", "COMPLETO: todo vale x2", "DONE: everything counts x2");
           punch = 2;
           [659, 880, 1109, 1319, 1760].forEach((f, i) => bip(f, 0, 0.09, "square", 0.035, i * 0.05));
+        } else if (o.tipo === "gemelo") {
+          o.cogido = true;
+          const g = o.par;
+          if (pareja) { textos.push({ txt: T("¡PAREJA!", "PAIR!"), x: o.x + 5, y: o.y - 8, vida: 44, max: 44, c: "#38BDF8", e: 1.5 }); [784, 1175].forEach((f, i) => bip(f, 0, 0.09, "square", 0.04, i * 0.06)); }
+          else if (g && !g.fuera) {
+            // El otro espera un momento. Si se atrapó primero al acompañante, la nota ya cuenta como atrapada
+            g.cuelga = ts + 0.55;
+            if (o.libre) { g.libre = true; atrapados++; tramos[g.s][0]++; tramos[g.s][1]++; }
+          }
+        } else if (o.tipo === "bomba") {
+          // Estalla: todo lo que haya en pantalla cuenta como atrapado (las trampas simplemente desaparecen)
+          let n2 = 0;
+          for (const b of objs) {
+            if (b === o || b.fuera) continue;
+            b.fuera = true;
+            if (!esTrampa(b) && !b.libre && !b.cria && (b.tipo !== "bono" || b.nota)) { atrapados++; tramos[b.s][0]++; tramos[b.s][1]++; pts += 10; n2++; }
+            else if (esTrampa(b)) { atrapados++; tramos[b.s][0]++; tramos[b.s][1]++; }
+            if (!RM) for (let i = 0; i < 6; i++) chispas.push({ x: b.x + 5, y: b.y + 4, vx: azar(-2.5, 2.5), vy: azar(-2.5, 1), vida: 16, c: i % 2 ? "#ffe14a" : "#F28C28", g: 2 });
+          }
+          textos.push({ txt: n2 ? `BOOM +${n2 * 10}` : "BOOM", x: W / 2, y: H * 0.45, vida: 55, max: 55, c: "#F28C28", e: 2 });
+          if (!RM) { temblor = 10; cambio = 12; }
+          punch = 2;
+          bip(160, 40, 0.4, "sawtooth", 0.09); bip(90, 30, 0.45, "square", 0.07, 0.02);
+        } else if (o.tipo === "reloj") {
+          iman = ts + 5;
+          [988, 1319, 1976].forEach((f, i) => bip(f, 0, 0.09, "triangle", 0.045, i * 0.06));
         } else if (o.tipo === "anti") {
           peligro = Math.max(0, peligro - 2);
           cmd("ANTIVIRUS.EXE", "ANTIVIRUS.EXE", "COMPLETO: memoria liberada", "DONE: memory freed");
@@ -1196,9 +1429,18 @@
         hud();
       } else if (o.h ? ts - o.tn > o.cr * 0.56 : o.y + BH >= piso()) {
         o.fuera = true;
-        if (o.tipo === "bono") continue;
-        // Dejar pasar al maldito es lo correcto: cuenta como atrapado
-        if (o.tipo === "mal") { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; pts += 5; bip(330, 0, 0.04, "triangle", 0.025); continue; }
+        if (o.tipo === "bono" || o.libre) continue;
+        // El reloj es de ayuda: si se escapa no pasa nada
+        if (o.tipo === "reloj") { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; continue; }
+        // El nido revienta en el piso: tres crías rebotan hacia arriba y vuelven a caer regadas
+        if (o.tipo === "nido") {
+          [-1, 0, 1].forEach((dc, k) => objs.push({ tipo: "cria", cria: true, suave: true, c: Math.max(0, Math.min(carriles - 1, o.c + dc)), tn: ts + 1.05 + k * 0.3, d: 1.5, s: o.s, x: o.x, y: o.y }));
+          bip(300, 900, 0.15, "square", 0.05);
+          if (!RM) for (let i = 0; i < 10; i++) chispas.push({ x: o.x + 5, y: o.y + 6, vx: azar(-2.2, 2.2), vy: azar(-3, -1), vida: 16, c: "#ECEBE4", g: 1 });
+        }
+        if (o.cria) { falla(o); if (vidasR <= 0) { muereBit(); return; } continue; }
+        // Dejar pasar al maldito o al troyano tramposo es lo correcto: cuenta como atrapado
+        if (esTrampa(o)) { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; pts += 5; bip(330, 0, 0.04, "triangle", 0.025); continue; }
         tramos[o.s][1]++;
         falla(o);
         if (peligro >= JEFE_TOPE || vidasR <= 0) { muereBit(); return; }
@@ -1210,7 +1452,7 @@
       if (a.hecho || ts < a.t1) continue;
       a.hecho = true;
       bip(1400, 200, 0.12, "sawtooth", 0.04);
-      const da = a.tipo === "v" ? bit.c === a.c && !vuela : a.tipo === "x" ? Math.abs(bit.x + 5 - a.x) < 10 : Math.abs(bit.y + 6 - a.y) < 9;
+      const da = a.tipo === "v" ? bit.c === a.c && !vuela : a.tipo === "x" ? Math.abs(bit.x + 5 - a.x) < 7.5 : Math.abs(bit.y + 6 - a.y) < 6.5;
       if (da && invul <= 0) { golpeado(); if (vidasR <= 0) { muereBit(); return; } }
     }
     ataques = ataques.filter((a) => ts < a.t1 + 0.24);
@@ -1239,7 +1481,9 @@
       // la cruz (los dos a la vez), la jaula (dos a los lados: no te muevas), el pasillo (dos de lado a lado) y el barrido
       // (tres de arriba abajo que cruzan la pantalla uno tras otro)
       if (G()) cmd("FUEGO.EXE", "FIRE.EXE", "ALERTA: esquiva las franjas de fuego", "WARNING: dodge the fire strips", "rayosVuelo"); else cmd("RAYO.EXE", "BOLT.EXE", "ALERTA: esquiva las franjas rosas", "WARNING: dodge the pink strips", "rayosVuelo");
-      const bx = bit.x + 5, by = bit.y + 6, pon = (tipo, v, dt = 0) => ataques.push(tipo === "x" ? { tipo, x: Math.max(8, Math.min(W - 8, v)), t0: ts, t1: t1 + dt } : { tipo, y: Math.max(18, Math.min(piso() - 8, v)), t0: ts, t1: t1 + dt });
+      // Avisan con dos golpes de anticipación (poco más de un segundo), para que dé tiempo de salir también con el dedo
+      const tv = rG + 1 < R.golpes.length && R.golpes[rG + 1] / 100 - ts < 1.6 ? R.golpes[rG + 1] / 100 : t1;
+      const bx = bit.x + 5, by = bit.y + 6, pon = (tipo, v, dt = 0) => ataques.push(tipo === "x" ? { tipo, x: Math.max(8, Math.min(W - 8, v)), t0: ts, t1: tv + dt } : { tipo, y: Math.max(18, Math.min(piso() - 8, v)), t0: ts, t1: tv + dt });
       switch (rayoN++ % 6) {
         case 0: pon("x", bx); break;
         case 1: pon("h", by); break;
@@ -1351,6 +1595,8 @@
     if (interferencia > 0) interferencia--;
     chispas.forEach((c) => { c.x += c.vx; c.y += c.vy; c.vy += 0.16; c.vida--; }); chispas = chispas.filter((c) => c.vida > 0);
     if (aplasta > 0) aplasta--;
+    if (destello > 0) destello--;
+    if (estado === "cierre" && cierre) { pasoCierre(); return; }
     if (estado !== "jugando") return;
     if (modo === "ritmo") { pasoRitmo(); return; }
     if (pistaT > 0 && --pistaT === 280) { if (tactil) cmd("BIT.EXE", "BIT.EXE", "OK: toca un carril o desliza", "OK: tap a lane or slide", "controles"); else cmd("BIT.EXE", "BIT.EXE", "OK: flechas o A/D, un salto por toque", "OK: arrows or A/D, one hop per tap", "controles"); }
@@ -1438,8 +1684,12 @@
       const k = Math.min(1, (ts - a.t0) / (a.t1 - a.t0));
       const [x, y, w, hh] = a.tipo === "v" ? [Math.round(a.c * LW) + 1, 9, Math.round(LW) - 1, piso() - 9] : a.tipo === "x" ? [Math.round(a.x) - 8, 9, 16, piso() - 9] : [0, Math.round(a.y) - 7, W, 14];
       if (!a.hecho) {
-        ctx.fillStyle = `rgba(${rA},${0.1 + 0.26 * k})`;
+        // El aviso: una franja tenue con el centro que se va llenando; cuando se llena del todo, cae el golpe
+        ctx.fillStyle = `rgba(${rA},.1)`;
         ctx.fillRect(x, y, w, hh);
+        ctx.fillStyle = `rgba(${rA},.3)`;
+        if (a.tipo === "h") ctx.fillRect(x, Math.round(y + (hh / 2) * (1 - k)), w, Math.max(1, Math.round(hh * k)));
+        else ctx.fillRect(Math.round(x + (w / 2) * (1 - k)), y, Math.max(1, Math.round(w * k)), hh);
         ctx.fillStyle = (t >> 2) % 2 ? cA : "#ffffff";
         if (a.tipo === "h") { for (let i = (t >> 1) % 6; i < W; i += 6) { ctx.fillRect(i, y, 3, 1); ctx.fillRect(i, y + hh - 1, 3, 1); } }
         else { for (let i = 9 + ((t >> 1) % 6); i < piso(); i += 6) { ctx.fillRect(x, i, 1, 3); ctx.fillRect(x + w - 1, i, 1, 3); } }
@@ -1447,9 +1697,10 @@
       } else {
         const edad = (ts - a.t1) / 0.24;
         ctx.globalAlpha = Math.max(0, 1 - edad);
-        ctx.fillStyle = cA;
+        // El golpe: un fogonazo blanco y luego el color
+        ctx.fillStyle = edad < 0.35 ? "#ffffff" : cA;
         ctx.fillRect(x, y, w, hh);
-        ctx.fillStyle = G() ? "#ffe14a" : "#ffffff";
+        ctx.fillStyle = edad < 0.35 ? cA : G() ? "#ffe14a" : "#ffffff";
         // El rayo en zigzag
         if (a.tipo === "h") { let yy = y + hh / 2; for (let i = 0; i < W; i += 4) { const ny = y + 2 + Math.random() * (hh - 4); ctx.fillRect(i, Math.round(Math.min(yy, ny)), 4, Math.max(2, Math.round(Math.abs(ny - yy)))); yy = ny; } }
         else { let xx = x + w / 2; for (let i = 9; i < piso(); i += 4) { const nx = x + 2 + Math.random() * (w - 4); ctx.fillRect(Math.round(Math.min(xx, nx)), i, Math.max(2, Math.round(Math.abs(nx - xx))), 4); xx = nx; } }
@@ -1463,6 +1714,24 @@
       if (o.tipo === "cafe") sp = CAFE;
       else if (o.tipo === "anti") sp = ANTIVIRUS;
       else if (modo !== "ritmo") { sp = ESPECIES[o.e || "A"][cuadro]; mp = o.tipo === "oro" ? ORO_MAPA : null; }
+      else if (o.tipo === "cria") sp = CRIA;
+      else if (BICHOS[o.tipo]) {
+        const b = BICHOS[o.tipo], av = 1 - (o.tn - ts) / o.d;
+        sp = o.tipo === "gusano" && o.seg ? GUSANO_CUERPO : b.sp;
+        mp = b.m;
+        // El troyano tramposo enseña los ojos rojos a media caída; el de verdad los tiene dorados siempre
+        if (b === BICHOS.troya) mp = { R: o.tipo === "troya" && av > 0.38 && av < 0.8 && (t >> 2) % 2 ? "#ff3d3d" : "Y", Q: "Q" };
+        // Tras el primer toque, el acorazado ya no trae casco
+        if (o.tipo === "acorazado" && o.golpe) mp = { G: "N", W: "N", Z: "#8a4a10" };
+        // El fantasma se desvanece a media caída y vuelve a verse al llegar
+        if (o.tipo === "fantasma") ctx.globalAlpha = av < 0.2 ? 1 : av < 0.3 ? 1 - (av - 0.2) * 9.6 : av < 0.74 ? 0.04 : Math.min(1, 0.04 + (av - 0.74) * 12);
+        // La polilla avisa hacia dónde va a brincar
+        if (o.tipo === "polilla" && (t >> 2) % 2) { const n = Math.floor((o.tn - ts) / (60 / R.sec[o.s][3])); if (n > 0) { const d = n % 2 ? -o.dirP : o.dirP; ctx.fillStyle = "#ff3fb4"; ctx.fillRect(Math.round(o.x) + (d > 0 ? 12 : -4), Math.round(o.y) + 3, 3, 3); } }
+        // El rayo que une a los gemelos
+        if (o.tipo === "gemelo" && !o.libre && o.par && !o.par.fuera && !o.cogido && !o.par.cogido) { ctx.fillStyle = (t >> 1) % 2 ? "#ffffff" : "#38BDF8"; const xa = Math.min(o.x, o.par.x) + BW, xb = Math.max(o.x, o.par.x); for (let x = xa; x < xb; x += 3) ctx.fillRect(Math.round(x), Math.round(o.y) + 4 + ((x + t) % 2 | 0), 2, 1); }
+        // El gemelo que espera parpadea: queda poco
+        if (o.cuelga && (t >> 1) % 2) mp = { C: "#ffffff" };
+      }
       else if (o.tipo === "mal") { sp = ESPECIES.G[cuadro]; mp = { R: (t >> 3) % 2 ? "#d44bff" : "#a259ff", Z: "#3a0d5c", K: "#ffffff" }; }
       else if (o.tipo === "arco" && G()) { sp = RUNA; mp = { R: SANDE[(t >> 2) % SANDE.length] }; }
       else if (o.tipo === "bono") { sp = ESPECIES[MU[o.s][0]][cuadro]; mp = { R: SANDE[((t >> 2) + ((o.tn * 7) | 0)) % SANDE.length], Z: "#ffffff" }; }
@@ -1474,10 +1743,13 @@
         if (o.tipo === "glitch" && !RM && (t >> 1) % 3 === 0) ox = Math.random() < 0.5 ? -1 : 1;
       }
       // En ritmo, un contorno negro con la forma del bug para que se distinga sobre cualquier escenario
-      if (ritmo) contorno(sp, o.x + ox, o.y);
+      if (ritmo && o.tipo !== "cria") contorno(sp, o.x + ox, o.y);
       // El maldito lleva un aura morada que late
       if (o.tipo === "mal") { ctx.fillStyle = `rgba(212,75,255,${(t >> 2) % 2 ? 0.34 : 0.18})`; ctx.fillRect(Math.round(o.x) - 2, Math.round(o.y) - 2, BW + 4, BH + 4); }
       pinta(sp, o.x + ox, o.y, mp);
+      ctx.globalAlpha = 1;
+      // La bomba chispea por la mecha
+      if (o.tipo === "bomba" && !RM && t % 3 === 0) chispas.push({ x: o.x + 7, y: o.y, vx: azar(-0.6, 0.6), vy: -0.8, vida: 7, c: t % 2 ? "#ffe14a" : "#ffffff", g: 1 });
       // El glitch avisa hacia dónde va a brincar
       if (o.tipo === "glitch" && !o.salto && (t >> 2) % 2) { const d = o.c2 > o.c ? 1 : -1; ctx.fillStyle = "#00f6ff"; ctx.fillRect(Math.round(o.x) + (d > 0 ? 12 : -4), Math.round(o.y) + 3, 3, 3); ctx.fillRect(Math.round(o.x) + (d > 0 ? 15 : -5), Math.round(o.y) + 4, 1, 1); }
       // Dorados y arcoíris sueltan destellos
@@ -1535,8 +1807,8 @@
     ctx.fillRect(0, py, W, 1);
     if (vuela) { ctx.fillStyle = "#3a4058"; for (let x = (t >> 1) % 8; x < W; x += 8) ctx.fillRect(x, py + 3, 4, 1); }
     else for (let c = 0; c < carriles; c++) {
-      const x0 = Math.round(c * LW), w = Math.round(LW), act = c === bit.c, ok = celdas[c] > 0;
-      ctx.fillStyle = ok ? col.V : act ? (ritmo && pulso > 0.7 ? "#ffffff" : col.Y) : "#3a4058";
+      const x0 = Math.round(c * LW), w = Math.round(LW), ok = celdas[c] > 0, lado = ritmo && iman > ts && Math.abs(c - bit.c) === 1 && (iman - ts > 1 || (t >> 2) % 2), act = c === bit.c || lado;
+      ctx.fillStyle = ok ? col.V : lado ? col.C : act ? (ritmo && pulso > 0.7 ? "#ffffff" : col.Y) : "#3a4058";
       ctx.fillRect(x0 + 2, py + 2, 1, 4); ctx.fillRect(x0 + 2, py + 2, 3, 1); ctx.fillRect(x0 + 2, py + 5, 3, 1);
       ctx.fillRect(x0 + w - 3, py + 2, 1, 4); ctx.fillRect(x0 + w - 5, py + 2, 3, 1); ctx.fillRect(x0 + w - 5, py + 5, 3, 1);
       if (act || ok) ctx.fillRect(x0 + 6, py + 3, w - 12, 2);
@@ -1661,8 +1933,11 @@
       pintaGato(gatoX * zoom + focoX * (1 - zoom) - gx, gatoY * zoom + focoY * (1 - zoom) - gy, lado, gatoQuieto ? null : giro, (secI === JEFE || vuela ? 0.5 : 0.9) * Math.min(1, (gatoFrente - 0.5) * 4), ctx);
       ctx.restore();
     }
+    if (ritmo && estado === "cierre" && cierre) dibujaLlave();
     // En pausa o al terminar, el recuadro se oscurece para que se lea el mensaje
-    if (ritmo && estado !== "jugando") { ctx.fillStyle = "rgba(0,0,0,.72)"; ctx.fillRect(0, 0, W, H); }
+    if (ritmo && estado !== "jugando" && estado !== "cierre") { ctx.fillStyle = "rgba(0,0,0,.72)"; ctx.fillRect(0, 0, W, H); }
+    // El fogonazo con que aparecen los resultados
+    if (destello > 0) { ctx.fillStyle = `rgba(255,255,255,${destello / 26})`; ctx.fillRect(0, 0, W, H); }
     // Al fallar, las orillas del recuadro se encienden en rojo
     if (ritmo && dano > 0 && !RM) {
       const a = (dano / 26) * 0.5;
@@ -1676,6 +1951,13 @@
     // Interferencia en la terminal: tiras de la imagen que se corren, una copia desfasada y líneas de barrido que brincan.
     // Entre más tensión (el error, el jefe con la memoria llena, la lluvia de código), más seguido y más fuerte
     let brincaX = 0;
+    // Cada vez que el recuadro da un golpe fuerte (un bicho especial, varios seguidos, subir de nivel de combo), la imagen
+    // se descompone un instante: dos tiras se corren de lado y aparece una copia desfasada
+    if (ritmo && !RM && punch > 0.7 && estado === "jugando") {
+      for (let i = 0; i < 2; i++) { const yy = 9 + Math.floor(h2(t * 3 + i) * (H - 20)), hh = 3 + Math.floor(h2(t * 5 + i) * 8), dxx = Math.round((h2(t * 7 + i) - 0.5) * punch * 10); ctx.drawImage(lienzo, 0, yy, W, hh, dxx, yy, W, hh); }
+      ctx.globalAlpha = Math.min(0.3, punch * 0.15); ctx.globalCompositeOperation = "lighter"; ctx.drawImage(lienzo, Math.round(punch * 1.5), 0); ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+      if (punch > 1.4) brincaX = (t >> 1) % 2 ? -2 : 2;
+    }
     if (ritmo && tension > 0 && estado === "jugando") {
       const paso = Math.floor(ts * 22);
       if (h2(paso) < tension * 0.55) for (let i = 0; i < 1 + Math.floor(tension * 3); i++) {
@@ -2216,6 +2498,9 @@
     if (!activo) { if (!fxLimpio) { c2.clearRect(0, 0, FW, FH); fx.style.transform = ""; fxLimpio = true; } return; }
     fxLimpio = false;
     c2.globalAlpha = 1;
+    if (estado === "cierre" && cierre) { dibujaCierreFx(); return; }
+    // Tras el cierre, el escenario se queda apagado detrás de los resultados
+    if (negro && estado === "fin") { fx.style.transform = ""; rc("#000000", 0, 0, FW, FH); if (destello > 0) { c2.globalAlpha = destello / 26; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; } return; }
     (G() ? ESCENAS_G : ESCENAS)[secI]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] });
     if (!G()) { dibujaGato(); rayosDelGato(); }
     // Con fiebre, una lluvia de destellos de colores por toda la pantalla
@@ -2245,6 +2530,26 @@
     }
     // En pausa o al terminar, todo se oscurece para que se lea el mensaje
     if (estado !== "jugando") rc("rgba(0,0,0,.74)", 0, 0, FW, FH);
+  }
+  // El cierre en el lienzo de efectos: fogonazo, estrellas del color del nivel que salen del centro y titilan, y negro
+  function dibujaCierreFx() {
+    const k = cierre, T0 = k.t, cx = gx + W / 2, cy = gy + H * 0.5;
+    fx.style.transform = "";
+    rc("#000000", 0, 0, FW, FH);
+    const cols = G() ? ["#c084ff", "#ffd23b", "#ffffff", "#7a3fc0"] : ["#00f6ff", "#ff3fb4", "#ffe14a", "#ffffff"];
+    const p = Math.min(1, T0 / 150), sale = 1 - Math.pow(1 - p, 3), alfa = T0 < 80 ? 1 : Math.max(0, 1 - (T0 - 80) / 70);
+    if (alfa > 0) {
+      c2.globalAlpha = alfa;
+      for (let i = 0; i < 110; i++) {
+        if (!RM && h(i + (T0 >> 2) * 0.37) < 0.22) continue;
+        const a = h(i) * TAU, d = (0.06 + h(i + 0.3) * 0.94) * Math.hypot(FW, FH) * 0.55 * sale, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * 0.8, g = h(i + 0.6) < 0.2 ? 2 : 1, c = cols[i % 4];
+        // Estrellas de cuatro puntas; en el nivel del gato, mezcladas con pixeles sueltos
+        if (G() || i % 3 === 0) { rc(c, x - 2 * g, y, 5 * g, g); rc(c, x, y - 2 * g, g, 5 * g); } else rc(c, x, y, 2 * g, 2 * g);
+      }
+      c2.globalAlpha = 1;
+    }
+    if (T0 < 18) { c2.globalAlpha = 1 - T0 / 18; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
+    if (k.fase === "fin") { c2.globalAlpha = Math.min(1, k.tt / 13); rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
   }
   function bucle(ahora) {
     raf = requestAnimationFrame(bucle);
@@ -2279,7 +2584,8 @@
     e.stopPropagation();
     e.preventDefault();
     // Durante la cuenta del final, cualquier tecla la salta
-    if (estado === "fin" && finModo === "conteo") { if (!e.repeat) resultado(); return; }
+    if (enTrans) return;
+    if (estado === "fin" && finModo === "conteo") { if (!e.repeat) pasaAResultado(); return; }
     if (flechaIzq || flechaDer) {
       // Cada toque es un salto inmediato; dejar la tecla apretada repite el salto
       if (e.repeat) return;
@@ -2287,26 +2593,26 @@
       dirTecla = flechaIzq ? -1 : 1;
       // Un toque = un salto. Solo si se deja la tecla apretada un buen rato (un tercio de segundo) empieza a repetir, y despacio
       rep = 22;
-      if (estado === "jugando" && !vuela) { meta = null; saltaA(bit.c + dirTecla); }
+      if ((estado === "jugando" || estado === "cierre") && !vuela) { meta = null; saltaA(bit.c + dirTecla); }
       else if (estado === "titulo") eligeDisco(selDisco + dirTecla);
       else if (estado === "tramos") { bip(880, 0, 0.03, "square", 0.03); verTramos(selTramo + dirTecla); }
     }
-    else if (estado === "jugando" && !vuela && k >= "1" && k <= "5" && k.length === 1) { meta = null; saltaA(+k - 1); }
+    else if ((estado === "jugando" || estado === "cierre") && !vuela && k >= "1" && k <= "5" && k.length === 1) { meta = null; saltaA(+k - 1); }
     else if (estado === "titulo" && (flechaArr || flechaAba)) cambiaCancion(flechaArr ? -1 : 1);
     else if (flechaArr) arr = true;
     else if (flechaAba) aba = true;
-    else if (k === "escape") { if (estado === "jugando") pausa(true); else if (estado === "tramos") titulo(); else cerrar(false); }
+    else if (k === "escape") { if (estado === "jugando") pausa(true); else if (estado === "tramos") irA(titulo); else if (estado === "cierre") { cierre = null; finRitmo(); } else cerrar(false); }
     else if (k === "p") pausa(estado === "jugando");
     else if (estado === "titulo" && k >= "1" && k <= "4" && k.length === 1) { eligeDisco(+k - 1); jugar(); }
     else if (estado === "titulo" && (k === " " || k === "enter")) jugar();
-    else if (estado === "titulo" && k === "n") verTramos();
+    else if (estado === "titulo" && k === "n" && selDisco > 0) irA(() => verTramos());
     else if (estado === "tramos" && (k === " " || k === "enter")) practicar();
-    else if (estado === "tramos" && k === "m") titulo();
+    else if (estado === "tramos" && k === "m") irA(titulo);
     else if (estado === "pausa" && (k === " " || k === "enter")) pausa(false);
-    else if ((estado === "pausa" || estado === "fin") && k === "m") titulo();
+    else if ((estado === "pausa" || estado === "fin") && k === "m") irA(titulo);
     else if (estado === "fin" && (k === "r" || k === " " || k === "enter")) (modo !== "ritmo" ? empezar : muerto ? reintenta : practica != null ? () => practicar(practica) : empezarRitmo)();
     else if (estado === "fin" && finModo === "resultado" && k === "j" && res && res.peor >= 0) practicar(res.peor);
-    else if (estado === "fin" && finModo === "practica" && k === "n") verTramos(practica);
+    else if (estado === "fin" && finModo === "practica" && k === "n") irA(() => verTramos(practica));
     else if (estado === "fin" && k === "y" && deApagado) cerrar(true);
   }
   window.addEventListener("keydown", teclas, true);
@@ -2330,6 +2636,7 @@
     medir();
     hud();
     titulo();
+    entraMsg();
     izq = der = arr = aba = false;
     dirTecla = 0;
     meta = null;
