@@ -55,7 +55,7 @@
     ["Clic o tecla Y para volver a encender", "Click or press Y to power back on"],
     ["clic o cualquier tecla para saltar", "click or press any key to skip"], ["PRESIONA START", "PRESS START"],
     ["clic o cualquier tecla para encender", "click or press any key to power on"],
-    ["JUGAR BIT VS BUGS", "PLAY BIT VS BUGS"], ["PUNTOS", "SCORE"], ["RECORD", "HIGH"],
+    ["JUGAR BIT & BUGS", "PLAY BIT & BUGS"], ["PUNTOS", "SCORE"], ["RECORD", "HIGH"],
     ["← → o A D para mover · P pausa · ESC salir", "← → or A D to move · P pause · ESC quit"],
     // Temporadas
     ["TEMPORADA", "SEASON"], ["DÍA DE MUERTOS", "DAY OF THE DEAD"], ["NAVIDAD", "HOLIDAYS"], ["SAN VALENTÍN", "VALENTINE'S DAY"],

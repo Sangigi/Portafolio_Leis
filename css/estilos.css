@@ -760,7 +760,7 @@ body.warming #app{animation:warm .8s ease-out}
 .ev-gran.feliz .ev-gran-n{font-size:clamp(26px,6.4vw,72px);animation:blinkCorto 1s steps(1,end) infinite}
 .ev-gran-s{font-family:var(--f-term);font-size:22px;color:var(--p-gris)}
 
-/* ---------- BIT VS BUGS: el minijuego del GAME OVER (js/juego.js) ---------- */
+/* ---------- BIT & BUGS: el minijuego del GAME OVER (js/juego.js) ---------- */
 .cont-juego{display:none;margin:4px 0 0}
 .cont.over .cont-juego{display:block;animation:aparece 1.6s steps(1,end)}
 @keyframes aparece{0%,70%{opacity:0}}
@@ -790,6 +790,12 @@ body.warming #app{animation:warm .8s ease-out}
 .jm-b button:first-child{animation:blinkCorto 1.2s steps(1,end) infinite}
 .jm-b button:hover,.jm-b button:focus-visible{outline:none;background:var(--p-amarillo);color:var(--p-negro);animation:none}
 .juego-ayuda{margin:0;font-family:var(--f-term);font-size:19px;color:var(--p-gris);text-align:center}
+/* Modo ritmo: combo en el marcador, nota final y aviso del modo */
+.j-combo b{color:var(--p-blanco)}
+.j-combo i{font-style:normal;color:var(--p-amarillo)}
+.jm-nota{max-width:34ch;font-size:19px;color:var(--p-gris)}
+.jm-rango{font-family:var(--f-pixel);font-size:clamp(44px,10vw,84px);line-height:1;color:var(--p-amarillo);text-shadow:-.06em 0 color-mix(in srgb,var(--p-rojo) 60%,transparent),.06em 0 color-mix(in srgb,var(--p-azul) 60%,transparent)}
+.jm-rC,.jm-rD{color:var(--p-blanco)}
 /* En pantallas táctiles: sin teclas, con el dedo */
 @media (pointer:coarse){
   .cont-juego-k{display:none}
