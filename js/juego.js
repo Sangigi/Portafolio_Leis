@@ -329,9 +329,16 @@
      teles = los segundos en que BIT es cambiado de fila a la fuerza (R.teles) y teleI por cuál va */
   let lateral = false, latK = 0, teles = [], teleI = 0, rect0 = null, movida = false;
   const filaY = (c) => Math.round(14 + c * ((piso() - 28) / (carriles - 1)));
-  // El recuadro que se lleva todo al final del tramo anterior al lateral: de 1 (pantalla completa) a casi 0
+  // Los destellos que lo ciegan todo, fondo, terminal y BIT (R.destellos: [tramo que termina en blanco, segundos de subida]):
+  // devuelve qué tan blanco va (0 a 1). Sube despacio y al final de golpe; ya en el tramo siguiente se apaga en medio segundo
+  const fogonazo = () => {
+    if (!R || !R.destellos || modo !== "ritmo") return 0;
+    for (const [i, sube] of R.destellos) { const fin = R.sec[i][1]; if (ts > fin - sube && ts <= fin) return Math.pow((ts - (fin - sube)) / sube, 3); if (ts > fin && ts < fin + 0.55) return 1 - (ts - fin) / 0.55; }
+    return 0;
+  };
+  // El recuadro que se lleva todo al final del tramo R.caja: de 1 (pantalla completa) a casi 0
   const cajaS = () => {
-    if (RM || !R || R.lateral == null || modo !== "ritmo" || estado !== "jugando" || secI !== R.lateral - 1) return 1;
+    if (RM || !R || R.caja == null || modo !== "ritmo" || estado !== "jugando" || secI !== R.caja) return 1;
     const falta = R.sec[secI][1] - ts;
     return falta > 1.1 ? 1 : Math.max(0.06, Math.pow(Math.max(0, falta) / 1.1, 1.6));
   };
@@ -1035,7 +1042,8 @@
     aEl.className = `j-audio ${donde}`;
     const centro = donde === "centro";
     aEl.style.left = `${centro ? rectL.left + rectL.width / 2 : Math.min(rectL.right + 14, window.innerWidth - 4)}px`;
-    aEl.style.top = `${centro ? rectL.top + rectL.height * 0.45 : rectL.bottom - (H - piso()) * escala - 6}px`;
+    // Guardada, cuelga por fuera de la esquina de abajo a la derecha: así no tapa el piso ni a BIT
+    aEl.style.top = `${centro ? rectL.top + rectL.height * 0.45 : Math.min(rectL.bottom + 5, window.innerHeight - 30)}px`;
   }
   // BIT cae: se quedó sin vidas o GATO.EXE llenó la memoria. Se puede reintentar desde el inicio de ese escenario
   function muereBit() {
@@ -1139,7 +1147,8 @@
       const tn = N[i * 3] / 1000, sec = seccionDe(tn);
       // No salen los que quedan muy juntos, ni los comunes que caerían en el aire que pidió un bicho con maña
       // Mientras la terminal se encoge, se muda de lado y vuelve, no cae nada
-      const sl = R.lateral != null ? R.sec[R.lateral] : null, mudanza = sl && ((tn > sl[0] - 1.25 && tn < sl[0] + 1.5) || (tn > sl[1] - 0.3 && tn < sl[1] + 1.3));
+      const sl = R.lateral != null ? R.sec[R.lateral] : null, sc = R.caja != null ? R.sec[R.caja] : null;
+      const mudanza = (sl && ((tn > sl[0] - 0.9 && tn < sl[0] + 1.5) || (tn > sl[1] - 0.3 && tn < sl[1] + 1.3))) || (sc && tn > sc[1] - 1.25 && tn < sc[1] + 0.7);
       if (mudanza || tn - ult < (sec === VUELO ? D.gapVuelo : D.gap) || (tn < aireHasta && tipoRun[i] === "bug")) { activa.push(false); continue; }
       activa.push(true);
       ult = tn;
@@ -2156,6 +2165,8 @@
     if (ritmo && estado === "cierre" && cierre) dibujaLlave();
     // En pausa o al terminar, el recuadro se oscurece para que se lea el mensaje
     if (ritmo && estado !== "jugando" && estado !== "cierre") { ctx.fillStyle = "rgba(0,0,0,.72)"; ctx.fillRect(0, 0, W, H); }
+    // Los destellos del nivel también ciegan la terminal y a BIT
+    if (ritmo && estado === "jugando") { const fg = fogonazo(); if (fg > 0.01) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, fg).toFixed(3)})`; ctx.fillRect(0, 0, W, H); } }
     // El fogonazo con que aparecen los resultados
     if (destello > 0) { ctx.fillStyle = `rgba(255,255,255,${destello / 26})`; ctx.fillRect(0, 0, W, H); }
     // Al fallar, las orillas del recuadro se encienden en rojo
@@ -2943,11 +2954,12 @@
       cine();
     },
     // 2. ATARDECER: el sol se mete en el mar; dos palmeras enormes en primer plano
-    () => {
-      const yH = Math.round(FH * 0.64);
+    (e) => {
+      const yH = Math.round(FH * 0.64), k = Math.min(1, Math.max(0, (ts - e.sec[0]) / (e.sec[1] - e.sec[0])));
       cieloTramado(OCASO_F, 0, yH);
       estrellasF(12, FH * 0.2, PF.b);
-      solRetro("#fcd87c", "#fc9c4c", "#e4505c", Math.round(FW * 0.5), yH - 8, Math.round(24 + pulso * 2));
+      // El sol va saliendo del mar poco a poco a lo largo del tramo
+      solRetro("#fcd87c", "#fc9c4c", "#e4505c", Math.round(FW * 0.5), Math.round(yH + 22 - k * 32), Math.round(24 + pulso * 2));
       rc("#18084c", 0, yH, FW, FH - yH);
       mancha("mar", "#e4505c", (x, y) => (y < 0.64 ? 0 : Math.max(0, 0.9 - Math.abs(x - 0.5) * 5 - (y - 0.64) * 1.2)));
       for (let i = 0; i < 9; i++) { const y = yH + 3 + i * i * 0.9; rc("#fc9c4c", FW * 0.5 - 16 + h(i + (t >> 4)) * 26, y, 5 + h(i) * 6, 1); }
@@ -2970,17 +2982,37 @@
       if (gl) tiras(4, 10, Math.floor(ts * 14));
       cine();
     },
-    // 4. EL CENTRO: de noche entre rascacielos en silueta, con la luna, las laderas de luz y las luces de disco
-    () => {
-      const yH = Math.round(FH * 0.74), gl = glitchCiudad();
+    // 4. EL RASCACIELOS: la cámara sube por la fachada de un edificio en plena fiesta. Sus ventanas laten con la música,
+    //    cada tanto el edificio se rompe en código verde, y la luna lo mira todo desde atrás
+    (e) => {
+      const k = Math.min(1, Math.max(0, (ts - e.sec[0]) / (e.sec[1] - e.sec[0]))), sube = RM ? 0 : (ts - e.sec[0]) * (26 + 44 * k), gl = glitchCiudad();
       cieloTramado(NOCHE_F, 0, FH);
       laderas(PF.n3);
-      estrellasF(22, FH * 0.3, PF.b);
-      lunaF(Math.round(FW * 0.8), Math.round(FH * 0.22), 7);
-      lucesDisco(yH);
-      ciudad(yH, 2.4, PF.n4, [PF.n4, PF.o2, PF.b], gl);
-      rc(PF.k, 0, yH, FW, FH); rc(gl ? "#3fff8a" : PF.n4, 0, yH, FW, 1);
-      for (let i = 0; i < 7; i++) { const x = ((ts * (30 + i * 7) + h(i) * FW) % (FW + 30)) - 15; rc(i % 2 ? PF.o2 : PF.b, i % 2 ? FW - x : x, yH + 4 + i * 3, 5, 1); }
+      estrellasF(26, FH * 0.7, PF.b);
+      const mx = Math.round(FW * 0.75), my = Math.round(FH * 0.3);
+      resplandor("ras", PF.n4, 0.75, 0.3, 0.3);
+      lunaF(mx, my, 15); rc(PF.n4, mx - 7, my - 5, 4, 3); rc(PF.n4, mx + 5, my + 4, 3, 2); rc(PF.n4, mx - 2, my + 8, 3, 2);
+      lucesDisco(FH);
+      // Los edificios de los lados, más lejos: pasan más despacio
+      for (const [x0, x1] of [[0, FW * 0.2], [FW * 0.86, FW]]) {
+        rc(PF.k, x0, 0, x1 - x0, FH); rc(PF.n3, x1 === FW ? x0 : x1 - 1, 0, 1, FH);
+        for (let r = -1; r < FH / 9 + 1; r++) { const n = Math.floor((sube * 0.45) / 9) - r, y = r * 9 + ((sube * 0.45) % 9); for (let i = 0; (i + 1) * 6 < x1 - x0; i++) if (h(n * 7.3 + i * 3.1 + x0) > 0.62) rc(h(n + i) > 0.5 ? PF.n3 : PF.o1, x0 + 3 + i * 6, y, 3, 4); }
+      }
+      // El edificio del centro: piso por piso, con cornisas y ventanas de colores que cambian con el golpe
+      const bx = Math.round(FW * 0.3), bw = Math.round(FW * 0.38), alto = 13, cols = Math.max(4, Math.floor((bw - 8) / 9));
+      rc(gl ? "#000800" : "#04041c", bx, 0, bw, FH); rc(gl ? "#3fff8a" : PF.n4, bx, 0, 1, FH); rc(gl ? "#1d7a45" : PF.n2, bx + bw - 1, 0, 1, FH);
+      for (let r = -1; r < FH / alto + 1; r++) {
+        const n = Math.floor(sube / alto) - r, y = Math.round(r * alto + (sube % alto));
+        if (gl) { const paso = Math.floor(ts * 12); for (let i = 0; i * 4 < bw - 6; i++) for (let j = 0; j < 2; j++) { const q = h(n * 13.7 + i * 3.3 + j * 7.1 + paso * 0.61); if (q > 0.3) glifo("01<>/#$%=+*X"[(q * 97) % 12 | 0], bx + 3 + i * 4, y + 1 + j * 6, q > 0.9 ? "#ffffff" : q > 0.6 ? "#3fff8a" : "#1d7a45"); } continue; }
+        rc(((n % 6) + 6) % 6 === 0 ? PF.n3 : PF.n1, bx + 1, y + alto - 2, bw - 2, ((n % 6) + 6) % 6 === 0 ? 2 : 1);
+        for (let i = 0; i < cols; i++) {
+          const q = h(n * 5.3 + i * 9.7 + (golpeN >> 1) * 0.37), fiesta = h(n * 2.1 + i) > 0.55, x = bx + 5 + Math.round((i * (bw - 10)) / cols);
+          rc(!fiesta ? (q > 0.8 ? PF.n2 : PF.n1) : q > 0.72 ? PF.b : q > 0.5 ? PF.o2 : q > 0.3 ? "#e4505c" : PF.n3, x, y + 2, 6, 7);
+          if (fiesta && q > 0.5) rc(PF.k, x + 2 + ((golpeN + i) % 2), y + 5, 2, 4);
+        }
+      }
+      // Un letrero de neón vertical trepa por la orilla
+      if (!gl) for (let r = -1; r < FH / 20 + 1; r++) { const y = r * 20 + (sube % 20); rc((golpeN + r) % 2 ? "#e4505c" : PF.o2, bx - 5, y, 3, 12); }
       if (gl) tiras(4, 10, Math.floor(ts * 14));
       cine();
     },
@@ -3203,6 +3235,7 @@
     // El destello al cambiar de escenario y el fogonazo del despegue
     if (!RM && cambio > 0 && !DM()) { c2.globalAlpha = (cambio / 26) * 0.55; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
     if (!RM && UIA() && secI === 3 && ts > 98.86) { c2.globalAlpha = Math.min(1, (ts - 98.86) / 1.96) * 0.5; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
+    { const fg = estado === "jugando" ? fogonazo() : 0; if (fg > 0.01) { c2.globalAlpha = Math.min(1, fg); rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; } }
     // Al fallar un bug: la imagen se rompe en tiras y se tiñe de rojo
     if (interferencia > 0 && !RM) { tiras(5, 10, t); c2.globalAlpha = (interferencia / 12) * 0.2; rc("#ff0030", 0, 0, FW, FH); c2.globalAlpha = 1; }
     // La cámara: el lienzo de efectos se acerca un poco hacia su foco; el recuadro del juego apenas late

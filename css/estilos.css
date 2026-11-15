@@ -932,7 +932,7 @@ span.jc-s{cursor:default}
   box-shadow:0 0 0 2px var(--p-cian),0 0 0 4px var(--p-negro),6px 6px 0 4px rgba(0,0,0,.5);transition:left .4s steps(8,end),top .4s steps(8,end),transform .4s steps(8,end)}
 .j-audio[hidden]{display:none}
 .j-audio.centro{transform:translate(-50%,-50%);animation:jvAbre .16s steps(3,end)}
-.j-audio.esquina{transform:translate(-100%,-100%);min-width:0}
+.j-audio.esquina{transform:translate(-100%,0);min-width:0}
 .ja-bar{display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--p-cian);color:var(--p-negro);font-size:8px;letter-spacing:.06em}
 .ja-bar i{width:6px;height:6px;background:var(--p-negro)}
 .ja-bar em{margin-left:auto;font-style:normal}
