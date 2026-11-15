@@ -99,7 +99,13 @@
   document.body.appendChild(el);
   const lienzo = $(".juego-lienzo", el), ctx = lienzo.getContext("2d"), fx = $(".juego-fx", el), c2 = fx.getContext("2d"), marco = $(".juego-marco", el), msg = $(".juego-msg", el);
   const logEl = $(".j-log", el), log1 = $(".jl-1", el), log2 = $(".jl-2", el);
-  const ventana = $(".j-ventana", el), vNum = $(".jv-n", el), vTxt = $(".jv-t", el);
+  // Seis ventanitas iguales: se usan las que hagan falta según la racha
+  const vBase = $(".j-ventana", el), VENT = [];
+  for (let i = 0; i < 6; i++) {
+    const v = i ? vBase.cloneNode(true) : vBase;
+    if (i) el.appendChild(v);
+    VENT.push({ el: v, tit: $(".jv-bar span", v), num: $(".jv-n", v), txt: $(".jv-t", v), T: 0, lugar: -1 });
+  }
   const ptsEl = $(".j-pts", el), recEl = $(".j-rec", el), verEl = $(".j-ver", el), verK = $(".j-ver-k", el), vidasEl = $(".j-vidas", el);
 
   let W = 200, H = 140, escala = 4, col = {}, raf = 0, ult = 0, acum = 0;
@@ -130,7 +136,13 @@
   // La consola de atrás: una línea de comandos que asoma por detrás de la terminal y avisa de cada reto
   let logCmd = "", logRes = "", logT = 0, logN = 0, logLado = 0, dichos = {}, rectL = null;
   // La ventana del combo: cambia de lugar cada tanto para no estorbar
-  let vLugar = 0, vAbierta = false, vCierraT = 0, vT = 0;
+  let vUltSon = 0;
+  // El comando gigante: para los avisos grandes (el jefe, el vuelo) la línea se escribe enorme detrás de la terminal
+  let gig = null;
+  // Qué tan tensa está la terminal (0 a 1): con tensión, la propia ventana de BIT se llena de interferencia
+  let tension = 0;
+  // El espectro del horizonte en la Ciudad Neón: cada barra persigue su altura para moverse suave
+  const espectro = [];
   // Cuánto tarda un bug en cruzar el recuadro en el vuelo, y desde cuándo entran por el otro lado
   const CRUCE = 2.3, CRUCE_LENTO = 3.3;
   // Fallar un bug: sacudida, BIT lastimado, interferencia en el escenario y la música se apaga un instante
@@ -199,7 +211,7 @@
     }
   }
   // Si el marcador cambia de alto (en el teléfono ocupa dos renglones en ritmo), el recuadro se vuelve a medir
-  if (window.ResizeObserver) new ResizeObserver(() => { if (!el.hidden) { medir(); if (vAbierta) colocaVentana(); if (!logEl.hidden) colocaLog(); } }).observe(marco);
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!el.hidden) { medir(); if (!logEl.hidden) colocaLog(); } }).observe(marco);
   const leeCol = () => {
     col = {
       W: pig("--p-blanco"), Y: pig("--p-amarillo"), R: pig("--p-rojo"), G: pig("--p-gris"), K: pig("--p-negro"), Q: pig("--amarillo-oscuro"),
@@ -271,9 +283,11 @@
   /* La consola de atrás: detrás de la terminal del juego se abre otra ventana de comandos que escribe lo que pasa,
      por ejemplo  C:\\>create object VUELO.EXE  ...  finished: vuela con las 4 flechas.  Asoma por un lado (o por abajo
      en el teléfono), teclea su línea, da el resultado y se cierra sola.  clave: para avisar algo una sola vez por partida. */
-  function cmd(es, en, resEs, resEn, clave) {
+  function cmd(es, en, resEs, resEn, clave, grande) {
     if (estado !== "jugando") return;
     if (clave) { if (dichos[clave]) return; dichos[clave] = 1; }
+    // Los avisos grandes (el jefe, el vuelo) no van en la ventanita: se escriben enormes, detrás de todo
+    if (grande) { gig = { cmd: `C:\\>${T(es, en)}`, res: T(resEs, resEn), n: 0, mal: /^(ERROR|ALERTA|WARNING)/.test(T(resEs, resEn)) }; bip(1200, 0, 0.02, "square", 0.02); return; }
     logCmd = `C:\\>${T(es, en)}`;
     logRes = T(resEs, resEn);
     logN = 0;
@@ -314,65 +328,83 @@
     const escrito = Math.min(logCmd.length, Math.floor(++logN * 0.9));
     if (log1.textContent.length !== escrito + 1) log1.textContent = logCmd.slice(0, escrito) + (escrito < logCmd.length ? "_" : " ");
     if (logN > logCmd.length / 0.9 + 16 && !log2.textContent) { log2.textContent = logRes; bip(660, 0, 0.04, "triangle", 0.03); }
-    if (logT === 0) cierraLog();
+    if (logT === 0) { logEl.hidden = true; el.classList.remove("con-log"); }
   }
-  function cierraLog() { logEl.hidden = true; logT = 0; el.classList.remove("con-log"); }
+  function cierraLog() { logEl.hidden = true; logT = 0; gig = null; el.classList.remove("con-log"); }
+  // El comando gigante: letras enormes detrás de la terminal, tecleadas una por una, a lo ancho de toda la pantalla
+  function dibujaGigante() {
+    if (!gig) return;
+    gig.n++;
+    // La cámara acerca el escenario: se escribe solo en la parte que de verdad se ve
+    const visX = focoX * (1 - 1 / zoom), visY = focoY * (1 - 1 / zoom), visW = FW / zoom, visH = FH / zoom;
+    const e = visW >= 250 ? 2 : 1, cabe = Math.max(8, Math.floor((visW - 14) / (8 * e))), escrito = Math.floor(gig.n * 0.8), fin = gig.cmd.length / 0.8 + 18;
+    if (gig.n > fin + 260) { gig = null; return; }
+    // Parte un texto en renglones sin cortar palabras
+    const parte = (txt) => { const out = []; let ren = ""; for (const p of txt.split(" ")) { if ((ren + " " + p).trim().length > cabe && ren) { out.push(ren); ren = p; } else ren = (ren + " " + p).trim(); } if (ren) out.push(ren); return out; };
+    const l1 = parte(gig.cmd), l2 = gig.n > fin ? parte(gig.res) : [], alto = 11 * e, total = (l1.length + l2.length) * alto;
+    let y = Math.round(visY + visH * 0.5 - total / 2), quedan = escrito;
+    const alfa = gig.n > fin + 220 ? (fin + 260 - gig.n) / 40 : 1;
+    c2.globalAlpha = 0.5 * alfa;
+    rc("#000000", 0, y - 6, FW, total + 12);
+    c2.font = `8px "Press Start 2P"`;
+    c2.textAlign = "left";
+    const pon = (txt, c) => { c2.save(); c2.translate(Math.round(visX) + 7, y + 8 * e); c2.scale(e, e); c2.globalAlpha = alfa; c2.fillStyle = "#000000"; c2.fillText(txt, 1, 1); c2.fillStyle = c; c2.fillText(txt, 0, 0); c2.restore(); y += alto; };
+    for (const ren of l1) { if (quedan <= 0) break; pon(ren.slice(0, quedan) + (quedan < ren.length && (t >> 3) % 2 ? "_" : ""), col.V); quedan -= ren.length + 1; }
+    for (const ren of l2) pon(ren, gig.mal ? "#ff2e7e" : "#ffffff");
+    c2.globalAlpha = 1;
+  }
 
-  /* La ventana del combo: una ventanita COMBO.EXE que se abre un momento y se cierra sola. Sale cada 5 bugs seguidos,
-     con cada nivel nuevo y con cada bug especial, siempre en otro punto de la orilla de la terminal (montada sobre el
-     borde, nunca en medio) y con un sonido de premio. Si pasan muchas cosas juntas, apenas alcanza a abrirse antes
-     de brincar a otro lado. */
+  /* Las ventanas del combo: ventanitas de terminal que se abren un momento sobre la orilla de la terminal de BIT
+     (montadas en el borde, nunca en medio) y se cierran solas. Al principio sale una de vez en cuando; conforme crece
+     la racha salen más seguido y caben más a la vez, hasta parecer una lluvia de terminales. Unas traen la cuenta del
+     combo, otras los puntos; las de nivel nuevo y bug arcoíris salen en colores. Cada una suena a premio. */
   function lugaresVentana() {
     const r = rectL, ancho = r.left >= 170;
-    ventana.classList.toggle("chica", !ancho);
-    // Con espacio a los lados: ocho puntos alrededor del marco. En el teléfono: solo arriba y abajo, para no tapar carriles
+    // Con espacio a los lados: doce puntos alrededor del marco. En el teléfono: solo arriba y abajo, para no tapar carriles
     return ancho
-      ? [[r.left, r.top + r.height * 0.24], [r.right, r.top + r.height * 0.3], [r.left, r.top + r.height * 0.64], [r.right, r.top + r.height * 0.72],
-         [r.left + r.width * 0.2, r.top], [r.left + r.width * 0.8, r.top], [r.left + r.width * 0.24, r.bottom], [r.left + r.width * 0.78, r.bottom]]
-      : [[r.left + r.width * 0.22, r.top], [r.left + r.width * 0.5, r.top - 4], [r.left + r.width * 0.78, r.top], [r.left + r.width * 0.25, r.bottom + 10], [r.left + r.width * 0.75, r.bottom + 10]];
+      ? [[r.left, r.top + r.height * 0.16], [r.right, r.top + r.height * 0.22], [r.left, r.top + r.height * 0.42], [r.right, r.top + r.height * 0.5], [r.left, r.top + r.height * 0.7], [r.right, r.top + r.height * 0.78],
+         [r.left + r.width * 0.16, r.top], [r.left + r.width * 0.5, r.top - 6], [r.left + r.width * 0.84, r.top], [r.left + r.width * 0.2, r.bottom], [r.left + r.width * 0.52, r.bottom + 8], [r.left + r.width * 0.82, r.bottom]]
+      : [[r.left + r.width * 0.2, r.top], [r.left + r.width * 0.5, r.top - 6], [r.left + r.width * 0.8, r.top], [r.left + r.width * 0.25, r.bottom + 12], [r.left + r.width * 0.75, r.bottom + 12]];
   }
-  function colocaVentana() {
-    if (!rectL) return;
-    const L = lugaresVentana(), [x, y] = L[vLugar % L.length], w = ventana.offsetWidth || 136, hh = ventana.offsetHeight || 60;
-    ventana.style.left = `${Math.round(Math.max(w / 2 + 6, Math.min(window.innerWidth - w / 2 - 6, x)))}px`;
-    ventana.style.top = `${Math.round(Math.max(hh / 2 + 6, Math.min(window.innerHeight - hh / 2 - 6, y)))}px`;
-  }
-  function textoVentana() {
-    const nv = nivelCombo();
-    ventana.style.setProperty("--c", TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
-    vNum.textContent = combo;
-    const mem = secI === JEFE ? ` · MEM ${Math.round((peligro / JEFE_TOPE) * 100)}%` : "";
-    vTxt.textContent = (nv ? `${T(NIVELES[nv - 1][1], NIVELES[nv - 1][2])} x${multi()}` : `x${multi()}`) + (fiebre > ts ? ` · ${T("FIEBRE", "FEVER")}` : "") + mem;
-  }
-  // Abre (o hace brincar) la ventana: lugar nuevo, cuenta al día y el sonido de premio
-  function abreCombo() {
+  // Cuántas caben a la vez según la racha
+  const cupoVentanas = () => (rectL && rectL.left >= 170 ? (combo < 10 ? 1 : combo < 25 ? 2 : combo < 45 ? 3 : combo < 80 ? 4 : 6) : combo < 15 ? 1 : combo < 45 ? 2 : 3);
+  // clase: "combo" (la cuenta), "pts" (puntos), "nivel" (nivel nuevo, en colores), "especial" (bug especial; el arcoíris, en colores)
+  function abreCombo(clase, dato) {
     if (modo !== "ritmo" || estado !== "jugando" || !rectL) return;
-    const n = lugaresVentana().length;
-    let lugar = vLugar;
-    while (lugar === vLugar) lugar = (Math.random() * n) | 0;
-    vLugar = lugar;
-    ventana.classList.remove("rota");
-    textoVentana();
-    ventana.hidden = false;
-    vAbierta = true;
-    colocaVentana();
-    if (!RM) { ventana.classList.remove("abre"); void ventana.offsetWidth; ventana.classList.add("abre"); }
-    vT = 100;
-    // Premio para el oído: tres notas brillantes que suben, cada nivel de combo un poco más agudas
-    const base = 783.99 * Math.pow(2, Math.min(nivelCombo(), 12) / 12);
-    bip(base, 0, 0.09, "triangle", 0.06);
-    bip(base * 1.5, 0, 0.12, "triangle", 0.05, 0.055);
-    bip(base * 2, 0, 0.2, "sine", 0.045, 0.11);
-    bip(base * 4, 0, 0.05, "square", 0.012, 0.11);
+    const abiertas = VENT.filter((v) => v.T > 0), cupo = cupoVentanas();
+    // Si ya no cabe otra, la más vieja brinca de lugar: con mucha acción casi ni alcanza a abrirse
+    const v = abiertas.length < cupo ? VENT.find((x) => x.T <= 0) : abiertas.reduce((a, b) => (b.T < a.T ? b : a));
+    const L = lugaresVentana(), ocupados = abiertas.filter((x) => x !== v).map((x) => x.lugar);
+    let lugar = (Math.random() * L.length) | 0;
+    for (let i = 0; i < L.length && (ocupados.includes(lugar) || lugar === v.lugar); i++) lugar = (lugar + 1) % L.length;
+    v.lugar = lugar;
+    const nv = nivelCombo(), arco = clase === "nivel" || dato === "arco" || fiebre > ts;
+    v.el.className = `j-ventana${rectL.left >= 170 ? "" : " chica"}${arco ? " arco" : ""}${clase === "pts" ? " mini" : ""}`;
+    if (arco) v.el.style.removeProperty("--c"); else v.el.style.setProperty("--c", clase === "especial" ? "#ffe14a" : TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
+    if (clase === "pts") { v.tit.textContent = "SCORE.EXE"; v.num.textContent = `+${dato}`; v.txt.textContent = seis(pts); }
+    else if (clase === "nivel") { v.tit.textContent = "NIVEL.EXE"; v.num.textContent = `x${multi()}`; v.txt.textContent = T(NIVELES[nv - 1][1], NIVELES[nv - 1][2]); }
+    else if (clase === "especial") { v.tit.textContent = "BONUS.EXE"; v.num.textContent = { oro: "+50", arco: "x2", anti: "MEM-", glitch: "+25" }[dato] || "+"; v.txt.textContent = { oro: T("DORADO", "GOLDEN"), arco: T("FIEBRE", "FEVER"), anti: "ANTIVIRUS", glitch: "GLITCH" }[dato] || ""; }
+    else { v.tit.textContent = "COMBO.EXE"; v.num.textContent = combo; v.txt.textContent = (nv ? `${T(NIVELES[nv - 1][1], NIVELES[nv - 1][2])} x${multi()}` : `x${multi()}`) + (secI === JEFE ? ` · MEM ${Math.round((peligro / JEFE_TOPE) * 100)}%` : ""); }
+    v.el.hidden = false;
+    const [x, y] = L[lugar], w = v.el.offsetWidth || 136, hh = v.el.offsetHeight || 60;
+    v.el.style.left = `${Math.round(Math.max(w / 2 + 6, Math.min(window.innerWidth - w / 2 - 6, x)))}px`;
+    v.el.style.top = `${Math.round(Math.max(hh / 2 + 6, Math.min(window.innerHeight - hh / 2 - 6, y)))}px`;
+    if (!RM) { void v.el.offsetWidth; v.el.classList.add("abre"); }
+    v.T = 75 + ((Math.random() * 45) | 0);
+    // Premio para el oído: tres notas brillantes que suben, más agudas con cada nivel. Si salen muy juntas, suena solo un toque
+    const base = 783.99 * Math.pow(2, Math.min(nv, 12) / 12) * (clase === "pts" ? 1.26 : 1);
+    if (t - vUltSon > 14) { bip(base, 0, 0.09, "triangle", 0.055); bip(base * 1.5, 0, 0.12, "triangle", 0.045, 0.055); bip(base * 2, 0, 0.2, "sine", 0.04, 0.11); bip(base * 4, 0, 0.05, "square", 0.01, 0.11); }
+    else bip(base * 2, 0, 0.07, "triangle", 0.03);
+    vUltSon = t;
   }
+  // Al romperse el combo, las que estén abiertas se ponen rojas y se cierran
   function pintaVentana(roto) {
     if (modo !== "ritmo") { cierraVentana(); return; }
-    if (!vAbierta) return;
-    if (roto) { ventana.classList.add("rota"); vTxt.textContent = T("COMBO ROTO", "COMBO LOST"); vT = Math.min(vT, 34); return; }
-    textoVentana();
-    if (!RM) { ventana.classList.remove("pop"); void ventana.offsetWidth; ventana.classList.add("pop"); }
+    if (!roto) return;
+    for (const v of VENT) if (v.T > 0) { v.el.classList.remove("arco"); v.el.classList.add("rota"); v.txt.textContent = T("COMBO ROTO", "COMBO LOST"); v.T = Math.min(v.T, 26); }
   }
-  function cierraVentana() { ventana.hidden = true; vAbierta = false; vT = 0; ventana.classList.remove("rota", "pop", "abre"); }
+  function pasoVentanas() { for (const v of VENT) if (v.T > 0 && --v.T === 0) v.el.hidden = true; }
+  function cierraVentana() { for (const v of VENT) { v.el.hidden = true; v.T = 0; v.lugar = -1; } }
   // Cada nivel de combo alcanzado suma medio punto al multiplicador; con fiebre, todo vale el doble
   const nivelCombo = () => { let n = 0; while (n < NIVELES.length && combo >= NIVELES[n][0]) n++; return n; };
   const multi = () => (1 + nivelCombo() * 0.5) * (fiebre > ts ? 2 : 1);
@@ -611,6 +643,7 @@
       // Punto de control: lo que se llevaba al llegar al jefe
       if (s === JEFE) { foto = { pts, maxCombo, atrapados }; peligro = 0; jefeAviso = false; }
       // En el hiperespacio BIT vuela libre; al salir, vuelve a su carril
+      if (s !== JEFE) peligro = 0;
       vuela = s === VUELO;
       if (vuela) { vx = vy = 0; vueloAviso = false; fantasmas = []; }
       else bit.c = Math.max(0, Math.min(carriles - 1, Math.floor((bit.x + 5) / LW)));
@@ -619,15 +652,15 @@
     }
     if (cambio > 0) cambio--;
     // Al empezar a volar, BIT sube solo a media altura: así se entiende que ya no hay carriles
-    if (vuela && !vueloAviso) { vueloAviso = true; vy = -3.2; dichos.vuelo = 0; if (tactil) cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "finished: arrastra el dedo para volar", "finished: drag your finger to fly"); else cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "finished: vuela con las 4 flechas", "finished: fly with all 4 arrows"); }
+    if (vuela && !vueloAviso) { vueloAviso = true; vy = -3.2; if (tactil) cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "finished: arrastra el dedo para volar", "finished: drag your finger to fly", null, true); else cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "finished: vuela con las 4 flechas", "finished: fly with all 4 arrows", null, true); }
     // La consola de atrás avisa de cada reto justo antes de que empiece
     if (pistaT === 400) { if (tactil) cmd("run BIT.EXE", "run BIT.EXE", "ok: toca un carril o desliza el dedo", "ok: tap a lane or slide your finger", "controles"); else cmd("run BIT.EXE", "run BIT.EXE", "ok: flechas o A/D, un salto por toque", "ok: arrows or A/D, one hop per tap", "controles"); }
     if (ts > R.error + 0.4 && secI === 0) cmd("GATO.EXE", "CAT.EXE", "ERROR: proceso no autorizado", "ERROR: unauthorized process", "error");
-    if (secI === JEFE && ts > R.sec[JEFE][0] + 0.3) cmd("GATO.EXE /llenar MEMORIA", "CAT.EXE /fill MEMORY", "ALERTA: no dejes caer ni uno", "WARNING: don't drop a single one", "jefe");
-    if (R.sec[VUELO][0] - ts < 2.3 && ts < R.sec[VUELO][0]) cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "cargando... prepárate para volar", "loading... get ready to fly", "prevuelo");
+    if (secI === JEFE && ts > R.sec[JEFE][0] + 0.3) cmd("GATO.EXE /llenar MEMORIA", "CAT.EXE /fill MEMORY", "ALERTA: no dejes caer ni uno", "WARNING: don't drop a single one", "jefe", true);
+    if (R.sec[VUELO][0] - ts < 2.3 && ts < R.sec[VUELO][0]) cmd("create object VUELO.EXE", "create object FLIGHT.EXE", "cargando... prepárate para volar", "loading... get ready to fly", "prevuelo", true);
     if (secI === 9 && limpieza() >= 1) cmd("scan GATO.EXE", "scan CAT.EXE", "finished: virus eliminado", "finished: virus removed", "limpio");
     if (secI === 9 && ts > R.sec[9][0] + 1.2) cmd("run ANTIVIRUS.EXE /limpiar", "run ANTIVIRUS.EXE /clean", "limpiando GATO.EXE...", "cleaning CAT.EXE...", "limpia");
-    if (vT > 0 && --vT === 0) cierraVentana();
+    pasoVentanas();
     pasoLog();
     if (pistaT > 0) pistaT--;
     vu += ((0.25 + energiaAhora * 0.75) * (0.55 + 0.45 * pulso) - vu) * 0.3;
@@ -636,7 +669,11 @@
     const fuerte = [1, JEFE, 7].includes(secI), sube = secI === 3 || secI === 6, calma = [2, 5, 8].includes(secI);
     const kSec = Math.min(1, Math.max(0, (ts - R.sec[secI][0]) / (R.sec[secI][1] - R.sec[secI][0])));
     // En los estribillos el acercamiento es claro y late; en las subidas crece poco a poco; en la calma apenas se nota
-    const zObj = RM ? 1 : fuerte ? 1.06 + pulso * 0.055 : sube ? 1.015 + kSec * 0.06 + pulso * 0.02 : calma ? 1.06 : 1;
+    // En la calma, cada tanto la cámara se va con el gato y se le acerca un rato; el recuadro de BIT no se mueve, así que nunca lo tapa
+    const visita = ((ts + 3) % 12) / 12, cerca = visita > 0.3 && visita < 0.72;
+    const zObj = RM ? 1 : fuerte ? 1.06 + pulso * 0.055 : sube ? 1.015 + kSec * 0.06 + pulso * 0.02 : calma ? (cerca ? 1.2 : 1.05) : 1;
+    // Tensión de la terminal: tras el error crítico, con el jefe (más cuanto más llena la memoria) y en la lluvia de código
+    tension = RM ? 0 : secI === 0 && ts >= R.error ? 0.75 : secI === JEFE ? 0.28 + (peligro / JEFE_TOPE) * 0.72 : secI === 6 ? 0.22 + kSec * 0.33 : 0;
     zoom += (zObj - zoom) * (fuerte ? 0.22 : sube ? 0.2 : 0.025);
     focoX += ((calma ? gatoX : gx + W / 2) - focoX) * 0.04;
     focoY += ((calma ? gatoY : gy + H / 2) - focoY) * 0.04;
@@ -656,9 +693,10 @@
       // En el vuelo los bugs no caen: cruzan el recuadro de lado, más despacio al principio para dar tiempo de agarrarle
       const cr = cruza ? (tn < R.sec[VUELO][0] + 6.5 ? CRUCE_LENTO : CRUCE) : 0, d = cruza ? cr * 0.56 : R.sec[sec][2];
       if (tn - d > ts) break;
-      const c = mapa.c[rI], tipo = mapa.tipo[rI];
+      const c = mapa.c[rI], enFiebre = fiebre > ts, tipo = enFiebre ? "bono" : mapa.tipo[rI];
       const o = { tipo, c, tn, d, s: sec, x: xBug(c), y: 0 };
       // Entran por la derecha; después del silencio a media sección, por la izquierda
+      if (enFiebre) o.nota = true;
       if (cruza) { o.h = tn < R.sec[VUELO][0] + 16.8 ? 1 : -1; o.cr = cr; o.x = o.h > 0 ? W + 2 : -BW - 2; }
       // El glitch cambia de carril a media caída
       if (tipo === "glitch") o.c2 = c === 0 ? 1 : c === carriles - 1 ? c - 1 : c + (rI % 2 ? 1 : -1);
@@ -692,7 +730,7 @@
         o.fuera = true;
         const antes = nivelCombo();
         combo++;
-        if (o.tipo !== "bono") atrapados++;
+        if (o.tipo !== "bono" || o.nota) atrapados++;
         if (!o.h) celdas[o.c] = 9;
         if (pistaT > 40 && ++atrapadosPista >= 3) pistaT = 40;
         if (combo > maxCombo) maxCombo = combo;
@@ -712,6 +750,9 @@
         if (o.tipo === "arco") {
           fiebre = ts + 7;
           fiebreN = 0; fiebreTotal = 0;
+          // Mientras dure, TODO lo que cae es de premio: los que ya venían se convierten, no hay rayos y fallar no castiga
+          for (const b of objs) if (b !== o && b.tipo !== "bono") { b.nota = true; b.tipo = "bono"; b.c2 = null; }
+          ataques = [];
           cmd("run FIEBRE.EXE", "run FEVER.EXE", "finished: todo vale x2", "finished: everything counts x2");
           punch = 2;
           [659, 880, 1109, 1319, 1760].forEach((f, i) => bip(f, 0, 0.09, "square", 0.035, i * 0.05));
@@ -726,7 +767,14 @@
         }
         boca = "s"; bocaT = 24;
         // La ventana del combo salta cada 5 seguidos, con cada nivel y con cada especial; en la fiebre, casi sin parar
-        if (combo >= 3 && (nv > antes || o.tipo === "oro" || o.tipo === "arco" || o.tipo === "anti" || o.tipo === "glitch" || combo % 5 === 0 || (o.tipo === "bono" && fiebreN % 3 === 0))) abreCombo();
+        // Las ventanas salen con ritmo: la primera a los 3 seguidos, luego cada 5, y con rachas largas cada 4 y cada 3.
+        // Con cada nivel y cada bug especial sale otra; en la fiebre, casi con cada bug
+        const cada = combo < 20 ? 5 : combo < 50 ? 4 : 3;
+        if (nv > antes) abreCombo("nivel");
+        else if (o.tipo !== "bug" && o.tipo !== "bono") abreCombo("especial", o.tipo);
+        else if (o.tipo === "bono") { if (fiebreN % 2 === 0) abreCombo("pts", n); }
+        else if (combo === 3 || (combo >= 5 && combo % cada === 0)) abreCombo("combo");
+        else if (combo >= 25 && combo % 7 === 0) abreCombo("pts", n);
         if (secI === JEFE) peligro = Math.max(0, peligro - JEFE_BAJA);
         hud();
       } else if (o.h ? ts - o.tn > o.cr * 0.56 : o.y + BH >= piso()) {
@@ -756,7 +804,7 @@
   }
   // Con cada bombo el gato puede apuntar un rayo: avisa ahora y cae con el bombo siguiente
   function programaAtaque() {
-    if (rG >= R.golpes.length) return;
+    if (rG >= R.golpes.length || fiebre > ts) return;
     const t1 = R.golpes[rG] / 100;
     if (t1 - ts < 0.3 || t1 - ts > 0.9) return;
     if (secI === JEFE && ts > R.sec[JEFE][0] + 4.5 && golpeN % 4 === 0) {
@@ -818,7 +866,7 @@
       if (Math.abs(vx) + Math.abs(vy) > 0.7 && t % 2 === 0) dejaEstela();
       return;
     }
-    if (dirTecla) { meta = null; if (--rep <= 0) { saltaA(bit.c + dirTecla); rep = 5; } }
+    if (dirTecla) { meta = null; if (--rep <= 0) { saltaA(bit.c + dirTecla); rep = 11; } }
     else if (meta != null) saltaA(Math.floor(meta / LW));
     // El salto es una carrera corta de dos o tres cuadros hasta el carril nuevo, dejando estela
     const tx = xBit(bit.c), d = tx - bit.x, v = Math.max(5, LW / 3);
@@ -924,7 +972,8 @@
     ctx.save();
     // En ritmo el recuadro es una ventana: el escenario se ve a través, apenas oscurecido para que los bugs resalten
     if (ritmo) ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = ritmo ? "rgba(2,4,10,.56)" : col.F;
+    // Mientras se escribe el comando gigante de atrás, el fondo de la terminal se aclara para que se lea a través
+    ctx.fillStyle = ritmo ? (gig ? "rgba(2,4,10,.3)" : "rgba(2,4,10,.56)") : col.F;
     ctx.fillRect(0, 0, W, H);
     // Por dentro es una terminal: renglones de barrido y una guía tenue entre carriles
     ctx.fillStyle = "rgba(0,0,0,.16)";
@@ -980,7 +1029,7 @@
       if (o.tipo === "cafe") sp = CAFE;
       else if (o.tipo === "anti") sp = ANTIVIRUS;
       else if (modo !== "ritmo") { sp = ESPECIES[o.e || "A"][cuadro]; mp = o.tipo === "oro" ? ORO_MAPA : null; }
-      else if (o.tipo === "bono") { sp = ESPECIES[MUTA[o.s][0]][cuadro]; mp = ORO_MAPA; }
+      else if (o.tipo === "bono") { sp = ESPECIES[MUTA[o.s][0]][cuadro]; mp = { R: SANDE[((t >> 2) + ((o.tn * 7) | 0)) % SANDE.length], Z: "#ffffff" }; }
       else {
         const [esp, m] = MUTA[o.s];
         sp = ESPECIES[o.tipo === "glitch" ? "D" : esp][cuadro];
@@ -1010,7 +1059,10 @@
     // La barra de la ventana: el juego corre dentro de una terminal abierta, C:\BIT.EXE
     ctx.fillStyle = "#c9c6b8";
     ctx.fillRect(0, 0, W, 8);
-    letras("C:\\BIT.EXE", 3, 2, "K");
+    // Con tensión, hasta el título de la ventana se corrompe por instantes
+    let titulo2 = "C:\\BIT.EXE";
+    if (ritmo && tension > 0 && h2(Math.floor(ts * 9)) < tension * 0.55) titulo2 = [...titulo2].map((ch, i) => (h2(Math.floor(ts * 9) * 3 + i) < 0.4 ? "X%:01E>."[(h2(i + Math.floor(ts * 9)) * 8) | 0] : ch)).join("");
+    letras(titulo2, 3, 2, "K");
     for (let i = 0; i < 3; i++) { ctx.fillStyle = col.F; ctx.fillRect(W - 8 - i * 8, 1, 6, 6); ctx.fillStyle = "#c9c6b8"; ctx.fillRect(W - 6 - i * 8, i === 2 ? 5 : 3, 2, i === 2 ? 1 : 2); }
     ctx.fillStyle = col.F;
     ctx.fillRect(0, 8, W, 1);
@@ -1122,9 +1174,24 @@
       ctx.fillRect(0, 12, W, partes.length * 11 + 5);
       partes.forEach((txt, i) => { ctx.fillStyle = i === 0 && partes.length > 1 ? col.W : col.Y; ctx.fillText(txt, W / 2, 23 + i * 11); });
     }
+    // Interferencia en la terminal: tiras de la imagen que se corren, una copia desfasada y líneas de barrido que brincan.
+    // Entre más tensión (el error, el jefe con la memoria llena, la lluvia de código), más seguido y más fuerte
+    let brincaX = 0;
+    if (ritmo && tension > 0 && estado === "jugando") {
+      const paso = Math.floor(ts * 22);
+      if (h2(paso) < tension * 0.55) for (let i = 0; i < 1 + Math.floor(tension * 3); i++) {
+        const yy = 9 + Math.floor(h2(paso * 3 + i) * (H - 12)), hh = 2 + Math.floor(h2(paso * 5 + i) * 7), dxx = Math.round((h2(paso * 7 + i) - 0.5) * tension * 22);
+        ctx.drawImage(lienzo, 0, yy, W, hh, dxx, yy, W, hh);
+      }
+      if (h2(paso + 7) < tension * 0.3) { ctx.globalAlpha = 0.22; ctx.globalCompositeOperation = "lighter"; ctx.drawImage(lienzo, 2 + Math.round(tension * 2), 0); ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1; }
+      if (h2(paso + 13) < tension * 0.3) { ctx.fillStyle = "rgba(255,255,255,.13)"; ctx.fillRect(0, Math.floor(h2(paso + 2) * H), W, 2); }
+      if (h2(paso + 21) < tension * 0.22) brincaX = h2(paso) < 0.5 ? -2 : 2;
+    }
+    const tenso = ritmo && tension > 0.6 && estado === "jugando";
+    if (lienzo.classList.contains("tenso") !== tenso) lienzo.classList.toggle("tenso", tenso);
     // El recuadro da un golpecito al atrapar y late en las partes fuertes
     const esc = RM || estado !== "jugando" ? 1 : 1 + punch * 0.016 + (ritmo && [1, JEFE, 7].includes(secI) ? pulso * 0.016 : 0);
-    lienzo.style.transform = esc > 1.0005 ? `scale(${esc.toFixed(4)})` : "";
+    lienzo.style.transform = esc > 1.0005 || brincaX ? `translateX(${brincaX}px) scale(${esc.toFixed(4)})` : "";
     if (!ritmo && mensaje && mensajeT % 20 > 4) {
       ctx.font = `8px "Press Start 2P"`;
       ctx.textAlign = "center";
@@ -1173,19 +1240,6 @@
     for (let i = 0; i < n; i++) {
       const y = Math.floor(h(semilla + i) * FH), alto = 2 + Math.floor(h(semilla + i + 0.5) * 9), dx = Math.round((h(semilla + i + 0.8) - 0.5) * 2 * fuerza);
       c2.drawImage(fx, 0, y, FW, alto, dx, y, FW, alto);
-    }
-  }
-  // Vúmetros (solo en la Ciudad Neón): dos columnas de luces a cada lado que suben con la música, como un estéreo
-  function vumetros() {
-    if (gx < 30) return;
-    const n = Math.floor((FH * 0.62) / 4), y1 = Math.round(FH * 0.82);
-    for (let col2 = 0; col2 < 2; col2++) {
-      const nivel = Math.round(n * Math.min(1, vu * (col2 ? 0.86 : 1) + (col2 ? h(golpeN) * 0.08 : 0)));
-      for (let i = 0; i < n; i++) {
-        const c = i >= nivel ? "#1a0b33" : i > n * 0.82 ? col.Y : i > n * 0.55 ? col.P : col.C;
-        rc(c, 5 + col2 * 9, y1 - i * 4, 6, 3);
-        rc(c, FW - 11 - col2 * 9, y1 - i * 4, 6, 3);
-      }
     }
   }
   // Un rayo en zigzag entre dos puntos
@@ -1263,6 +1317,17 @@
         if (f < 0.6 && (y + (t >> 3)) % 4 === 0) continue;
         rc(f > 0.66 ? col.Y : f > 0.33 ? col.N : col.P, cx - w, y, w * 2, 1);
       }
+      // El espectro de la música sale del horizonte, detrás de los edificios: barras finas que suben y bajan suave,
+      // rosas abajo y cian en la punta, más altas hacia las orillas para no pelear con el sol
+      for (let x = 1, i = 0; x < FW; x += 4, i++) {
+        const lejos = Math.min(1, Math.abs(x - cx) / (FW * 0.5)), meta2 = Math.abs(x - cx) < r + 3 ? 0 : (0.12 + 0.88 * vu) * (0.3 + 0.7 * h(i * 1.7 + golpeN)) * (0.35 + 0.65 * lejos);
+        espectro[i] = (espectro[i] || 0) + (meta2 - (espectro[i] || 0)) * 0.22;
+        const alto = espectro[i] * FH * 0.34;
+        if (alto < 1) continue;
+        rc(osc(col.P, 0.75), x, hy - alto, 3, alto);
+        rc(col.M, x, hy - alto, 3, Math.min(alto, alto * 0.45));
+        rc(col.C, x, hy - alto, 3, 1);
+      }
       for (let x = 0, i = 0; x < FW; i++) {
         const w = 6 + ((h(i) * 9) | 0), alto = Math.abs(x + w / 2 - cx) < r ? 3 + ((h(i + 0.3) * 3) | 0) : 6 + ((h(i + 0.3) * FH * 0.2) | 0);
         rc("#150a2e", x, hy - alto, w, alto);
@@ -1274,7 +1339,6 @@
       const fase = ((ts * e.sec[3]) / 60) % 1;
       for (let k = 0; k < 8; k++) { const pp = (k + fase) / 8; rc(k % 2 ? col.M : col.P, 0, hy + (FH - hy) * pp * pp, FW, 1); }
       rc(col.P, 0, hy, FW, 1);
-      vumetros();
     },
     // 3. BAJO EL AGUA: la música suena tapada. Los rayos entran desde arriba de la pantalla y se pierden en el fondo
     () => {
@@ -1541,6 +1605,7 @@
     ESCENAS[secI]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] });
     dibujaGato();
     rayosDelGato();
+    dibujaGigante();
     // Con fiebre, una lluvia de destellos de colores por toda la pantalla
     if (fiebre > ts && !RM) for (let i = 0; i < 26; i++) rc(SANDE[(i + (t >> 2)) % SANDE.length], h(i) * FW, (h(i + 0.5) * FH + ts * (30 + h(i + 0.2) * 50)) % FH, 2, 2);
     // El destello al cambiar de escenario y el fogonazo del despegue
@@ -1584,7 +1649,7 @@
     if (e.type === "keyup") {
       if (flechaIzq) izq = false;
       if (flechaDer) der = false;
-      if (flechaIzq || flechaDer) { dirTecla = der ? 1 : izq ? -1 : 0; rep = 6; }
+      if (flechaIzq || flechaDer) { dirTecla = der ? 1 : izq ? -1 : 0; rep = 22; }
       if (flechaArr) arr = false;
       if (flechaAba) aba = false;
       return;
@@ -1597,7 +1662,8 @@
       if (e.repeat) return;
       if (flechaIzq) izq = true; else der = true;
       dirTecla = flechaIzq ? -1 : 1;
-      rep = 9;
+      // Un toque = un salto. Solo si se deja la tecla apretada un buen rato (un tercio de segundo) empieza a repetir, y despacio
+      rep = 22;
       if (estado === "jugando" && !vuela) { meta = null; saltaA(bit.c + dirTecla); }
     }
     else if (estado === "jugando" && !vuela && k >= "1" && k <= "5" && k.length === 1) { meta = null; saltaA(+k - 1); }

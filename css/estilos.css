@@ -836,6 +836,17 @@ body.warming #app{animation:warm .8s ease-out}
 .j-ventana.pop .jv-n{animation:jvPop .16s steps(3,end)}
 @keyframes jvPop{0%{transform:scale(1.5)}}
 .j-ventana.rota{--c:var(--p-rojo)!important}
+/* Las especiales (nivel nuevo, bug arcoíris, fiebre) cambian de color sin parar */
+.j-ventana.arco{animation:jvArco .7s steps(1,end) infinite}
+.j-ventana.arco.abre{animation:jvAbre .16s steps(3,end),jvArco .7s steps(1,end) infinite}
+@keyframes jvArco{0%{--c:#00f6ff}14%{--c:#6a5cff}28%{--c:#ff3fb4}42%{--c:#ff5a4a}57%{--c:#ffb13b}71%{--c:#f7ff4a}85%{--c:#5dff7a}}
+/* Las de puntos son más chicas */
+.j-ventana.mini{min-width:104px}
+.j-ventana.mini .jv-n{font-size:18px}
+.j-ventana.mini .jv-c{padding:7px 8px 6px;gap:5px}
+/* Con mucha tensión, el marco de la terminal de BIT parpadea en rojo */
+.juego-lienzo.tenso{animation:jlTenso .5s steps(1,end) infinite}
+@keyframes jlTenso{50%{box-shadow:0 0 0 2px var(--p-rojo),0 0 0 4px var(--p-negro),8px 8px 0 4px rgba(0,0,0,.55)}}
 .j-ventana.chica{min-width:0}
 .j-ventana.chica .jv-bar{display:none}
 .j-ventana.chica .jv-c{grid-auto-flow:column;align-items:center;gap:9px;padding:7px 9px}
@@ -856,5 +867,5 @@ body.warming #app{animation:warm .8s ease-out}
 
 @media (prefers-reduced-motion:reduce){
   .chcp,.envio.abre .envio-win,.envio.sale,.envio.completa .descarga-barra i.on,.ev-picado,.ev-gran-t,.ev-gran.feliz .ev-gran-n,
-  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-log.abre,.j-ventana.abre,.j-ventana.pop .jv-n,:root[data-evento="valentin"] .foot .spr{animation:none}
+  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-log.abre,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,:root[data-evento="valentin"] .foot .spr{animation:none}
 }
