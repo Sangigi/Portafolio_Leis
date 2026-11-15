@@ -119,6 +119,8 @@
   // Niveles de combo: al llegar a cada uno sube el multiplicador medio punto y salta su letrero
   const NIVELES = [[5, "BIEN", "NICE"], [10, "GENIAL", "GREAT"], [15, "SUPER", "SUPER"], [20, "BRUTAL", "BRUTAL"], [30, "MEGA", "MEGA"], [40, "ULTRA", "ULTRA"],
     [50, "HIPER", "HYPER"], [75, "BESTIAL", "SAVAGE"], [100, "IMPARABLE", "UNSTOPPABLE"], [150, "LEGENDARIO", "LEGENDARY"], [200, "DIVINO", "GODLIKE"], [300, "BIT SUPREMO", "BIT SUPREME"]];
+  // El grito de cada nivel de racha: la palabra que cae de golpe sobre BIT (igual en los dos idiomas, como en las maquinitas)
+  const GRITOS = ["NICE", "GREAT!", "COMBO!", "AMAZING!", "WOW ?!!", "EXCEPTIONAL", "INSANE!!", "UNREAL ?!?!", "UNSTOPPABLE", "LEGENDARY", "GODLIKE ?!!", "BIT SUPREME"];
   const TONOS_COMBO = ["#ffffff", "#38BDF8", "#41B883", "#ffe14a", "#F28C28", "#ff3fb4", "#A259FF", "#ff4d4d", "#00f6ff", "#7dff3c", "#ffd23b", "#ffffff", "#ff2e7e"];
   // Los colores de la estela de BIT, en orden
   const SANDE = ["#00f6ff", "#00a2ff", "#6a5cff", "#c84bff", "#ff3fb4", "#ff5a4a", "#ffb13b", "#f7ff4a", "#5dff7a"];
@@ -154,6 +156,7 @@
     <div class="juego-marco"><canvas class="juego-lienzo"></canvas><div class="juego-msg" aria-live="polite"></div></div>
     <p class="juego-ayuda">← → o A D para mover · P pausa · ESC salir</p>
     <div class="j-ventana" hidden aria-hidden="true"><div class="jv-bar"><i></i><span>COMBO.EXE</span><em>x</em></div><div class="jv-c"><b class="jv-n">0</b><span class="jv-t"></span></div></div>
+    <div class="j-grito" hidden aria-hidden="true"><em></em><b></b><i></i></div>
     <div class="j-audio" hidden aria-hidden="true"><div class="ja-bar"><i></i><span>AUDIO.EXE</span><em>x</em></div><div class="ja-c"><b class="ja-t"></b><span class="ja-a"></span><span class="ja-d"></span></div></div>`;
   document.body.appendChild(el);
   const lienzo = $(".juego-lienzo", el), ctx = lienzo.getContext("2d"), fx = $(".juego-fx", el), c2 = fx.getContext("2d"), marco = $(".juego-marco", el), msg = $(".juego-msg", el);
@@ -164,7 +167,7 @@
     if (i) el.appendChild(v);
     VENT.push({ el: v, tit: $(".jv-bar span", v), num: $(".jv-n", v), txt: $(".jv-t", v), T: 0, lugar: -1 });
   }
-  const aEl = $(".j-audio", el);
+  const aEl = $(".j-audio", el), gEl = $(".j-grito", el);
   const ptsEl = $(".j-pts", el), recEl = $(".j-rec", el), verEl = $(".j-ver", el), verK = $(".j-ver-k", el), vidasEl = $(".j-vidas", el);
 
   /* ---------- 3. Estado de la partida ---------- */
@@ -479,7 +482,24 @@
     for (const q of colaV) q.T--;
     while (colaV.length && colaV[0].T <= 0) { const q = colaV.shift(); abreCombo(q.clase, q.dato); }
   }
-  function cierraVentana() { ponAudio(null); colaV = []; for (const v of VENT) { v.el.hidden = true; v.T = 0; v.lugar = -1; } }
+  /* El grito de racha: al subir de nivel de combo, la palabra cae de golpe arriba del recuadro, chueca, con el multiplicador
+     pegado como etiqueta. Entra en un instante, se queda poco menos de un segundo (un poco más en las rachas altas) y se va. */
+  let gritoN = 0;
+  function grita(nv) {
+    if (!rectL || nv < 1) return;
+    const n = ++gritoN, queda = Math.min(1.1, 0.7 + nv * 0.04);
+    $("b", gEl).textContent = GRITOS[Math.min(nv, GRITOS.length) - 1];
+    $("em", gEl).textContent = `x${1 + nv * 0.5}`;
+    $("i", gEl).textContent = `${NIVELES[Math.min(nv, NIVELES.length) - 1][0]} ${T("SEGUIDOS", "IN A ROW")}`;
+    gEl.style.setProperty("--c", TONOS_COMBO[Math.min(nv, TONOS_COMBO.length - 1)]);
+    gEl.style.setProperty("--q", `${queda}s`);
+    gEl.style.left = `${rectL.left + rectL.width / 2}px`;
+    gEl.style.top = `${rectL.top + rectL.height * 0.27}px`;
+    // Se reinicia la animación aunque el grito anterior siga en pantalla
+    gEl.hidden = true; void gEl.offsetWidth; gEl.hidden = false;
+    setTimeout(() => { if (n === gritoN) gEl.hidden = true; }, (0.12 + queda + 0.25) * 1000);
+  }
+  function cierraVentana() { gritoN++; gEl.hidden = true; ponAudio(null); colaV = []; for (const v of VENT) { v.el.hidden = true; v.T = 0; v.lugar = -1; } }
   // Cada nivel de combo alcanzado suma medio punto al multiplicador; con fiebre, todo vale el doble
   const nivelCombo = () => { let n = 0; while (n < NIVELES.length && combo >= NIVELES[n][0]) n++; return n; };
   const multi = () => (1 + nivelCombo() * 0.5) * (fiebre > ts ? 2 : 1);
@@ -1155,7 +1175,8 @@
           peligro = Math.max(0, peligro - 2);
           cmd("ANTIVIRUS.EXE", "ANTIVIRUS.EXE", "COMPLETO: memoria liberada", "DONE: memory freed");
         } else if (nv > antes) {
-          // Nivel de combo nuevo: la ventana del combo brinca de lugar, con fanfarria y un golpe de cámara más fuerte
+          // Nivel de combo nuevo: el grito cae sobre BIT, con fanfarria y un golpe de cámara más fuerte
+          grita(nv);
           punch = 2;
           [0, 4, 7, 12].forEach((st, i) => bip(523.25 * Math.pow(2, (st + nv) / 12), 0, 0.08, "square", 0.035, i * 0.045));
           if (!RM) for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; chispas.push({ x: bit.x + 5, y: bit.y + 4, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3 - 0.5, vida: 20, c: i % 2 ? tono : "#ffffff", g: 2 }); }
