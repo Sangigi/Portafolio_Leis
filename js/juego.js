@@ -324,6 +324,17 @@
   // (hasta el doble); si se deja de bailar, baja solo. grooveT = segundo del último salto al compás · grooveFx = su destello
   const GROOVE_MAX = 8;
   let groove = 0, grooveT = 0, grooveFx = 0;
+  /* El tramo lateral (R.lateral): la terminal se encoge y se va a la izquierda, BIT se mueve de arriba abajo por cinco filas
+     y los bugs le llegan de lado, desde la derecha. latK va de 0 a 1 mientras la terminal se acomoda.
+     teles = los segundos en que BIT es cambiado de fila a la fuerza (R.teles) y teleI por cuál va */
+  let lateral = false, latK = 0, teles = [], teleI = 0, rect0 = null, movida = false;
+  const filaY = (c) => Math.round(14 + c * ((piso() - 28) / (carriles - 1)));
+  // El recuadro que se lleva todo al final del tramo anterior al lateral: de 1 (pantalla completa) a casi 0
+  const cajaS = () => {
+    if (RM || !R || R.lateral == null || modo !== "ritmo" || estado !== "jugando" || secI !== R.lateral - 1) return 1;
+    const falta = R.sec[secI][1] - ts;
+    return falta > 1.1 ? 1 : Math.max(0.06, Math.pow(Math.max(0, falta) / 1.1, 1.6));
+  };
   // Pantallas: disco elegido en el estante, tramo elegido en la cinta, tramo que se practica (null = canción entera),
   // en qué va la pantalla final ("conteo", "resultado", "practica", "crash", "clasico") y sus datos
   let selDisco = Math.max(0, Math.min(3, +(lee("bitBugsDisco") || 0) || 0)), selTramo = 0, practica = null, finModo = "", finN = 0, res = null;
@@ -370,8 +381,9 @@
     bit.c = Math.min(bit.c, carriles - 1);
     bit.x = xBit(bit.c);
     // El lienzo de efectos se alinea pixel con pixel con el del juego
+    lienzo.style.transform = ""; lienzo.style.transformOrigin = "";
     const rl = lienzo.getBoundingClientRect();
-    rectL = rl;
+    rectL = rl; rect0 = rl;
     gx = Math.round(rl.left / escala);
     gy = Math.round(rl.top / escala);
     const izq0 = rl.left - gx * escala, arr0 = rl.top - gy * escala;
@@ -860,7 +872,10 @@
     ondas = []; punch = 0; fiebre = 0; burbujas = []; ataques = []; rayoN = 0; iman = 0; llenaT = 0; llenaAviso = false; gatoFrente = 0; vuela = false; vueloAviso = false; vx = vy = 0;
     celdas = [0, 0, 0, 0, 0]; pistaT = desde > 0 ? 0 : 420; atrapadosPista = 0; cierraVentana();
     cierraOrden(); dichos = {};
-    groove = 0; grooveT = 0; grooveFx = 0;
+    groove = 0; grooveT = 0; grooveFx = 0; lateral = false; latK = 0;
+    // Los cambios de fila forzados del tramo lateral: desde R.teles[0], varias tandas [cada cuántos segundos, cuántas veces]
+    teles = []; teleI = 0;
+    if (R.teles && R.lateral != null) { let tt = R.teles[0]; const fin = R.sec[R.lateral][1] - 0.25; for (const [cada, n] of R.teles[1]) for (let i = 0; i < n && tt < fin; i++) { teles.push(tt); tt += cada; } while (teleI < teles.length && teles[teleI] < desde) teleI++; }
     luz = luzVis = 0.75; campanas = guardado && guardado.campanas ? guardado.campanas : 0; escudo = guardado && guardado.escudo ? guardado.escudo : 0; res = null; finModo = ""; finN++; cred = desde > 0 ? -1 : 0;
     tramos = guardado && guardado.tramos ? JSON.parse(guardado.tramos) : R.sec.map(() => [0, 0]);
     ts = desde; ultA = -1; rI = 0; rG = 0; golpeN = 0; pulso = 0; secI = -1; cambio = 0; combo = 0; maxCombo = 0; atrapados = 0; giro = 0; vGiro = 0.3; energiaAhora = 0;
@@ -1123,7 +1138,9 @@
     for (let i = 0; i < n; i++) {
       const tn = N[i * 3] / 1000, sec = seccionDe(tn);
       // No salen los que quedan muy juntos, ni los comunes que caerían en el aire que pidió un bicho con maña
-      if (tn - ult < (sec === VUELO ? D.gapVuelo : D.gap) || (tn < aireHasta && tipoRun[i] === "bug")) { activa.push(false); continue; }
+      // Mientras la terminal se encoge, se muda de lado y vuelve, no cae nada
+      const sl = R.lateral != null ? R.sec[R.lateral] : null, mudanza = sl && ((tn > sl[0] - 1.25 && tn < sl[0] + 1.5) || (tn > sl[1] - 0.3 && tn < sl[1] + 1.3));
+      if (mudanza || tn - ult < (sec === VUELO ? D.gapVuelo : D.gap) || (tn < aireHasta && tipoRun[i] === "bug")) { activa.push(false); continue; }
       activa.push(true);
       ult = tn;
       if (mapa.aire[i]) aireHasta = tn + mapa.aire[i] * D.vel;
@@ -1297,6 +1314,11 @@
       vuela = s === VUELO;
       if (vuela) { vx = vy = 0; vueloAviso = false; fantasmas = []; }
       else bit.c = Math.max(0, Math.min(carriles - 1, Math.floor((bit.x + 5) / LW)));
+      // Entrar o salir del tramo lateral: BIT arranca en la fila (o el carril) de en medio
+      const eraLateral = lateral;
+      lateral = R.lateral === s;
+      if (lateral !== eraLateral) { bit.c = carriles >> 1; meta = null; metaY = null; fantasmas = []; }
+      if (lateral && !eraLateral) { if (tactil) cmd("LATERAL.EXE", "SIDEWAYS.EXE", "OK: toca arriba o abajo", "OK: tap up or down"); else cmd("LATERAL.EXE", "SIDEWAYS.EXE", "OK: ahora flechas arriba y abajo", "OK: now use up and down"); }
       ataques = [];
       hud();
     }
@@ -1320,6 +1342,15 @@
       if (R.sec[JEFE][0] - ts < 5.6 && ts < R.sec[JEFE][0]) cmd("DJ.EXE /subir volumen", "DJ.EXE /volume up", null, null, "prejefe");
       if (secI === JEFE && !jefeAviso) { jefeAviso = true; cmdRes("ALERTA: sal del reflector", "WARNING: leave the spotlight"); }
       if (secI === 8 && en > 0.6) cmd("CINTA.EXE /lado B", "TAPE.EXE /side B", "OK: respira y recupera vidas", "OK: breathe and win lives back", "ladoB");
+      // Al final del tramo lateral, BIT es cambiado de fila a la fuerza, cada vez más seguido
+      if (lateral && teleI < teles.length && ts >= teles[teleI]) {
+        teleI++;
+        let c = bit.c; while (c === bit.c) c = (Math.random() * carriles) | 0;
+        if (!RM) { ecos.push({ x: bit.x, y: bit.y, vida: 22, max: 22, c: "#00f6ff" }); ecos.push({ x: bit.x + 2, y: bit.y, vida: 16, max: 16, c: "#ff3fb4" }); for (let i = 0; i < 8; i++) chispas.push({ x: bit.x + 5, y: filaY(c) + 6, vx: azar(-2, 2), vy: azar(-2, 1), vida: 12, c: i % 2 ? "#00f6ff" : "#ffffff", g: 1 }); }
+        bit.c = c; bit.y = filaY(c); meta = null; metaY = null;
+        punch = 1.5;
+        bip(1800, 300, 0.06, "sawtooth", 0.04); bip(300, 1800, 0.05, "square", 0.03, 0.03);
+      }
       // El groove se apaga solo si se deja de bailar
       if (groove > 0 && ts - grooveT > 2.4) { groove--; grooveT = ts - 1.2; }
     } else if (DM()) {
@@ -1381,7 +1412,7 @@
     const N = R.notas;
     while (rI * 3 < N.length) {
       if (!activa[rI]) { rI++; continue; }
-      const tn = N[rI * 3] / 1000, sec = seccionDe(tn), cruza = sec === VUELO;
+      const tn = N[rI * 3] / 1000, sec = seccionDe(tn), cruza = sec === VUELO, lat = R.lateral === sec;
       // En el vuelo los bugs no caen: cruzan el recuadro de lado, más despacio al principio para dar tiempo de agarrarle
       const cr = cruza ? (tn < R.sec[VUELO][0] + 6.5 ? CRUCE_LENTO : CRUCE) * D.vel : 0, d = cruza ? cr * 0.56 : R.sec[sec][2] * D.vel;
       if (tn - d > ts) break;
@@ -1394,13 +1425,16 @@
       if (tipo === "glitch") o.c2 = c === 0 ? 1 : c === carriles - 1 ? c - 1 : c + (rI % 2 ? 1 : -1);
       objs.push(o);
       if (BICHOS[tipo]) naceBicho(o);
-      if (!cruza) grietas.push({ x: xBug(c) + 4, vida: 16 });
+      // En el tramo lateral llegan de lado, por la fila que les toca
+      if (lat) { o.lat = true; o.x = W + 2; o.y = filaY(c); for (const b of objs) if (b.tn >= tn && b.s === sec && !b.lat) { b.lat = true; b.x = W + 2; b.y = filaY(b.c); } }
+      if (!cruza && !lat) grietas.push({ x: xBug(c) + 4, vida: 16 });
       rI++;
     }
     // Fiebre: lluvia de bugs dorados de premio cerca de BIT. No cuentan como fallo si se escapan
     if (fiebre > ts && t % (vuela ? 6 : 9) === 0) {
       const c = Math.max(0, Math.min(carriles - 1, bit.c + Math.round(azar(-2.4, 2.4)))), d = vuela ? CRUCE * 0.56 : 0.8;
       const o = { tipo: "bono", c, tn: ts + d, d, s: secI, x: xBug(c), y: 0 };
+      if (lateral) { o.lat = true; o.x = W + 2; o.y = filaY(c); }
       if (vuela) { o.h = 1; o.cr = CRUCE; o.x = W + 2; }
       objs.push(o);
     }
@@ -1415,10 +1449,17 @@
       } else {
         // La polilla cambia de carril con cada golpe y llega a su carril de verdad en el último
         if (o.tipo === "polilla") o.c = o.cf + (Math.max(0, Math.floor((o.tn - ts) / (60 / R.sec[o.s][3]))) % 2 ? o.dirP : 0);
+        if (o.lat) {
+          // De lado: viajan de la derecha hasta BIT; cambiar de carril es cambiar de fila
+          const xx = o.cuelga ? 27 + Math.sin(ts * 22) : 26 + (W + 2 - 26) * (1 - avance);
+          o.x = o.suave ? o.x + (xx - o.x) * 0.3 : xx;
+          o.y += (filaY(o.c) - o.y) * (o.salto ? 0.5 : 1);
+          o.latListo = true;
+        } else
         o.x += (xBug(o.c) - o.x) * (o.salto ? 0.5 : 1);
         // El gemelo que espera se queda flotando a la altura de BIT; los que rebotan (acorazado, crías) se mueven suave
         const yy = o.cuelga ? yT - 3 + Math.sin(ts * 22) : y0 + (yT - y0) * avance;
-        o.y = o.suave ? o.y + (yy - o.y) * 0.3 : yy;
+        if (!o.lat) o.y = o.suave ? o.y + (yy - o.y) * 0.3 : yy;
       }
       // Se acabó la espera del gemelo: se va sin castigo
       if (o.cuelga && ts > o.cuelga) { o.fuera = true; textos.push({ txt: T("SE FUE", "GONE"), x: o.x + 5, y: o.y, vida: 34, max: 34, c: "#8f93a8", e: 1 }); continue; }
@@ -1426,6 +1467,7 @@
       const alcance = iman > ts && !esTrampa(o) ? 1 : 0;
       const toca = !(o.noAntes > ts) && (vuela || o.h
         ? o.x < bit.x + 11 && o.x + BW > bit.x - 1 && o.y < bit.y + 12 && o.y + BH > bit.y - 1
+        : o.lat ? lateral && o.x <= 27 && o.x + BW >= 13 && Math.abs(o.c - bit.c) <= alcance
         : o.y + BH >= by + 1 && o.y <= by + 9 && Math.abs(o.c - bit.c) <= alcance);
       if (toca && esTrampa(o)) {
         // El maldito y el troyano tramposo no se atrapan: tocarlos castiga
@@ -1528,14 +1570,14 @@
         if (combo % D.regen === 0 && vidasR < D.vidas) { vidasR++; vidaFx = 40; textos.push({ txt: T("+1 VIDA", "+1 LIFE"), x: W / 2, y: H * 0.4, vida: 60, max: 60, c: "#41B883", e: 1 }); [784, 1047, 1319].forEach((f, i) => bip(f, 0, 0.1, "triangle", 0.05, i * 0.07)); }
         if (secI === JEFE) peligro = Math.max(0, peligro - JEFE_BAJA);
         hud();
-      } else if (o.h ? ts - o.tn > o.cr * 0.56 : o.y + BH >= piso()) {
+      } else if (o.h ? ts - o.tn > o.cr * 0.56 : o.lat ? o.x < 9 : o.y + BH >= piso()) {
         o.fuera = true;
         if (o.tipo === "bono" || o.libre) continue;
         // El reloj es de ayuda: si se escapa no pasa nada
         if (o.tipo === "reloj") { atrapados++; tramos[o.s][0]++; tramos[o.s][1]++; continue; }
         // El nido revienta en el piso: tres crías rebotan hacia arriba y vuelven a caer regadas
         if (o.tipo === "nido") {
-          [-1, 0, 1].forEach((dc, k) => objs.push({ tipo: "cria", cria: true, suave: true, c: Math.max(0, Math.min(carriles - 1, o.c + dc)), tn: ts + 1.05 + k * 0.3, d: 1.5, s: o.s, x: o.x, y: o.y }));
+          [-1, 0, 1].forEach((dc, k) => objs.push({ tipo: "cria", cria: true, suave: true, c: Math.max(0, Math.min(carriles - 1, o.c + dc)), tn: ts + 1.05 + k * 0.3, d: 1.5, s: o.s, x: o.x, y: o.y, lat: o.lat }));
           bip(300, 900, 0.15, "square", 0.05);
           if (!RM) for (let i = 0; i < 10; i++) chispas.push({ x: o.x + 5, y: o.y + 6, vx: azar(-2.2, 2.2), vy: azar(-3, -1), vida: 16, c: "#ECEBE4", g: 1 });
         }
@@ -1659,6 +1701,15 @@
       if (Math.abs(vx) + Math.abs(vy) > 0.7 && t % 2 === 0) dejaEstela();
       return;
     }
+    if (lateral) {
+      // Tramo lateral: BIT se queda a la izquierda y cambia de fila; el dedo o el mouse lo llevan a la fila que señalan
+      if (meta != null && metaY != null) saltaA(Math.round((metaY - 6 - filaY(0)) / ((piso() - 28) / (carriles - 1))));
+      const ty = filaY(bit.c), dy = ty - bit.y;
+      if (Math.abs(dy) > 0.5) { bit.y = Math.abs(dy) <= 7 ? ty : bit.y + Math.sign(dy) * 7; dejaEstela(); if (bit.y === ty) aplasta = 5; }
+      bit.x += (14 - bit.x) * 0.3;
+      if (Math.abs(14 - bit.x) < 0.6) bit.x = 14;
+      return;
+    }
     if (dirTecla) { meta = null; if (--rep <= 0) { saltaA(bit.c + dirTecla); rep = 11; } }
     else if (meta != null) saltaA(Math.floor(meta / LW));
     // El salto es una carrera corta de dos o tres cuadros hasta el carril nuevo, dejando estela
@@ -1713,6 +1764,7 @@
     if (aplasta > 0) aplasta--;
     if (destello > 0) destello--;
     if (grooveFx > 0) grooveFx--;
+    latK += ((lateral && estado !== "titulo" ? 1 : 0) - latK) * 0.1;
     if (estado === "cierre" && cierre) { pasoCierre(); return; }
     if (estado !== "jugando") return;
     if (modo === "ritmo") { pasoRitmo(); return; }
@@ -1772,7 +1824,8 @@
     // Por dentro es una terminal: renglones de barrido y una guía tenue entre carriles
     ctx.fillStyle = "rgba(0,0,0,.16)";
     for (let y = 9; y < piso(); y += 2) ctx.fillRect(0, y, W, 1);
-    if (!vuela) { ctx.fillStyle = "rgba(255,255,255,.06)"; for (let c = 1; c < carriles; c++) for (let y = 11; y < piso(); y += 4) ctx.fillRect(Math.round(c * LW), y, 1, 2); }
+    if (lateral) { ctx.fillStyle = "rgba(255,255,255,.06)"; for (let c = 0; c < carriles - 1; c++) for (let x = 12; x < W; x += 4) ctx.fillRect(x, Math.round((filaY(c) + filaY(c + 1)) / 2) + 6, 2, 1); }
+    else if (!vuela) { ctx.fillStyle = "rgba(255,255,255,.06)"; for (let c = 1; c < carriles; c++) for (let y = 11; y < piso(); y += 4) ctx.fillRect(Math.round(c * LW), y, 1, 2); }
     // El multiplicador de la racha, enorme y tenue al fondo del recuadro: va detrás de todo, así que no tapa nada
     if (ritmo && estado === "jugando" && nivelCombo() > 0) {
       const nv = nivelCombo(), k = W > 150 ? 9 : 6, txt = `X${multi()}`;
@@ -1932,7 +1985,19 @@
     ctx.fillRect(0, py, W, H - py);
     ctx.fillStyle = col.G;
     ctx.fillRect(0, py, W, 1);
-    if (vuela) { ctx.fillStyle = "#3a4058"; for (let x = (t >> 1) % 8; x < W; x += 8) ctx.fillRect(x, py + 3, 4, 1); }
+    if (lateral) {
+      // En el tramo lateral las casillas van en columna, a la izquierda: una por fila, encendida la de BIT
+      ctx.fillStyle = "#3a4058"; for (let x = (t >> 1) % 8; x < W; x += 8) ctx.fillRect(x, py + 3, 4, 1);
+      ctx.fillStyle = "#0c0f1a"; ctx.fillRect(0, 9, 10, py - 9);
+      ctx.fillStyle = col.G; ctx.fillRect(10, 9, 1, py - 9);
+      for (let c = 0; c < carriles; c++) {
+        const y0 = filaY(c) - 1, act = c === bit.c, ok = celdas[c] > 0;
+        ctx.fillStyle = ok ? col.V : act ? (grooveFx > 3 ? "#00f6ff" : pulso > 0.7 ? "#ffffff" : col.Y) : "#3a4058";
+        ctx.fillRect(2, y0, 6, 1); ctx.fillRect(2, y0, 1, 3); ctx.fillRect(7, y0, 1, 3); ctx.fillRect(2, y0 + 13, 6, 1); ctx.fillRect(2, y0 + 11, 1, 3); ctx.fillRect(7, y0 + 11, 1, 3);
+        if (act || ok) ctx.fillRect(4, y0 + 4, 2, 6);
+      }
+    }
+    else if (vuela) { ctx.fillStyle = "#3a4058"; for (let x = (t >> 1) % 8; x < W; x += 8) ctx.fillRect(x, py + 3, 4, 1); }
     else for (let c = 0; c < carriles; c++) {
       const x0 = Math.round(c * LW), w = Math.round(LW), ok = celdas[c] > 0, lado = ritmo && iman > ts && Math.abs(c - bit.c) === 1 && (iman - ts > 1 || (t >> 2) % 2), act = c === bit.c || lado;
       ctx.fillStyle = ok ? col.V : lado ? col.C : c === bit.c && grooveFx > 3 ? "#00f6ff" : act ? (ritmo && pulso > 0.7 ? "#ffffff" : col.Y) : "#3a4058";
@@ -1961,7 +2026,7 @@
       // Al atrapar da un brinquito; al frenar se aplasta; en ritmo, además, late con el bombo
       const yb = bit.y + (aplasta > 2 && !vuela ? 1 : 0) - (brinco > 3 ? 2 : brinco > 0 ? 1 : 0) - (ritmo && estado === "jugando" && pulso > 0.7 && !vuela ? 1 : 0);
       // Mientras corre al otro carril se estira; recién aterrizado, se ensancha
-      const ex = RM || vuela ? 1 : estira ? 1.3 : aplasta > 3 ? 1.15 : 1, ey = RM || vuela ? 1 : estira ? 0.84 : aplasta > 3 ? 0.9 : 1;
+      const ex = RM || vuela || lateral ? 1 : estira ? 1.3 : aplasta > 3 ? 1.15 : 1, ey = RM || vuela || lateral ? 1 : estira ? 0.84 : aplasta > 3 ? 0.9 : 1;
       ctx.save();
       if (ex !== 1) { ctx.translate(bit.x + 5, yb + 12); ctx.scale(ex, ey); ctx.translate(-(bit.x + 5), -(yb + 12)); }
       if (ritmo) contorno(sprite, bit.x, yb);
@@ -2127,7 +2192,19 @@
     if (lienzo.classList.contains("tenso") !== tenso) lienzo.classList.toggle("tenso", tenso);
     // El recuadro da un golpecito al atrapar y late en las partes fuertes
     const esc = RM || estado !== "jugando" ? 1 : 1 + punch * 0.016 + (ritmo && (R.fuerte || [1, JEFE, 7]).includes(secI) ? pulso * 0.016 : 0);
-    lienzo.style.transform = esc > 1.0005 || brincaX ? `translateX(${brincaX}px) scale(${esc.toFixed(4)})` : "";
+    // La terminal también se mueve: en el tramo lateral se encoge un poco y se va a la izquierda (sin llegar a la orilla),
+    // y justo antes, con el recuadro que se lleva todo, se encoge hacia BIT hasta casi desaparecer
+    const cs = ritmo ? cajaS() : 1, kLat = ritmo && estado !== "fin" ? latK : 0;
+    if (cs < 1 || kLat > 0.002) {
+      const libre = rect0 ? Math.max(0, rect0.left - window.innerWidth * 0.05) : 0, sLat = 1 - 0.14 * kLat;
+      lienzo.style.transformOrigin = cs < 1 ? `${(((bit.x + 5) / W) * 100).toFixed(1)}% ${(((bit.y + 6) / H) * 100).toFixed(1)}%` : "";
+      lienzo.style.transform = `translateX(${(brincaX - libre * kLat).toFixed(1)}px) scale(${(esc * sLat * cs).toFixed(4)})`;
+      rectL = lienzo.getBoundingClientRect();
+      movida = true;
+    } else {
+      if (movida) { movida = false; lienzo.style.transformOrigin = ""; rectL = rect0 || rectL; }
+      lienzo.style.transform = esc > 1.0005 || brincaX ? `translateX(${brincaX}px) scale(${esc.toFixed(4)})` : "";
+    }
     if (!ritmo && mensaje && mensajeT % 20 > 4) {
       ctx.font = `8px "Press Start 2P"`;
       ctx.textAlign = "center";
@@ -2756,9 +2833,16 @@
     for (let i = 1; i < 6; i++) rc(cA, x - r, y + r - i * i * 0.8 - 1, r * 2, Math.max(1, Math.round(i * 0.55)));
   }
   // La ciudad en silueta: negra, con un filo de luz a la izquierda de cada edificio y pocas ventanas encendidas
-  function ciudad(yH, alto, filo, luces) {
+  function ciudad(yH, alto, filo, luces, codigo) {
     for (let i = 0; i < 16; i++) {
       const x = Math.round(i * (FW / 16)), w = Math.ceil(FW / 16), a = Math.round((8 + h(i + 0.2) * 24) * alto + (i % 5 === 2 ? 14 * alto : 0));
+      // Rota: cada edificio es una columna de letras verdes que cambian sin parar
+      if (codigo) {
+        rc("#000800", x, yH - a, w, a); rc("#3fff8a", x, yH - a, 1, a); rc("#3fff8a", x, yH - a, w, 1);
+        const paso = Math.floor(ts * 12);
+        for (let k = 0; k * 6 < a - 6; k++) for (let j = 0; j * 4 < w - 4; j++) { const q = h(i * 13 + k * 7 + j * 3 + paso * 0.61); if (q > 0.35) glifo("01<>/#$%=+*X"[(q * 97) % 12 | 0], x + 2 + j * 4, yH - a + 3 + k * 6, q > 0.9 ? "#ffffff" : q > 0.6 ? "#3fff8a" : "#1d7a45"); }
+        continue;
+      }
       rc(PF.k, x, yH - a, w, a); rc(filo, x, yH - a, 1, a); rc(filo, x, yH - a, w * 0.5, 1);
       if (i % 5 === 2) { rc(PF.k, x + w / 2 - 1, yH - a - 7, 2, 7); if ((t >> 4) % 2) rc(luces[1], x + w / 2 - 1, yH - a - 8, 2, 1); }
       for (let k = 0; k < a / 6 - 1; k++) for (let j = 0; j < 2; j++) if (h(i * 9 + k * 3 + j + (golpeN >> 3)) > 0.7) rc(luces[(i + k + j) % luces.length], x + 3 + j * 5, yH - a + 4 + k * 6, 2, 3);
@@ -2795,10 +2879,69 @@
     for (let i = 0; i < 4; i++) rc(PF.n2, x + 8 + i * ((w - 20) / 3), y + hh - 5, 4, 2);
     cine();
   }
+  // Cada tantos segundos la ciudad "se rompe" un instante y se ve como código verde
+  const glitchCiudad = () => !RM && h(Math.floor(ts * 1.5) * 0.731) < 0.2;
+  // Una letra de la fuente chica (3×5) en el lienzo de efectos
+  function glifo(ch, x, y, c) { c2.fillStyle = c; (FUENTE[ch] || []).forEach((r, j) => { for (let i = 0; i < 3; i++) if (r[i] === "1") c2.fillRect(x + i, y + j, 1, 1); }); }
+  // Luces de discoteca de los 90 detrás de la ciudad: cuatro reflectores que barren el cielo y cambian de color con el golpe
+  function lucesDisco(yH) {
+    const cols = [PF.n4, "#e4505c", "#fcd87c", "#a0247c"];
+    for (let i = 0; i < 4; i++) {
+      const x = FW * (0.14 + i * 0.24), a = -Math.PI / 2 + Math.sin(ts * 1.1 + i * 1.9) * 0.55, largo = FH * 0.9, c = cols[(i + golpeN) % 4];
+      poligono(c, 0.2 + pulso * 0.14, [[x, yH], [x + Math.cos(a - 0.07) * largo, yH + Math.sin(a - 0.07) * largo], [x + Math.cos(a + 0.07) * largo, yH + Math.sin(a + 0.07) * largo]]);
+      const px = x + Math.cos(a) * FH * 0.42, py = yH + Math.sin(a) * FH * 0.42; rc(c, px - 2, py, 5, 1); rc(c, px, py - 2, 1, 5);
+    }
+    // Destellos de bola de espejos repartidos por el cielo
+    if (!RM) for (let i = 0; i < 18; i++) if (h(i + golpeN * 0.37) > 0.6) rc(cols[i % 4], h(i + 0.2) * FW, FH * 0.1 + h(i + 0.7) * (yH - FH * 0.2), 2, 2);
+  }
+  // Una maquinita de arcade: marquesina encendida, pantalla con su juego, tablero con palanca y botones, y puerta de monedas
+  function maquina(x, yBase, s, n) {
+    const X = Math.round(x), Y = Math.round(yBase - 30 * s), r = (c, a, b, w, hh) => rc(c, X + a * s, Y + b * s, w * s, hh * s);
+    const v = ((n % 4) + 4) % 4, cuerpo = [PF.n3, PF.n2, "#a0247c", PF.n3][v], claro = [PF.n4, PF.n3, "#e4505c", PF.n4][v], oscuro = [PF.n2, PF.n1, "#4c1088", PF.n2][v], pant = ["#a0247c", PF.o1, PF.n1, "#18084c"][v], tinta = ["#fcd87c", PF.b, PF.n4, PF.o2][v];
+    r(PF.k, -1, -1, 18, 32);
+    r(cuerpo, 1, 0, 14, 5); r(claro, 1, 0, 14, 1);
+    r((golpeN + n) % 2 ? tinta : claro, 3, 1, 10, 3); r(PF.k, 5, 2, 6, 1);
+    r(cuerpo, 0, 5, 16, 12); r(claro, 0, 5, 1, 12); r(oscuro, 15, 5, 1, 12);
+    r(PF.k, 2, 6, 12, 10); r(pant, 3, 7, 10, 8);
+    // El juego en pantalla: tres marcianitos que bajan y una nave que dispara
+    const f = RM ? 0 : (t >> 4) + n * 3;
+    for (let i = 0; i < 3; i++) r(tinta, 4 + i * 3 + (f % 2), 8 + (Math.floor(f / 2) % 3), 2, 1);
+    r(PF.b, 5 + (f % 6), 13, 2, 1); if (f % 3 === 0) r(PF.b, 6 + (f % 6), 10, 1, 2);
+    r(claro, -1, 17, 18, 1); r(cuerpo, -1, 18, 18, 2); r(oscuro, -1, 20, 18, 1);
+    r(PF.k, 4, 15, 1, 3); r("#e4505c", 3, 14, 3, 2);
+    r(PF.o2, 9, 18, 2, 1); r(PF.b, 12, 18, 2, 1); r("#e4505c", 12, 16, 1, 1);
+    r(oscuro, 1, 21, 14, 9); r(cuerpo, 1, 21, 1, 9); r(PF.n1, 2, 22, 12, 1);
+    r(PF.k, 6, 24, 4, 4); r(PF.o2, 7, 25, 1, 1); r(claro, 9, 26, 1, 1);
+    for (let i = 0; i < 3; i++) r(PF.n1, 3 + i * 4, 29, 2, 1);
+  }
   const BOCINA = ["..MMMMMMMMM..", ".MSSSSSSSSSM.", "MSSWWSSSWWSSM", "MSWKKWSWKKWSM", "MSWKKWSWKKWSM", "MSSWWSSSWWSSM", "MSSSSSSSSSSSM", "MSCCCCCCCCCSM", "MSCKCKCKCKCSM", ".MSSSSSSSSSM.", "..MMMMMMMMM.."];
   const ESCENAS_F = [
-    // 1. CASETE
-    (e) => casete(e, false),
+    // 1. ASCENSO: BIT sube por el cielo hacia la luna. Empieza despacio, entre nubes; al final va a la velocidad de la luz,
+    //    las estrellas se vuelven rayas, la luna aparece enorme al centro y todo se va a blanco para dar paso al atardecer
+    (e) => {
+      const dur = e.sec[1] - e.sec[0], k = Math.min(1, Math.max(0, (ts - e.sec[0]) / dur)), vel = 6 + 900 * Math.pow(k, 5), dist = RM ? 0 : 6 * ts + 150 * dur * Math.pow(k, 6);
+      cieloTramado(k < 0.35 ? NOCHE_F : k < 0.7 ? [PF.k, PF.n1, PF.n1, PF.n2] : [PF.k, PF.k, PF.k, PF.n1], 0, FH);
+      if (k < 0.3) laderas(PF.n3);
+      // Las nubes se quedan abajo
+      for (let i = 0; i < 6; i++) { const w = 60 + h(i) * 60, x = h(i + 0.3) * (FW + 40) - 40, y = FH * (0.62 + h(i + 0.6) * 0.3) + dist * (1 + h(i) * 0.6); if (y < FH) { rc(PF.k, x, y, w, FH); rc(PF.k, x + 10, y - 5, w - 24, 5); rc(PF.n4, x, y, 10, 1); rc(PF.n4, x + 10, y - 5, w - 24, 1); } }
+      // Las estrellas pasan hacia abajo: puntos al principio, rayas cada vez más largas después
+      for (let i = 0; i < 70; i++) {
+        const par = 0.3 + h(i + 0.2) * 0.9, x = Math.round(h(i) * FW), y = (h(i + 0.5) * FH + dist * par) % FH, largo = Math.max(1, Math.min(FH * 0.7, vel * par * 0.035));
+        rc(i % 6 === 0 ? PF.n4 : PF.b, x, y - largo, 1, largo);
+        if (largo < 2 && i % 7 === 0 && (RM || (t >> 4) % 3 !== i % 3)) { rc(PF.b, x - 1, y - 1, 3, 1); rc(PF.b, x, y - 2, 1, 3); }
+      }
+      // La luna crece al centro, con su resplandor punteado y rayos de velocidad que salen de ella
+      if (k > 0.7) {
+        const q = (k - 0.7) / 0.3, r = Math.round(2 + q * q * Math.min(FW, FH) * 0.3), mx = Math.round(e.cx), my = Math.round(FH * 0.4);
+        if (q > 0.35) resplandor(`as${q > 0.7 ? 2 : 1}`, q > 0.7 ? PF.n4 : PF.n3, 0.5, 0.4, q > 0.7 ? 0.62 : 0.4);
+        if (!RM) for (let i = 0; i < 46; i++) { const a = h(i + 0.9) * TAU, f = (ts * (1.5 + h(i) * 2) + h(i + 0.4)) % 1, r0 = r + 4 + f * FW * 0.6, r1 = r0 + 6 + q * 40 * f; linea(i % 4 ? PF.b : PF.n4, mx + Math.cos(a) * r0, my + Math.sin(a) * r0, mx + Math.cos(a) * r1, my + Math.sin(a) * r1); }
+        lunaF(mx, my, r);
+        if (r > 8) { rc(PF.n4, mx - r * 0.45, my - r * 0.3, r * 0.28, r * 0.16); rc(PF.n4, mx + r * 0.3, my + r * 0.25, r * 0.22, r * 0.14); rc(PF.n4, mx - r * 0.1, my + r * 0.5, r * 0.16, r * 0.1); }
+        // El gran destello: la pantalla se llena de blanco en cuatro pasos de trama
+        if (q > 0.86) { const f = (q - 0.86) / 0.14; if (f > 0.75) rc(PF.b, 0, 0, FW, FH); else mancha(`fl${Math.floor(f * 4)}`, PF.b, () => [0.3, 0.55, 0.8][Math.floor(f * 4)]); }
+      }
+      cine();
+    },
     // 2. ATARDECER: el sol se mete en el mar; dos palmeras enormes en primer plano
     () => {
       const yH = Math.round(FH * 0.64);
@@ -2813,44 +2956,46 @@
       rc(PF.k, 0, yH + 12, FW * 0.3, FH); rc(PF.k, FW * 0.76, yH + 14, FW, FH);
       cine();
     },
-    // 3. AUTOPISTA: la carretera corre hacia ti, con la ciudad en silueta contra el ocaso
+    // 3. AUTOPISTA: la carretera corre hacia ti, con la ciudad en silueta contra el ocaso y luces de disco detrás
     () => {
-      const yH = Math.round(FH * 0.6);
+      const yH = Math.round(FH * 0.6), gl = glitchCiudad();
       cieloTramado(OCASO_F, 0, yH);
       solRetro("#fcd87c", "#fc9c4c", "#e4505c", Math.round(FW * 0.5), yH - 4, Math.round(22 + pulso * 3));
-      ciudad(yH, 0.9, "#a0247c", ["#fcd87c", "#fc9c4c"]);
-      rejilla("#a0247c", yH, PF.k);
-      rc("#fc9c4c", 0, yH, FW, 1);
+      lucesDisco(yH);
+      ciudad(yH, 0.9, "#a0247c", ["#fcd87c", "#fc9c4c"], gl);
+      rejilla(gl ? "#3fff8a" : "#a0247c", yH, PF.k);
+      rc(gl ? "#3fff8a" : "#fc9c4c", 0, yH, FW, 1);
       for (let i = 0; i < 6; i++) { const k = (i + (RM ? 0 : (ts * 1.8) % 1)) / 6, y = yH + k * k * (FH - yH); rc("#fcd87c", FW / 2 - 1 - k * 2, y, 2 + k * 4, 2 + k * 5); }
       for (const lado of [-1, 1]) for (let i = 0; i < 3; i++) { const k = (i + (RM ? 0 : (ts * 0.9) % 1)) / 3, y = yH + k * k * (FH - yH), x = FW / 2 + lado * (40 + k * k * FW * 0.5); rc(PF.k, x, y - 12 - k * 34, 2 + k * 2, 12 + k * 34); rc("#fcd87c", x - 2, y - 14 - k * 34, 6 + k * 3, 2); }
+      if (gl) tiras(4, 10, Math.floor(ts * 14));
       cine();
     },
-    // 4. EL CENTRO: de noche entre rascacielos en silueta, con la luna y las laderas de luz
+    // 4. EL CENTRO: de noche entre rascacielos en silueta, con la luna, las laderas de luz y las luces de disco
     () => {
-      const yH = Math.round(FH * 0.74);
+      const yH = Math.round(FH * 0.74), gl = glitchCiudad();
       cieloTramado(NOCHE_F, 0, FH);
       laderas(PF.n3);
       estrellasF(22, FH * 0.3, PF.b);
       lunaF(Math.round(FW * 0.8), Math.round(FH * 0.22), 7);
-      ciudad(yH, 2.4, PF.n4, [PF.n4, PF.o2, PF.b]);
-      rc(PF.k, 0, yH, FW, FH); rc(PF.n4, 0, yH, FW, 1);
+      lucesDisco(yH);
+      ciudad(yH, 2.4, PF.n4, [PF.n4, PF.o2, PF.b], gl);
+      rc(PF.k, 0, yH, FW, FH); rc(gl ? "#3fff8a" : PF.n4, 0, yH, FW, 1);
       for (let i = 0; i < 7; i++) { const x = ((ts * (30 + i * 7) + h(i) * FW) % (FW + 30)) - 15; rc(i % 2 ? PF.o2 : PF.b, i % 2 ? FW - x : x, yH + 4 + i * 3, 5, 1); }
+      if (gl) tiras(4, 10, Math.floor(ts * 14));
       cine();
     },
-    // 5. ARCADE: maquinitas en silueta; lo único encendido son las pantallas y su resplandor
+    // 5. ARCADE: un recorrido de izquierda a derecha por el salón; dos filas de maquinitas pasan a distinta velocidad
     () => {
-      const yH = Math.round(FH * 0.7);
-      rc(PF.k, 0, 0, FW, FH);
-      mancha("arc", PF.n1, (x, y) => Math.max(0, 0.75 - Math.abs(y - 0.42) * 2.4));
-      for (let i = 0; i < 8; i++) {
-        const x = Math.round(i * (FW / 8) + 4), w = Math.round(FW / 8 - 8), on = (i + (golpeN >> 2)) % 3, c = on === 0 ? PF.o2 : on === 1 ? PF.n4 : PF.n3;
-        rc("#04041c", x, yH - 50, w, 50); rc(PF.n2, x, yH - 50, 1, 50); rc(PF.n2, x, yH - 50, w, 1);
-        rc(c, x + 3, yH - 44, w - 6, 14); rc(PF.k, x + 5 + ((t >> 3) + i * 3) % Math.max(1, w - 14), yH - 40 + ((t >> 4) + i) % 6, 4, 3);
-        rc(c, x + 2, yH - 46, w - 4, 1);
-        rc(PF.o1, x + 4, yH - 22, 3, 3); rc(PF.b, x + w - 8, yH - 22, 2, 2); rc(PF.n3, x + w - 5, yH - 22, 2, 2);
-      }
-      for (let j = 0; j < 6; j++) for (let i = -1; i < FW / 14 + 1; i++) if ((i + j) % 2) rc(PF.n1, i * 14, yH + j * 8, 14, 8);
+      const yH = Math.round(FH * 0.72), cam = RM ? 0 : ts * 26;
+      rc("#04041c", 0, 0, FW, FH);
+      mancha("arc", PF.n1, (x, y) => Math.max(0, 0.8 - Math.abs(y - 0.4) * 2.2));
+      // La pared del fondo: tubos de neón y carteles que pasan despacio
+      for (let i = -1; i < FW / 70 + 1; i++) { const n = Math.floor(cam * 0.3 / 70) + i, x = n * 70 - cam * 0.3; rc((golpeN + n) % 2 ? PF.o1 : PF.n3, x + 8, FH * 0.14, 40, 2); rc(PF.n1, x + 16, FH * 0.2, 24, 16); rc(PF.n2, x + 16, FH * 0.2, 24, 1); rc(((n % 3) + 3) % 3 ? PF.n3 : PF.o2, x + 20, FH * 0.2 + 4, 16, 8); }
+      // Fila de atrás (chicas) y fila de adelante (grandes)
+      for (let i = -1; i < FW / 26 + 1; i++) { const n = Math.floor(cam * 0.6 / 26) + i; maquina(n * 26 - cam * 0.6, yH - 6, 1, n); }
+      for (let j = 0; j < 6; j++) for (let i = -1; i < FW / 14 + 2; i++) { const n = Math.floor(cam / 14) + i; if ((((n + j) % 2) + 2) % 2) rc(PF.n1, n * 14 - cam, yH + j * 8, 14, 8); }
       rc(PF.n3, 0, yH, FW, 1);
+      for (let i = -1; i < FW / 50 + 1; i++) { const n = Math.floor(cam / 50) + i; maquina(n * 50 - cam + 6, yH + 14, 2, n + 7); }
       cine();
     },
     // 6. LA AZOTEA: la luna enorme, antenas y un tinaco en silueta, la ciudad chiquita al fondo
@@ -3039,7 +3184,19 @@
     // Tras el cierre, el escenario se queda apagado detrás de los resultados
     if (negro && estado === "fin") { fx.style.transform = ""; rc("#000000", 0, 0, FW, FH); if (destello > 0) { c2.globalAlpha = destello / 26; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; } return; }
     const esc = { cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] };
-    if (DM()) escenaDoom(esc); else (G() ? ESCENAS_G : FK() ? ESCENAS_F : ESCENAS)[secI](esc);
+    const cs = cajaS();
+    if (cs < 1) {
+      // El recuadro que se lleva todo: la escena entera se encoge hacia BIT dentro de un marco blanco, sobre negro
+      const bx = gx + bit.x + 5, by2 = gy + bit.y + 6;
+      rc("#000000", 0, 0, FW, FH);
+      c2.save();
+      c2.translate(bx * (1 - cs), by2 * (1 - cs)); c2.scale(cs, cs);
+      c2.beginPath(); c2.rect(0, 0, FW, FH); c2.clip();
+      ESCENAS_F[secI](esc);
+      c2.restore();
+      const x0 = bx * (1 - cs), y0 = by2 * (1 - cs), w0 = FW * cs, h0 = FH * cs;
+      rc("#ffffff", x0, y0, w0, 1); rc("#ffffff", x0, y0 + h0 - 1, w0, 1); rc("#ffffff", x0, y0, 1, h0); rc("#ffffff", x0 + w0 - 1, y0, 1, h0);
+    } else if (DM()) escenaDoom(esc); else (G() ? ESCENAS_G : FK() ? ESCENAS_F : ESCENAS)[secI](esc);
     if (UIA()) { dibujaGato(); rayosDelGato(); }
     // Con fiebre, una lluvia de destellos de colores por toda la pantalla
     if (fiebre > ts && !RM) for (let i = 0; i < 26; i++) rc(SANDE[(i + (t >> 2)) % SANDE.length], h(i) * FW, (h(i + 0.5) * FH + ts * (30 + h(i + 0.2) * 50)) % FH, 2, 2);
@@ -3131,12 +3288,13 @@
       dirTecla = flechaIzq ? -1 : 1;
       // Un toque = un salto. Solo si se deja la tecla apretada un buen rato (un tercio de segundo) empieza a repetir, y despacio
       rep = 22;
-      if ((estado === "jugando" || estado === "cierre") && !vuela) { meta = null; saltaA(bit.c + dirTecla); }
+      if ((estado === "jugando" || estado === "cierre") && !vuela && !lateral) { meta = null; saltaA(bit.c + dirTecla); }
       else if (estado === "titulo") { if (filaSel === 0 && R) cambiaCancion(dirTecla); else eligeDisco(selDisco + dirTecla); }
       else if (estado === "tramos") { bip(880, 0, 0.03, "square", 0.03); verTramos(selTramo + dirTecla); }
     }
     else if ((estado === "jugando" || estado === "cierre") && !vuela && k >= "1" && k <= "5" && k.length === 1) { meta = null; saltaA(+k - 1); }
     else if (estado === "titulo" && (flechaArr || flechaAba)) { if (R && filaSel !== (flechaArr ? 0 : 1)) { filaSel = flechaArr ? 0 : 1; bip(880, 0, 0.03, "square", 0.03); pintaTitulo(); } }
+    else if (estado === "jugando" && lateral && (flechaArr || flechaAba)) { if (!e.repeat) { meta = null; metaY = null; saltaA(bit.c + (flechaArr ? -1 : 1)); } }
     else if (flechaArr) arr = true;
     else if (flechaAba) aba = true;
     else if (k === "escape") { if (estado === "jugando") pausa(true); else if (estado === "tramos") irA(titulo); else if (estado === "cierre") { cierre = null; finRitmo(); } else cerrar(false); }
