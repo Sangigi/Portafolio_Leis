@@ -6,6 +6,8 @@
    - golpes: centésimas de segundo de cada bombo; el escenario late con ellos */
 window.RitmoUIA = {
   archivo: "sonidos/uia_cat.mp3",
+  // Hoja del gato: 6 cuadros de 64 px en fila (0 = parado, 1 a 5 = una vuelta)
+  gato: "images/juego/gato-uia.png",
   volumen: 0.7,
   // Si los bugs llegan antes o después que la música, ajusta aquí (en segundos; positivo = llegan antes)
   desfase: 0,

@@ -2,7 +2,9 @@
    Sale al contestar N en el CONTINUE? (tecla J o el botón). Tiene dos modos:
    - CLASICO: los bugs se escapan del CRT y BIT los atrapa antes de que lleguen a producción.
    - RITMO: los bugs caen al compás de "u i a Cat" (mapa en js/ritmo-uia.js); el escenario cambia con la
-     canción y al fondo gira un gato, más rápido o más lento según la música. No se pierde: al final hay nota.
+     canción y ocupa toda la pantalla, no solo el recuadro del juego. Un gato (images/juego/gato-uia.png) se
+     pasea por el fondo y gira más rápido o más lento según la música. No se pierde: al final hay nota.
+   BIT se mueve por carriles, de un salto por toque: nada de deslizarse.
    Los récords se guardan en este navegador. */
 (() => {
   "use strict";
@@ -36,63 +38,6 @@
     8: ["111", "101", "111", "101", "111"], 9: ["111", "101", "111", "001", "111"], "+": ["000", "010", "111", "010", "000"],
   };
   const svg = (rows, px) => (P() ? P().svg(rows, px) : "");
-  // El gato que gira al fondo del modo ritmo: de lado, de frente y de espaldas (A gris, S rayas, W blanco, p rosa)
-  const GATO_LADO = [
-    "SS................A..A..",
-    ".AS...............AA.AA.",
-    "..A..............AAAAAAA",
-    "..A..............AAAKAAW",
-    "..AA.............AAAAAWp",
-    "..AAAAAAAAAAAAAAAAAAAWW.",
-    "..AASAAASAAASAAAAAAAA...",
-    "..AASAAASAAASAAAAAAAW...",
-    "..AAAAAAAAAAAAAAAAAWW...",
-    "..AAAAAAAAAAAAAAAAWW....",
-    "..AAAAWWWWWWWWWAAAA.....",
-    "..AAA.AA......AAA.AA....",
-    "..AA..AA......AA..AA....",
-    "..AA..AA......AA..AA....",
-    "..AA..AA......AA..AA....",
-    "..WW..WW......WW..WW....",
-  ];
-  const GATO_FRENTE = [
-    ".AA.......AA.",
-    ".ApA.....ApA.",
-    ".AAAAAAAAAAA.",
-    ".AASAASAASAA.",
-    ".AKKAAAAAKKA.",
-    ".AAAAApAAAAA.",
-    "..AAWWWWWAA..",
-    "...AAWWWAA...",
-    "..AAAWWWAAA..",
-    "..AAAWWWAAA..",
-    "..AAAWWWAAA..",
-    "..AAAAWAAAA..",
-    "..AA.AAA.AA..",
-    "..AA.....AA..",
-    "..AA.....AA..",
-    "..WW.....WW..",
-  ];
-  const GATO_ATRAS = [
-    ".AA.......AA.",
-    ".AAA.....AAA.",
-    ".AAAAAAAAAAA.",
-    ".AASAASAASAA.",
-    ".AAAAAAAAAAA.",
-    ".AAAAAAAAAAA.",
-    "..AAAAAAAAA..",
-    "...AASASAA...",
-    "..AAAAAAAAA..",
-    "..AASASASAA..",
-    "..AAAAAAAAA..",
-    "..AAAASAAAA..",
-    "..AA.ASA.AA..",
-    "..AA..S..AA..",
-    "..AA..S..AA..",
-    "..WW.....WW..",
-  ];
-  let gatoListo = false;
-  const gatoImg = {};
 
   const el = document.createElement("div");
   el.className = "juego";
@@ -102,6 +47,7 @@
   el.setAttribute("aria-modal", "true");
   el.setAttribute("aria-label", "BIT & BUGS");
   el.innerHTML = `
+    <canvas class="juego-fx" aria-hidden="true"></canvas>
     <div class="juego-hud">
       <span><span>PUNTOS</span> <b class="j-pts">000000</b></span>
       <span><span>RECORD</span> <b class="j-rec">000000</b></span>
@@ -111,14 +57,19 @@
     <div class="juego-marco"><canvas class="juego-lienzo"></canvas><div class="juego-msg" aria-live="polite"></div></div>
     <p class="juego-ayuda">← → o A D para mover · P pausa · ESC salir</p>`;
   document.body.appendChild(el);
-  const lienzo = $("canvas", el), ctx = lienzo.getContext("2d"), marco = $(".juego-marco", el), msg = $(".juego-msg", el);
+  const lienzo = $(".juego-lienzo", el), ctx = lienzo.getContext("2d"), fx = $(".juego-fx", el), c2 = fx.getContext("2d"), marco = $(".juego-marco", el), msg = $(".juego-msg", el);
   const ptsEl = $(".j-pts", el), recEl = $(".j-rec", el), verEl = $(".j-ver", el), verK = $(".j-ver-k", el), vidasEl = $(".j-vidas", el);
 
   let W = 200, H = 140, escala = 4, col = {}, raf = 0, ult = 0, acum = 0;
   let estado = "titulo", pts = 0, vidas = 3, nivel = 0, t = 0, sig = 0, objs = [], textos = [], grietas = [], destellos = [];
-  let bit = { x: 95, v: 0 }, izq = false, der = false, meta = null, boca = "n", bocaT = 0, parpadeo = 0, temblor = 0, mensaje = "", mensajeT = 0;
+  let bit = { c: 5, x: 105 }, izq = false, der = false, meta = null, boca = "n", bocaT = 0, parpadeo = 0, temblor = 0, mensaje = "", mensajeT = 0;
   let record = +(lee("bitBugsRecord") || 0), nuevoRecord = false, codigo = [], deApagado = false, bloqueamos = false, volverA = null;
   const piso = () => H - 4, bitY = () => piso() - 12;
+  // Carriles: BIT y los bugs van por columnas de 20 pixeles (10 en la computadora, 7 en el teléfono)
+  const CARRIL = 20, xBit = (c) => c * CARRIL + 5, xBug = (c) => c * CARRIL + 6;
+  let carriles = 10, dirTecla = 0, rep = 0, fantasmas = [], chispas = [], aplasta = 0;
+  // El lienzo de efectos cubre toda la pantalla, con el mismo tamaño de pixel que el juego
+  let FW = 320, FH = 180, gx = 60, gy = 20;
   // Modo ritmo
   let modo = "clasico", audio = null, intentoN = 0, ts = 0, ultA = -1, ultP = 0, rI = 0, rG = 0, golpeN = 0, pulso = 0, secI = -1, cambio = 0;
   let combo = 0, maxCombo = 0, atrapados = 0, giro = 0, vGiro = 0.3, energiaAhora = 0, anillos = [];
@@ -151,7 +102,22 @@
     lienzo.height = H;
     lienzo.style.width = `${Math.floor(W * escala)}px`;
     lienzo.style.height = `${Math.floor(H * escala)}px`;
-    bit.x = Math.min(bit.x, W - 10);
+    carriles = Math.floor(W / CARRIL);
+    bit.c = Math.min(bit.c, carriles - 1);
+    bit.x = xBit(bit.c);
+    // El lienzo de efectos se alinea pixel con pixel con el del juego
+    const rl = lienzo.getBoundingClientRect();
+    gx = Math.round(rl.left / escala);
+    gy = Math.round(rl.top / escala);
+    const izq0 = rl.left - gx * escala, arr0 = rl.top - gy * escala;
+    FW = Math.ceil((window.innerWidth - izq0) / escala) + 1;
+    FH = Math.ceil((window.innerHeight - arr0) / escala) + 1;
+    fx.width = FW;
+    fx.height = FH;
+    fx.style.left = `${izq0}px`;
+    fx.style.top = `${arr0}px`;
+    fx.style.width = `${FW * escala}px`;
+    fx.style.height = `${FH * escala}px`;
     // Renglones de "código" en el borde del CRT, de donde se escapan los bugs
     codigo = [];
     for (const yy of [2, 4, 6]) {
@@ -164,10 +130,7 @@
       W: pig("--p-blanco"), Y: pig("--p-amarillo"), R: pig("--p-rojo"), G: pig("--p-gris"), K: pig("--p-negro"), Q: pig("--amarillo-oscuro"),
       Z: pig("--rojo-oscuro"), D: pig("--p-gris-osc"), F: pig("--p-negro"),
       B: pig("--p-azul"), C: pig("--p-cian"), P: pig("--p-rosa"), M: pig("--p-morado"), N: pig("--p-naranja"), V: pig("--p-verde"),
-      // El gato del modo ritmo
-      A: "#b9bcc8", S: "#6f7386", p: "#e58fa6",
     };
-    gatoListo = false;
   };
   function pinta(rows, x, yy) {
     const X = Math.round(x), Y = Math.round(yy);
@@ -179,6 +142,7 @@
   }
   const seis = (n) => String(n).padStart(6, "0");
   function hud() {
+    el.classList.toggle("ritmo", modo === "ritmo");
     ptsEl.textContent = seis(pts);
     if (modo === "ritmo") {
       recEl.textContent = seis(Math.max(recordR, pts));
@@ -201,7 +165,7 @@
     detieneAudio();
     estado = "titulo";
     modo = "clasico";
-    objs = []; textos = []; grietas = []; destellos = []; mensaje = "";
+    objs = []; textos = []; grietas = []; destellos = []; fantasmas = []; chispas = []; mensaje = "";
     hud();
     aviso(`<p class="jm-t">BIT &amp; BUGS</p>
       <p>${T("Los bugs se escapan del CRT.<br>Atrápalos antes de que lleguen a producción.", "The bugs are escaping from the CRT.<br>Catch them before they reach production.")}</p>
@@ -214,7 +178,7 @@
     modo = "clasico";
     estado = "jugando";
     pts = 0; vidas = 3; nivel = 0; t = 0; sig = 40; objs = []; textos = []; grietas = []; destellos = [];
-    bit = { x: W / 2 - 5, v: 0 }; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
+    bit = { c: carriles >> 1, x: xBit(carriles >> 1) }; fantasmas = []; chispas = []; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
     aviso("");
     hud();
     bip(392, 0, 0.08); bip(523, 0, 0.08, "square", 0.05, 0.09); bip(659, 0, 0.12, "square", 0.05, 0.18);
@@ -273,8 +237,10 @@
     modo = "ritmo";
     estado = "cargando";
     pts = 0; t = 0; objs = []; textos = []; grietas = []; destellos = []; anillos = [];
-    bit = { x: W / 2 - 5, v: 0 }; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
+    bit = { c: carriles >> 1, x: xBit(carriles >> 1) }; fantasmas = []; chispas = []; boca = "n"; bocaT = 0; mensaje = ""; nuevoRecord = false;
     ts = 0; ultA = -1; rI = 0; rG = 0; golpeN = 0; pulso = 0; secI = -1; cambio = 0; combo = 0; maxCombo = 0; atrapados = 0; giro = 0; vGiro = 0.3; energiaAhora = 0;
+    gatoX = gx + W / 2; gatoY = gy + H * 0.5; gatoTam = 1; gatoQuieto = true; estela = [];
+    pideGato();
     hud();
     aviso(`<p class="jm-t">♪</p><p>${T("Cargando la canción...", "Loading the song...")}</p>`);
     if (!audio) {
@@ -337,23 +303,28 @@
     energiaAhora = energia(ts);
     vGiro += (0.22 + energiaAhora * energiaAhora * 2.7 - vGiro) * 0.07;
     giro += vGiro / 60 + pulso * 0.003;
-    moverBit(3);
+    moverBit();
+    pasoGato();
     // Cada bug sale con el tiempo justo para llegar a BIT en su nota
     const N = R.notas;
     while (rI * 3 < N.length) {
       const tn = N[rI * 3] / 1000, d = R.sec[seccionDe(tn)][2];
       if (tn - d > ts) break;
       const fx = N[rI * 3 + 1] / 100;
-      objs.push({ tipo: N[rI * 3 + 2] ? "oro" : "bug", fx, tn, d, x: 0, y: 0 });
-      grietas.push({ x: Math.round(2 + fx * (W - 11) + 2), vida: 16 });
+      const c = Math.round(fx * (carriles - 1));
+      objs.push({ tipo: N[rI * 3 + 2] ? "oro" : "bug", c, tn, d, x: xBug(c), y: 0 });
+      grietas.push({ x: xBug(c) + 2, vida: 16 });
       rI++;
     }
     const by = bitY(), y0 = 3, yT = by - 3;
     for (const o of objs) {
-      o.x = 2 + o.fx * (W - 11);
+      o.c = Math.min(o.c, carriles - 1);
+      o.x = xBug(o.c);
       o.y = y0 + (yT - y0) * (1 - (o.tn - ts) / o.d);
-      if (o.y + 6 >= by + 1 && o.y <= by + 7 && o.x + 6 >= bit.x - 1 && o.x <= bit.x + 10) {
+      if (o.y + 6 >= by + 1 && o.y <= by + 7 && o.c === bit.c) {
         o.fuera = true;
+        atrapa(o);
+        bip(o.tipo === "oro" ? 1568 : 1175, 0, 0.03, "square", 0.018);
         combo++; atrapados++;
         if (combo > maxCombo) maxCombo = combo;
         const n = (o.tipo === "oro" ? 50 : 10) * multi();
@@ -378,16 +349,29 @@
     const r = Math.random();
     const tipo = vidas < 3 && r < 0.05 ? "cafe" : r < 0.13 ? "oro" : "bug";
     const v = (0.42 + nivel * 0.07) * (tipo === "oro" ? 1.45 : tipo === "cafe" ? 0.8 : 1) * azar(0.85, 1.15);
-    const x = 2 + Math.random() * (W - 12);
-    objs.push({ tipo, x, y: 1, v, f: azar(0, 6) });
-    grietas.push({ x: Math.round(x + 2), vida: 16 });
+    const c = (Math.random() * carriles) | 0;
+    objs.push({ tipo, c, x: xBug(c), y: 1, v });
+    grietas.push({ x: xBug(c) + 2, vida: 16 });
   }
-  // BIT: teclado o puntero
-  function moverBit(tope) {
-    if (izq || der) { meta = null; bit.v = Math.max(-tope, Math.min(tope, bit.v + (der ? 0.5 : 0) - (izq ? 0.5 : 0))); }
-    else if (meta != null) { const d = meta - (bit.x + 5); bit.v = Math.abs(d) < 1 ? 0 : Math.sign(d) * Math.min(Math.abs(d) * 0.35, 3.4); }
-    else bit.v *= 0.6;
-    bit.x = Math.max(0, Math.min(W - 10, bit.x + bit.v));
+  // BIT salta de carril en carril: un salto por toque y, si dejas la tecla, sigue saltando rápido.
+  // Con el mouse o el dedo, brinca directo al carril que señalas.
+  function saltaA(c) {
+    c = Math.max(0, Math.min(carriles - 1, c));
+    if (c === bit.c) return;
+    if (!RM) fantasmas.push({ x: bit.x, vida: 6 });
+    bit.c = c;
+    bit.x = xBit(c);
+    aplasta = 4;
+  }
+  function moverBit() {
+    if (dirTecla) { meta = null; if (--rep <= 0) { saltaA(bit.c + dirTecla); rep = 4; } }
+    else if (meta != null) saltaA(Math.floor(meta / CARRIL));
+  }
+  // Al atrapar: chispas del color del bug y BIT se aplasta un instante
+  function atrapa(o) {
+    aplasta = 5;
+    if (RM) return;
+    for (let i = 0; i < 7; i++) chispas.push({ x: o.x + 3, y: o.y + 4, vx: azar(-1.4, 1.4), vy: azar(-1.9, -0.3), vida: 12 + ((Math.random() * 8) | 0), c: o.tipo === "oro" ? "Y" : o.tipo === "cafe" ? "W" : i % 2 ? "R" : "W" });
   }
   function paso() {
     t++;
@@ -398,18 +382,22 @@
     grietas.forEach((g) => g.vida--); grietas = grietas.filter((g) => g.vida > 0);
     destellos.forEach((d) => d.vida--); destellos = destellos.filter((d) => d.vida > 0);
     textos.forEach((x) => { x.y -= 0.35; x.vida--; }); textos = textos.filter((x) => x.vida > 0);
+    fantasmas.forEach((f) => f.vida--); fantasmas = fantasmas.filter((f) => f.vida > 0);
+    chispas.forEach((c) => { c.x += c.vx; c.y += c.vy; c.vy += 0.16; c.vida--; }); chispas = chispas.filter((c) => c.vida > 0);
+    if (aplasta > 0) aplasta--;
     if (estado !== "jugando") return;
     if (modo === "ritmo") { pasoRitmo(); return; }
-    moverBit(2.3 + nivel * 0.12);
+    moverBit();
     // Bugs: cada versión salen más seguido y más rápido
     if (--sig <= 0) { nace(); sig = Math.max(20, 60 - nivel * 5) * azar(0.7, 1.2); }
     const by = bitY();
     for (const o of objs) {
       o.y += o.v;
-      if (o.tipo !== "cafe") { o.f += 0.1; o.x = Math.max(0, Math.min(W - 7, o.x + Math.sin(o.f) * 0.15)); }
-      const ancho = o.tipo === "cafe" ? 8 : 7;
-      if (o.y + 6 >= by + 1 && o.y <= by + 7 && o.x + ancho - 1 >= bit.x && o.x <= bit.x + 9) {
+      o.c = Math.min(o.c, carriles - 1);
+      o.x = xBug(o.c);
+      if (o.y + 6 >= by + 1 && o.y <= by + 7 && o.c === bit.c) {
         o.fuera = true;
+        atrapa(o);
         if (o.tipo === "cafe") { vidas = Math.min(3, vidas + 1); textos.push({ txt: "+1", x: o.x, y: o.y - 4, vida: 40, c: "R" }); bip(523, 0, 0.09); bip(784, 0, 0.12, "square", 0.05, 0.1); }
         else {
           const n = o.tipo === "oro" ? 50 : 10;
@@ -443,18 +431,20 @@
     objs = objs.filter((o) => !o.fuera);
   }
   function dibuja() {
+    const ritmo = modo === "ritmo" && estado !== "cargando" && secI >= 0;
     ctx.save();
-    ctx.fillStyle = col.F;
+    // En ritmo el recuadro es una ventana: el escenario se ve a través, apenas oscurecido para que los bugs resalten
+    if (ritmo) ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = ritmo ? "rgba(0,0,0,.34)" : col.F;
     ctx.fillRect(0, 0, W, H);
     if (temblor) ctx.translate(temblor % 2 ? 1 : -1, 0);
-    const ritmo = modo === "ritmo" && estado !== "cargando" && secI >= 0;
-    if (ritmo) { escena(); gato(); escenaEncima(); }
     for (const o of objs) {
       // En ritmo, una sombra detrás de cada bug para que se distinga sobre cualquier escenario
       if (ritmo) { ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(Math.round(o.x) - 1, Math.round(o.y) - 1, 9, 9); }
       if (o.tipo === "cafe") pinta(CAFE, o.x, o.y);
       else pinta((o.tipo === "oro" ? ORO : BUG)[(t >> 3) % 2], o.x, o.y);
     }
+    for (const c of chispas) { ctx.fillStyle = col[c.c]; ctx.fillRect(Math.round(c.x), Math.round(c.y), 1, 1); }
     for (const x of textos) if (x.vida > 10 || x.vida % 2) letras(x.txt, x.x, x.y, x.c);
     // El borde del CRT, con su código: los bugs salen de ahí
     ctx.fillStyle = col.D;
@@ -470,16 +460,25 @@
     ctx.fillRect(0, piso(), W, H - piso());
     ctx.fillStyle = col.G;
     for (let x = (t >> 2) % 4; x < W; x += 4) ctx.fillRect(x, piso() + 1, 2, 1);
-    for (const d of destellos) if (d.vida % 6 < 3) { ctx.fillStyle = col.R; ctx.fillRect(Math.round(d.x) - 4, piso(), 15, H - piso()); }
+    // Marcas de los carriles en el piso; el de BIT, encendido
+    ctx.fillStyle = col.F;
+    for (let c = 1; c < carriles; c++) ctx.fillRect(c * CARRIL, piso(), 1, H - piso());
+    ctx.fillStyle = col.Y;
+    ctx.fillRect(bit.c * CARRIL + 1, piso(), CARRIL - 1, 1);
+    for (const d of destellos) if (d.vida % 6 < 3) { ctx.fillStyle = col.R; ctx.fillRect(Math.floor(d.x / CARRIL) * CARRIL + 1, piso(), CARRIL - 1, H - piso()); }
     // BIT mira hacia el bug más cercano al piso
     let cerca = null;
     for (const o of objs) if (o.tipo !== "cafe" && (!cerca || o.y > cerca.y)) cerca = o;
     const dx = cerca ? cerca.x + 3 - (bit.x + 5) : 0;
-    // En ritmo BIT brinca un pixel con cada bombo
     if (ritmo) { ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(Math.round(bit.x) - 1, bitY() - 1, 12, 13); }
-    if (P()) pinta(P().bitSprite(dx < -8 ? -1 : dx > 8 ? 1 : 0, parpadeo > 0, boca), bit.x, bitY() - (ritmo && estado === "jugando" && pulso > 0.7 ? 1 : 0));
+    if (P()) {
+      // La estela de cada salto, y BIT: se aplasta un pixel al caer o atrapar, y en ritmo brinca con cada bombo
+      const sprite = P().bitSprite(dx < -8 ? -1 : dx > 8 ? 1 : 0, parpadeo > 0, boca);
+      for (const f of fantasmas) { ctx.globalAlpha = (f.vida / 6) * 0.45; pinta(sprite, f.x, bitY()); }
+      ctx.globalAlpha = 1;
+      pinta(sprite, bit.x, bitY() + (aplasta > 2 ? 1 : 0) - (ritmo && estado === "jugando" && pulso > 0.7 ? 1 : 0));
+    }
     ctx.restore();
-    if (ritmo && estado !== "jugando") { ctx.fillStyle = "rgba(0,0,0,.74)"; ctx.fillRect(0, 0, W, H); }
     if (ritmo && estado === "jugando" && mensaje && (mensajeT > 100 ? mensajeT % 6 < 3 : true)) {
       // Nombre del escenario (o el combo), arriba y en dos renglones para que quepa en el teléfono
       const partes = /^\d+\//.test(mensaje) ? [mensaje.slice(0, mensaje.indexOf(" ")), mensaje.slice(mensaje.indexOf(" ") + 1)] : [mensaje];
@@ -496,26 +495,41 @@
     }
   }
 
-  /* ---------- Escenarios del modo ritmo: uno por cada parte de la canción ---------- */
+  /* ---------- Escenarios del modo ritmo: uno por cada parte de la canción ----------
+     Se dibujan en el lienzo de efectos, que cubre toda la pantalla: el recuadro del juego es solo una ventana.
+     e = { cx, cy: centro del recuadro · suelo: la línea del piso del juego · sec: la sección actual } */
   const TAU = Math.PI * 2;
   // Azar que no cambia de un cuadro a otro: cada estrella, burbuja o edificio cae siempre en su lugar
   const h = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-  const rc = (c, x, y, w, hh) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(hh))); };
+  const rc = (c, x, y, w, hh) => { c2.fillStyle = c; c2.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(hh))); };
   function linea(c, x0, y0, x1, y1) {
-    ctx.fillStyle = c;
+    c2.fillStyle = c;
     const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
-    for (let i = 0; i <= n; i++) ctx.fillRect(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), 1, 1);
+    for (let i = 0; i <= n; i++) c2.fillRect(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), 1, 1);
   }
-  const bandas = (cols, ya, yb) => cols.forEach((c, i) => rc(c, 0, ya + ((yb - ya) * i) / cols.length, W, (yb - ya) / cols.length + 1));
+  const bandas = (cols, ya, yb) => cols.forEach((c, i) => rc(c, 0, ya + ((yb - ya) * i) / cols.length, FW, (yb - ya) / cols.length + 1));
   function disco(c, x, y, r) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); rc(c, x - w, y + dy, w * 2, 1); } }
   function poligono(c, alfa, pts) {
-    ctx.globalAlpha = alfa;
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    c2.globalAlpha = alfa;
+    c2.fillStyle = c;
+    c2.beginPath();
+    pts.forEach(([x, y], i) => (i ? c2.lineTo(x, y) : c2.moveTo(x, y)));
+    c2.fill();
+    c2.globalAlpha = 1;
   }
+  // Un haz de luz que suma brillo y se desvanece a lo largo: rayos de sol bajo el agua, reflectores de la disco
+  function haz(rgb, brillo, x0, ancho0, x1, ancho1, y0, y1) {
+    const g = c2.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, `rgba(${rgb},${brillo})`);
+    g.addColorStop(1, `rgba(${rgb},0)`);
+    c2.globalCompositeOperation = "lighter";
+    c2.fillStyle = g;
+    c2.beginPath();
+    c2.moveTo(x0 - ancho0 / 2, y0); c2.lineTo(x0 + ancho0 / 2, y0); c2.lineTo(x1 + ancho1 / 2, y1); c2.lineTo(x1 - ancho1 / 2, y1);
+    c2.fill();
+    c2.globalCompositeOperation = "source-over";
+  }
+  const rgbDe = (hex) => { const n = parseInt(hex.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
   // Un color más apagado (f de 0 a 1), para que el fondo no le gane a los bugs
   const oscuros = {};
   function osc(hex, f) {
@@ -527,229 +541,273 @@
     return oscuros[k];
   }
   const ESCENAS = [
-    // 1. ARRANQUE: la terminal escribe código
-    (Y0, Y1, A) => {
-      const filas = Math.floor(A / 4), escritas = Math.floor(ts * 5), off = Math.max(0, escritas - filas + 2);
+    // 1. ARRANQUE: toda la pantalla es una terminal escribiendo código
+    () => {
+      rc(col.F, 0, 0, FW, FH);
+      const filas = Math.floor(FH / 4), escritas = Math.floor(ts * 6), off = Math.max(0, escritas - filas + 2);
       for (let i = 0; i < filas; i++) {
         const n = i + off;
         if (n > escritas) break;
-        let x = 3 + ((h(n) * 4) | 0) * 4;
-        const segs = 1 + ((h(n + 0.5) * 4) | 0);
-        for (let s = 0; s < segs && x < W - 6; s++) {
-          let l = 4 + ((h(n * 7 + s) * 20) | 0);
-          if (n === escritas) l = Math.min(l, ((ts * 5) % 1) * 60 - s * 14);
+        let x = 3 + ((h(n) * 5) | 0) * 4;
+        const segs = 1 + ((h(n + 0.5) * 7) | 0);
+        for (let s = 0; s < segs && x < FW - 6; s++) {
+          let l = 4 + ((h(n * 7 + s) * 24) | 0);
+          if (n === escritas) l = Math.min(l, ((ts * 6) % 1) * 140 - s * 20);
           if (l < 1) break;
           const verde = h(n * 3 + s) < 0.3;
-          rc(verde ? (pulso > 0.5 ? col.V : "#1d5c3f") : col.D, x, Y0 + 3 + i * 4, Math.min(l, W - 3 - x), 2);
+          rc(verde ? (pulso > 0.5 ? col.V : "#1d5c3f") : col.D, x, 2 + i * 4, Math.min(l, FW - 3 - x), 2);
           x += l + 3;
         }
-        if (n === escritas && (t >> 3) % 2) rc(col.W, Math.min(x, W - 5), Y0 + 3 + i * 4, 2, 2);
+        if (n === escritas && (t >> 3) % 2) rc(col.W, Math.min(x, FW - 5), 2 + i * 4, 2, 2);
       }
+      rc("rgba(65,184,131,.07)", 0, (ts * 34) % (FH + 10) - 8, FW, 8);
     },
-    // 2. CIUDAD NEON: sol de rayas, edificios y un piso de rejilla que avanza con el compás
-    (Y0, Y1, A, cx, cy, sec) => {
-      const hy = Math.round(Y0 + A * 0.6);
-      bandas(["#0d0221", "#1b0638", "#2d0a4e", "#4a0f5e", "#6b1560"], Y0, hy);
-      for (let i = 0; i < 22; i++) rc("#8a6fb0", h(i) * W, Y0 + h(i + 0.5) * (hy - Y0) * 0.6, 1, 1);
-      const r = Math.round(Math.min(W * 0.22, A * 0.36) + pulso * 1.5);
+    // 2. CIUDAD NEON: sol de rayas, edificios de lado a lado y una rejilla que avanza con el compás hasta el borde de la pantalla
+    (e) => {
+      const hy = Math.round(gy + H * 0.6), cx = e.cx;
+      bandas(["#0d0221", "#150430", "#1b0638", "#2d0a4e", "#4a0f5e", "#6b1560"], 0, hy);
+      for (let i = 0; i < 60; i++) if (h(i + Math.floor(ts * 2 + h(i) * 9)) > 0.2) rc(i % 9 === 0 ? col.C : "#8a6fb0", h(i) * FW, h(i + 0.5) * hy * 0.7, 1, 1);
+      const r = Math.round(Math.min(FW * 0.17, FH * 0.3) + pulso * 2);
       for (let dy = -r; dy <= 0; dy++) {
         const w = Math.round(Math.sqrt(r * r - dy * dy)), y = hy + dy, f = -dy / r;
         if (f < 0.6 && (y + (t >> 3)) % 4 === 0) continue;
         rc(f > 0.66 ? col.Y : f > 0.33 ? col.N : col.P, cx - w, y, w * 2, 1);
       }
-      for (let x = 0, i = 0; x < W; i++) {
-        const w = 6 + ((h(i) * 8) | 0), alto = Math.abs(x + w / 2 - cx) < r ? 3 + ((h(i + 0.3) * 3) | 0) : 5 + ((h(i + 0.3) * A * 0.22) | 0);
+      for (let x = 0, i = 0; x < FW; i++) {
+        const w = 6 + ((h(i) * 9) | 0), alto = Math.abs(x + w / 2 - cx) < r ? 3 + ((h(i + 0.3) * 3) | 0) : 6 + ((h(i + 0.3) * FH * 0.2) | 0);
         rc("#150a2e", x, hy - alto, w, alto);
         for (let wy = hy - alto + 2; wy < hy - 1; wy += 3) for (let wx = x + 1; wx < x + w - 1; wx += 3) if (h(i * 13 + wx * 7 + wy) < 0.45) rc(h(i + wx + wy + (golpeN >> 2)) < 0.6 ? col.Y : "#5a3d1e", wx, wy, 1, 1);
         x += w + 1;
       }
-      rc("#0a0118", 0, hy, W, Y1 - hy);
-      for (let j = -9; j <= 9; j++) linea("#5a2a9c", cx + j * 4, hy, cx + j * W * 0.17, Y1);
-      const fase = ((ts * sec[3]) / 60) % 1;
-      for (let k = 0; k < 6; k++) { const pp = (k + fase) / 6; rc(col.M, 0, hy + (Y1 - hy) * pp * pp, W, 1); }
-      rc(col.P, 0, hy, W, 1);
+      rc("#0a0118", 0, hy, FW, FH - hy);
+      for (let j = -16; j <= 16; j++) linea("#5a2a9c", cx + j * 5, hy, cx + j * FW * 0.2, FH);
+      const fase = ((ts * e.sec[3]) / 60) % 1;
+      for (let k = 0; k < 8; k++) { const pp = (k + fase) / 8; rc(k % 2 ? col.M : col.P, 0, hy + (FH - hy) * pp * pp, FW, 1); }
+      rc(col.P, 0, hy, FW, 1);
     },
-    // 3. BAJO EL AGUA: la música suena tapada; rayos de luz, algas, peces y burbujas
-    (Y0, Y1, A) => {
-      bandas(["#0b3d6e", "#0a3260", "#082650", "#061b3d", "#04122b"], Y0, Y1);
-      for (let i = 0; i < 3; i++) {
-        const x = W * (0.2 + i * 0.32) + Math.sin(ts * 0.5 + i) * 6, d = A * 0.4;
-        poligono("#9fdcff", 0.07 + pulso * 0.05, [[x, Y0], [x + 12, Y0], [x + 20 - d, Y1], [x - 6 - d, Y1]]);
+    // 3. BAJO EL AGUA: la música suena tapada. Los rayos entran desde arriba de la pantalla y se pierden en el fondo
+    () => {
+      bandas(["#0f4c82", "#0b3d6e", "#0a3260", "#082650", "#061b3d", "#04122b"], 0, FH);
+      // La superficie, ondulando arriba
+      c2.fillStyle = "rgba(190,233,255,.5)";
+      for (let x = 0; x < FW; x++) c2.fillRect(x, Math.round(1.5 + Math.sin(x * 0.15 + ts * 2) * 1.2 + Math.sin(x * 0.4 - ts * 3) * 0.8), 1, 1);
+      for (let i = 0; i < 8; i++) {
+        const x0 = (FW * (i + 0.5)) / 8 + FW * 0.12 + Math.sin(ts * 0.3 + i * 1.7) * FW * 0.05, ancho = 5 + h(i) * 11;
+        const brillo = Math.max(0.03, 0.13 + 0.09 * Math.sin(ts * 0.9 + i * 2.3) + pulso * 0.06);
+        haz("150,215,255", brillo, x0, ancho, x0 - FH * 0.42 + Math.sin(ts * 0.4 + i) * 5, ancho * 3.2, 0, FH * (0.75 + 0.2 * h(i + 0.4)));
       }
-      for (let x = 4, i = 0; x < W; x += 11 + ((h(i) * 8) | 0), i++) {
-        const alto = 8 + ((h(i + 0.2) * A * 0.18) | 0);
-        for (let j = 0; j < alto; j++) rc(j % 4 < 2 ? "#1f7a5a" : "#17604a", x + Math.round(Math.sin(ts * 2 + j * 0.35 + i) * (j / alto) * 3), Y1 - 1 - j, 2, 1);
+      rc("#0a2a3d", 0, FH - 3, FW, 3);
+      for (let x = 3, i = 0; x < FW; x += 9 + ((h(i) * 9) | 0), i++) {
+        const alto = 9 + ((h(i + 0.2) * FH * 0.16) | 0);
+        for (let j = 0; j < alto; j++) rc(j % 4 < 2 ? "#1f7a5a" : "#17604a", x + Math.round(Math.sin(ts * 2 + j * 0.35 + i) * (j / alto) * 3), FH - 3 - j, 2, 1);
       }
-      for (let i = 0; i < 3; i++) {
-        const dir = i % 2 ? 1 : -1, tramo = W + 30;
-        let x = (ts * (9 + i * 4) + h(i) * tramo) % tramo;
-        if (dir < 0) x = tramo - x;
+      // Un cardumen que cruza y peces sueltos
+      const tramo = FW + 80, xc = ((ts * 16) % tramo) - 40, yc = FH * 0.3 + Math.sin(ts * 0.6) * FH * 0.08;
+      for (let i = 0; i < 16; i++) rc("#9fdcff", xc + h(i) * 34 + Math.sin(ts * 3 + i) * 1.5, yc + h(i + 0.5) * 16 + Math.cos(ts * 2.4 + i * 2) * 1.5, 2, 1);
+      for (let i = 0; i < 5; i++) {
+        const dir = i % 2 ? 1 : -1, tr = FW + 30;
+        let x = (ts * (9 + i * 4) + h(i) * tr) % tr;
+        if (dir < 0) x = tr - x;
         x -= 15;
-        const y = Y0 + A * (0.18 + 0.2 * i) + Math.sin(ts * 1.5 + i) * 2;
-        rc(col.N, x, y, 5, 3);
-        rc(col.N, dir > 0 ? x - 2 : x + 5, y + ((t >> 3) % 2), 2, 2);
+        const y = FH * (0.14 + 0.16 * i) + Math.sin(ts * 1.5 + i) * 2, c = i % 3 === 0 ? col.Y : col.N;
+        rc(c, x, y, 5, 3);
+        rc(c, dir > 0 ? x - 2 : x + 5, y + ((t >> 3) % 2), 2, 2);
         rc(col.K, dir > 0 ? x + 3 : x + 1, y + 1, 1, 1);
       }
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 38; i++) {
         const g = i % 4 === 0 ? 2 : 1;
-        rc("#7fd4ff", h(i) * W + Math.sin(ts * 1.6 + i * 2) * 3, Y1 - ((ts * (7 + h(i + 0.3) * 14) + h(i + 0.7) * A) % A), g, g);
+        rc("#7fd4ff", h(i) * FW + Math.sin(ts * 1.6 + i * 2) * 3, FH - ((ts * (7 + h(i + 0.3) * 16) + h(i + 0.7) * FH) % FH), g, g);
       }
     },
-    // 4. DESPEGUE: las estrellas aceleran mientras la canción sube
-    (Y0, Y1, A, cx, cy, sec) => {
-      rc("#05030f", 0, Y0, W, A);
-      const L = sec[1] - sec[0], seg = Math.max(0, ts - sec[0]), k = Math.min(1, seg / L);
-      const fase = 0.12 * seg + (0.5 * seg * seg * seg) / (L * L), radio = Math.hypot(W, A) / 2 + 6;
-      for (let i = 0; i < 70; i++) {
-        const a = h(i) * TAU, d = (h(i + 0.5) + fase * (0.6 + h(i + 0.8) * 0.8)) % 1, r = d * d * radio + 5, largo = 1 + k * k * 12 * d + pulso * 2;
+    // 4. DESPEGUE: las estrellas salen del centro y aceleran por toda la pantalla mientras la canción sube
+    (e) => {
+      rc("#05030f", 0, 0, FW, FH);
+      const L = e.sec[1] - e.sec[0], seg = Math.max(0, ts - e.sec[0]), k = Math.min(1, seg / L);
+      const fase = 0.12 * seg + (0.5 * seg * seg * seg) / (L * L), radio = Math.hypot(FW, FH) / 2 + 8;
+      for (let i = 0; i < 130; i++) {
+        const a = h(i) * TAU, d = (h(i + 0.5) + fase * (0.6 + h(i + 0.8) * 0.8)) % 1, r = d * d * radio + 6, largo = 1 + k * k * 18 * d + pulso * 2;
         const c = d < 0.3 ? "#555a77" : i % 5 === 0 ? col.C : i % 7 === 0 ? col.Y : "#ffffff";
-        linea(c, cx + Math.cos(a) * r, cy + Math.sin(a) * r, cx + Math.cos(a) * (r - largo), cy + Math.sin(a) * (r - largo));
+        linea(c, e.cx + Math.cos(a) * r, e.cy + Math.sin(a) * r, e.cx + Math.cos(a) * (r - largo), e.cy + Math.sin(a) * (r - largo));
       }
     },
-    // 5. PISTA DISCO: losetas que cambian con cada bombo, reflectores y un ecualizador en la pared
-    (Y0, Y1, A, cx) => {
-      rc("#12041f", 0, Y0, W, A);
-      const PAL = [col.P, col.C, col.Y, col.M, col.V, col.N], fy = Math.round(Y0 + A * 0.7);
-      for (let i = 0; i * 10 < W; i++) {
-        const alto = (0.15 + energiaAhora * (0.3 + 0.7 * h(i * 5 + golpeN))) * A * 0.36 * (0.7 + 0.3 * pulso);
+    // 5. PISTA DISCO: reflectores desde el techo de la pantalla, bola de espejos con sus luces y losetas que cambian con el bombo
+    (e) => {
+      rc("#12041f", 0, 0, FW, FH);
+      const PAL = [col.P, col.C, col.Y, col.M, col.V, col.N], fy = Math.round(e.suelo);
+      for (let i = 0; i < 46; i++) {
+        const x = (((h(i) * FW + ts * 16 * (i % 2 ? 1 : -1)) % FW) + FW) % FW, y = h(i + 0.5) * fy * 0.92 + Math.sin(ts * 0.8 + i) * 4;
+        c2.globalAlpha = 0.35 + 0.3 * h(i + golpeN);
+        rc(PAL[i % 6], x, y, 2, 2);
+      }
+      c2.globalAlpha = 1;
+      for (let i = 0; i * 10 < FW; i++) {
+        const alto = (0.15 + energiaAhora * (0.3 + 0.7 * h(i * 5 + golpeN))) * FH * 0.3 * (0.7 + 0.3 * pulso);
         rc(osc(PAL[i % 6], 0.42), i * 10 + 2, fy - alto, 7, alto);
       }
-      for (let i = 0; i < 4; i++) {
-        const x0 = W * (0.12 + i * 0.25), x1 = x0 + Math.tan(Math.sin(ts * 1.4 + i * 1.9) * 0.55) * A;
-        poligono(PAL[(i + (golpeN >> 2)) % 6], 0.13, [[x0 - 1, Y0], [x0 + 1, Y0], [x1 + 12, Y1], [x1 - 12, Y1]]);
+      for (let i = 0; i < 6; i++) {
+        const x0 = FW * (0.08 + i * 0.168), x1 = x0 + Math.tan(Math.sin(ts * 1.4 + i * 1.9) * 0.6) * FH;
+        haz(rgbDe(PAL[(i + (golpeN >> 2)) % 6]), 0.34 + pulso * 0.12, x0, 3, x1, FW * 0.14, 0, FH);
       }
-      for (let j = 0; fy + j * 5 < Y1; j++) for (let i = 0; i * 10 < W; i++) rc(osc(PAL[(i * 3 + j * 5 + golpeN) % 6], (i + j + golpeN) % 2 ? 0.2 : 0.5), i * 10, fy + j * 5, 9, 4);
-      rc(col.G, cx, Y0, 1, 6);
-      disco("#8f93a8", Math.round(cx), Y0 + 11, 5);
-      rc("#d8dbe8", cx - 3, Y0 + 8, 2, 2);
-      for (let i = 0; i < 5; i++) if (h(i + golpeN) < 0.6) rc("#ffffff", cx - 5 + h(i + golpeN * 3) * 10, Y0 + 7 + h(i * 7 + golpeN) * 8, 1, 1);
+      for (let j = 0; fy + j * 5 < FH; j++) for (let i = 0; i * 10 < FW; i++) rc(osc(PAL[(i * 3 + j * 5 + golpeN) % 6], (i + j + golpeN) % 2 ? 0.2 : 0.55), i * 10, fy + j * 5, 9, 4);
+      const bx = Math.round(e.cx), by = Math.max(12, gy - 4);
+      rc(col.G, bx, 0, 1, by - 7);
+      disco("#8f93a8", bx, by, 7);
+      for (let i = 0; i < 9; i++) rc(h(i + golpeN) < 0.5 ? "#ffffff" : "#c4c8da", bx - 6 + h(i + golpeN * 3) * 12, by - 5 + h(i * 7 + golpeN) * 10, 2, 2);
     },
-    // 6. NOCHE EN CALMA: la canción descansa; luna, nubes y luciérnagas
-    (Y0, Y1, A) => {
-      bandas(["#070b22", "#0a1030", "#0e173f", "#131f4f", "#1a2a60"], Y0, Y1);
-      for (let i = 0; i < 45; i++) if (h(i + Math.floor(ts * 1.5 + h(i + 0.9) * 7)) > 0.25) rc(i % 6 === 0 ? col.Y : "#cfd6ff", h(i) * W, Y0 + h(i + 0.5) * A * 0.75, 1, 1);
-      const mx = Math.round(W * 0.82), my = Math.round(Y0 + A * 0.2);
-      disco("#f1edcf", mx, my, 7);
-      rc("#d4cfa8", mx - 3, my - 2, 2, 2);
-      rc("#d4cfa8", mx + 2, my + 2, 2, 1);
-      for (let i = 0; i < 5; i++) {
-        const tramo = W + 60, x = ((ts * (2.5 + i * 1.3) + h(i) * tramo) % tramo) - 50, y = Y0 + 8 + h(i + 0.2) * A * 0.5, c = i % 2 ? "#2a3970" : "#35478a";
-        rc(c, x, y, 26, 4); rc(c, x + 5, y - 3, 14, 3); rc(c, x + 12, y + 4, 18, 2);
+    // 6. NOCHE EN CALMA: la canción descansa. Luna, nubes de orilla a orilla, cerros y luciérnagas
+    () => {
+      bandas(["#060920", "#070b22", "#0a1030", "#0e173f", "#131f4f", "#1a2a60"], 0, FH);
+      for (let i = 0; i < 110; i++) if (h(i + Math.floor(ts * 1.5 + h(i + 0.9) * 7)) > 0.25) rc(i % 6 === 0 ? col.Y : "#cfd6ff", h(i) * FW, h(i + 0.5) * FH * 0.8, 1, 1);
+      const mx = Math.round(FW * 0.84), my = Math.round(FH * 0.17);
+      c2.globalAlpha = 0.08; disco("#f1edcf", mx, my, 15); c2.globalAlpha = 0.12; disco("#f1edcf", mx, my, 12); c2.globalAlpha = 1;
+      disco("#f1edcf", mx, my, 9);
+      rc("#d4cfa8", mx - 4, my - 3, 3, 2); rc("#d4cfa8", mx + 2, my + 2, 3, 2); rc("#d4cfa8", mx - 1, my + 5, 2, 1);
+      // Una estrella fugaz cada tanto
+      const tf = ts % 5.5;
+      if (tf < 0.5) { const x0 = FW * (0.15 + h(Math.floor(ts / 5.5)) * 0.5) + tf * 90, y0 = FH * 0.08 + tf * 40; linea("#ffffff", x0, y0, x0 - 9, y0 - 4); }
+      for (let i = 0; i < 8; i++) {
+        const tr = FW + 70, x = ((ts * (2.5 + i * 1.1) + h(i) * tr) % tr) - 55, y = 8 + h(i + 0.2) * FH * 0.5, c = i % 2 ? "#2a3970" : "#35478a";
+        rc(c, x, y, 30, 4); rc(c, x + 6, y - 3, 16, 3); rc(c, x + 13, y + 4, 22, 2);
       }
-      for (let x = 0; x < W; x++) { const alto = 6 + Math.sin(x * 0.07) * 4 + Math.sin(x * 0.19 + 2) * 2; rc("#0a1330", x, Y1 - alto, 1, alto); }
-      for (let i = 0; i < 8; i++) if (Math.sin(ts * 2 + i * 1.7) > 0) rc(col.Y, h(i) * W + Math.sin(ts * 0.7 + i) * 8, Y1 - 10 - h(i + 0.3) * A * 0.3 + Math.cos(ts * 0.9 + i * 2) * 4, 1, 1);
+      for (let x = 0; x < FW; x++) { const alto = 16 + Math.sin(x * 0.045 + 1) * 8 + Math.sin(x * 0.11) * 3; rc("#0d1a45", x, FH - alto, 1, alto); }
+      for (let x = 0; x < FW; x++) { const alto = 8 + Math.sin(x * 0.07) * 4 + Math.sin(x * 0.19 + 2) * 2; rc("#0a1330", x, FH - alto, 1, alto); }
+      for (let i = 0; i < 16; i++) if (Math.sin(ts * 2 + i * 1.7) > 0) rc(col.Y, h(i) * FW + Math.sin(ts * 0.7 + i) * 8, FH - 12 - h(i + 0.3) * FH * 0.3 + Math.cos(ts * 0.9 + i * 2) * 4, 1, 1);
     },
-    // 7. LLUVIA DE CODIGO: cae cada vez más rápido hasta el último estribillo
-    (Y0, Y1, A, cx, cy, sec) => {
-      rc("#020a05", 0, Y0, W, A);
-      const L = sec[1] - sec[0], seg = Math.max(0, ts - sec[0]), fase = seg + (seg * seg) / L;
+    // 7. LLUVIA DE CODIGO: cae por toda la pantalla, cada vez más rápido hasta el último estribillo
+    (e) => {
+      rc("#020a05", 0, 0, FW, FH);
+      const L = e.sec[1] - e.sec[0], seg = Math.max(0, ts - e.sec[0]), fase = seg + (seg * seg) / L;
       const TONOS = ["#d9ffe6", col.V, "#2a8a5f", "#1d5c3f", "#123a28", "#0b2419"];
-      for (let c = 0; c * 5 < W; c++) {
-        const cab = ((fase * (16 + h(c) * 26) + h(c + 0.4) * (A + 60)) % (A + 60)) - 10;
-        for (let j = 0; j < 10; j++) {
-          const y = Math.round(Y0 + cab - j * 5);
-          if (y < Y0 - 4 || y > Y1) continue;
-          ctx.fillStyle = TONOS[j < 1 ? 0 : Math.min(5, 1 + (j >> 1))];
+      for (let c = 0; c * 5 < FW; c++) {
+        const cab = ((fase * (16 + h(c) * 26) + h(c + 0.4) * (FH + 70)) % (FH + 70)) - 10;
+        for (let j = 0; j < 12; j++) {
+          const y = Math.round(cab - j * 5);
+          if (y < -4 || y > FH) continue;
+          c2.fillStyle = TONOS[j < 1 ? 0 : Math.min(5, 1 + (j >> 1))];
           const bits = (h(c * 31 + j * 17 + Math.floor(fase * 3 + h(c) * 9) * 7) * 4096) | 0;
-          for (let b = 0; b < 12; b++) if ((bits >> b) & 1) ctx.fillRect(c * 5 + 1 + (b % 3), y + ((b / 3) | 0), 1, 1);
+          for (let b = 0; b < 12; b++) if ((bits >> b) & 1) c2.fillRect(c * 5 + 1 + (b % 3), y + ((b / 3) | 0), 1, 1);
         }
       }
     },
-    // 8. HIPERESPACIO: rayos que giran, anillos con cada bombo y colores que cambian cada cuatro
-    (Y0, Y1, A, cx, cy) => {
+    // 8. HIPERESPACIO: rayos que giran desde el centro hasta las esquinas, anillos con cada bombo y colores que cambian cada cuatro
+    (e) => {
       const pares = [[col.P, col.M], [col.B, col.C], [col.N, col.R], [col.V, col.C]], par = pares[RM ? 0 : (golpeN >> 2) % 4];
-      const a0 = ts * (RM ? 0.25 : 1.3), n = 12, radio = Math.hypot(W, A);
-      rc(osc(par[1], 0.28), 0, Y0, W, A);
+      const a0 = ts * (RM ? 0.25 : 1.3), n = 14, radio = Math.hypot(FW, FH), cx = e.cx, cy = e.cy;
+      rc(osc(par[1], 0.28), 0, 0, FW, FH);
       for (let i = 0; i < n; i += 2) {
         const a = a0 + (i * TAU) / n, b = a0 + ((i + 1) * TAU) / n;
-        poligono(osc(par[0], 0.42), 1, [[cx, cy], [cx + Math.cos(a) * radio, cy + Math.sin(a) * radio], [cx + Math.cos(b) * radio, cy + Math.sin(b) * radio]]);
+        poligono(osc(par[0], 0.45), 1, [[cx, cy], [cx + Math.cos(a) * radio, cy + Math.sin(a) * radio], [cx + Math.cos(b) * radio, cy + Math.sin(b) * radio]]);
       }
-      for (let i = 0; i < 24; i++) {
-        const a = h(i) * TAU, d = (h(i + 0.5) + ts * 1.4 * (0.6 + h(i + 0.2))) % 1, r = d * d * radio * 0.6 + 8, largo = 2 + d * 7;
+      for (let i = 0; i < 50; i++) {
+        const a = h(i) * TAU, d = (h(i + 0.5) + ts * 1.4 * (0.6 + h(i + 0.2))) % 1, r = d * d * radio * 0.6 + 8, largo = 2 + d * 10;
         linea("#ffffff", cx + Math.cos(a) * r, cy + Math.sin(a) * r, cx + Math.cos(a) * (r - largo), cy + Math.sin(a) * (r - largo));
       }
       if (!RM) for (const tg of anillos) {
         const edad = ts - tg;
-        if (edad < 0 || edad > 0.6) continue;
-        const rx = 8 + edad * 130, ry = rx * 0.62;
-        ctx.globalAlpha = (1 - edad / 0.6) * 0.55;
+        if (edad < 0 || edad > 0.7) continue;
+        const rx = 8 + edad * 260, ry = rx * 0.6;
+        c2.globalAlpha = (1 - edad / 0.7) * 0.6;
         rc("#ffffff", cx - rx, cy - ry, rx * 2, 1); rc("#ffffff", cx - rx, cy + ry, rx * 2, 1);
         rc("#ffffff", cx - rx, cy - ry, 1, ry * 2); rc("#ffffff", cx + rx, cy - ry, 1, ry * 2);
-        ctx.globalAlpha = 1;
+        c2.globalAlpha = 1;
       }
     },
-    // 9. ABISMO: la canción se hunde; ondas lentas y plancton
-    (Y0, Y1, A) => {
-      bandas(["#02040c", "#030714", "#040a1c"], Y0, Y1);
-      for (let w = 0; w < 3; w++) {
-        const yb = Y0 + A * (0.28 + w * 0.2), amp = 2 + energiaAhora * 7 + pulso * 2;
-        ctx.fillStyle = ["#1b4a8a", "#143663", "#0d2444"][w];
-        for (let x = 0; x < W; x++) ctx.fillRect(x, Math.round(yb + Math.sin(x * 0.09 + ts * (1.2 - w * 0.3) + w * 2) * amp + Math.sin(x * 0.23 - ts) * 1.5), 1, 1);
+    // 9. ABISMO: la canción se hunde. Ondas lentas de lado a lado, plancton y un resto de luz que ya casi no llega
+    () => {
+      bandas(["#030714", "#02040c", "#030714", "#040a1c"], 0, FH);
+      for (let i = 0; i < 3; i++) { const x0 = FW * (0.25 + i * 0.3) + Math.sin(ts * 0.2 + i) * 8; haz("70,120,200", 0.07 + pulso * 0.04, x0, 8, x0 - FH * 0.3, 30, 0, FH * 0.6); }
+      for (let w = 0; w < 5; w++) {
+        const yb = FH * (0.2 + w * 0.16), amp = 2 + energiaAhora * 8 + pulso * 2.5;
+        c2.fillStyle = ["#1b4a8a", "#174079", "#143663", "#102c52", "#0d2444"][w];
+        for (let x = 0; x < FW; x++) c2.fillRect(x, Math.round(yb + Math.sin(x * 0.07 + ts * (1.2 - w * 0.2) + w * 2) * amp + Math.sin(x * 0.21 - ts) * 1.5), 1, 1);
       }
-      for (let i = 0; i < 22; i++) rc("#3b5a8f", h(i) * W + Math.sin(ts * 0.6 + i) * 4, Y1 - ((ts * (2 + h(i + 0.3) * 5) + h(i + 0.7) * A) % A), 1, 1);
+      for (let i = 0; i < 46; i++) rc(i % 5 === 0 ? "#6f9bd8" : "#3b5a8f", h(i) * FW + Math.sin(ts * 0.6 + i) * 4, FH - ((ts * (2 + h(i + 0.3) * 5) + h(i + 0.7) * FH) % FH), 1, 1);
     },
-    // 10. APAGANDO: carta de ajuste, y al final la imagen se cierra como un CRT
-    (Y0, Y1, A) => {
-      const cols = ["#ffffff", col.Y, col.C, col.V, col.P, col.R, col.B], bw = W / 7;
+    // 10. APAGANDO: carta de ajuste a pantalla completa; al final la imagen se cierra como un CRT
+    () => {
+      const cols = ["#ffffff", col.Y, col.C, col.V, col.P, col.R, col.B], bw = FW / 7;
       for (let i = 0; i < 7; i++) {
-        rc(osc(cols[i], 0.3 + pulso * 0.07), i * bw, Y0, bw + 1, A * 0.72);
-        rc(osc(cols[6 - i], 0.18), i * bw, Y0 + A * 0.72, bw + 1, A * 0.1);
+        rc(osc(cols[i], 0.3 + pulso * 0.08), i * bw, 0, bw + 1, FH * 0.72);
+        rc(osc(cols[6 - i], 0.18), i * bw, FH * 0.72, bw + 1, FH * 0.1);
       }
-      bandas(["#0c0c10", "#16161c", "#22222b", "#16161c"], Y0 + A * 0.82, Y1);
-      rc("rgba(255,255,255,.07)", 0, Y0 + ((ts * 26) % A), W, 2);
+      bandas(["#0c0c10", "#16161c", "#22222b", "#16161c"], FH * 0.82, FH);
+      rc("rgba(255,255,255,.07)", 0, (ts * 30) % FH, FW, 3);
     },
   ];
-  function escena() {
-    const Y0 = 9, Y1 = piso(), A = Y1 - Y0;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, Y0, W, A);
-    ctx.clip();
-    ESCENAS[secI](Y0, Y1, A, W / 2, Y0 + A * 0.5, R.sec[secI]);
-    ctx.restore();
+
+  /* ---------- El gato: quieto cuando la canción calla, girando cuando suena ----------
+     La hoja images/juego/gato-uia.png trae 6 cuadros de 64 px: 0 = parado, 1 a 5 = una vuelta.
+     La vuelta dura más o menos según la energía de la canción, y el gato se pasea distinto en cada escenario. */
+  const gatoHoja = new Image();
+  let gatoOk = false, gatoPedido = false, gatoX = 0, gatoY = 0, gatoTam = 1, gatoQuieto = true, estela = [];
+  gatoHoja.onload = () => { gatoOk = true; };
+  function pideGato() { if (!gatoPedido && R && R.gato) { gatoPedido = true; gatoHoja.src = R.gato; } }
+  function pasoGato() {
+    const cx = gx + W / 2, cy = gy + H * 0.5, sec = R.sec[secI], k = Math.min(1, Math.max(0, (ts - sec[0]) / (sec[1] - sec[0])));
+    const base = Math.min(64, FW * 0.42, FH * 0.36);
+    let x = cx, y = cy, tam = 1;
+    switch (secI) {
+      case 1: x = cx + Math.sin(ts * 0.8) * FW * 0.3; y = gy + H * 0.6 - base * 0.3; break;                  // camina por el horizonte, frente al sol
+      case 2: x = cx + Math.sin(ts * 0.35) * FW * 0.33; y = cy + Math.sin(ts * 0.9) * FH * 0.13; break;       // flota
+      case 3: tam = 0.45 + k * k * 1.1; x = cx + (RM ? 0 : Math.sin(ts * 31) * k * 2); y = cy + (RM ? 0 : Math.cos(ts * 27) * k * 2); break; // se acerca
+      case 4: x = cx + (h(golpeN >> 1) - 0.5) * FW * 0.62; y = gy + piso() - base * 0.5 - pulso * 7; break;   // brinca de un lado a otro de la pista
+      case 5: x = FW * 0.3 + Math.sin(ts * 0.3) * FW * 0.16; y = FH * 0.3 + Math.cos(ts * 0.4) * 7; tam = 0.85; break; // pasea por el cielo
+      case 6: x = cx + Math.sin(ts * 0.9) * FW * 0.3; y = cy + Math.sin(ts * 1.8) * FH * 0.17; break;          // dibuja un ocho
+      case 7: x = cx + Math.cos(ts * 2.2) * FW * 0.27; y = cy + Math.sin(ts * 2.2) * FH * 0.22; tam = 1.1; break; // da vueltas alrededor del centro
+      case 8: x = cx + Math.sin(ts * 0.25) * FW * 0.22; y = cy + Math.sin(ts * 0.5) * FH * 0.1; tam = 0.9; break; // se hunde despacio
+      case 9: tam = Math.min(1, Math.max(0, (R.dur - ts - 0.6) / 2.4)); break;                                 // se apaga con la pantalla
+      default: break;
+    }
+    const lento = secI === 4 ? 0.22 : 0.09;
+    gatoX += (x - gatoX) * lento;
+    gatoY += (y - gatoY) * lento;
+    gatoTam += (tam - gatoTam) * 0.1;
+    // Con la canción en silencio se queda parado; cuando vuelve, gira
+    if (gatoQuieto ? energiaAhora > 0.31 : energiaAhora < 0.24) gatoQuieto = !gatoQuieto;
+    if (secI === 7 && !RM && t % 3 === 0) { estela.push([gatoX, gatoY, giro]); if (estela.length > 5) estela.shift(); }
+    else if (secI !== 7 && estela.length) estela = [];
   }
-  // Lo que va encima del gato: el destello al cambiar de escenario, el fogonazo del despegue y el apagón final
-  function escenaEncima() {
-    const Y0 = 9, Y1 = piso(), A = Y1 - Y0;
-    if (!RM && cambio > 0) { ctx.globalAlpha = (cambio / 26) * 0.55; rc("#ffffff", 0, Y0, W, A); ctx.globalAlpha = 1; }
-    if (!RM && secI === 3 && ts > 98.86) { ctx.globalAlpha = Math.min(1, (ts - 98.86) / 1.96) * 0.5; rc("#ffffff", 0, Y0, W, A); ctx.globalAlpha = 1; }
+  function pintaGato(x, y, lado, vuelta, alfa) {
+    const dib = (f, a) => { c2.globalAlpha = a; c2.drawImage(gatoHoja, f * 64, 0, 64, 64, Math.round(x - lado / 2), Math.round(y - lado / 2), lado, lado); };
+    if (vuelta == null) dib(0, alfa);
+    else {
+      const f = (((vuelta * 5) % 5) + 5) % 5, i = Math.floor(f);
+      dib(1 + i, alfa);
+      // En las vueltas lentas, un cuadro se funde con el siguiente para que no se vea a saltos
+      if (vGiro < 1.3 && !RM) dib(1 + ((i + 1) % 5), alfa * (f - i));
+    }
+    c2.globalAlpha = 1;
+  }
+  function dibujaGato() {
+    if (!gatoOk) return;
+    const base = Math.min(64, FW * 0.42, FH * 0.36), lado = Math.max(2, Math.round(base * gatoTam * (1 + pulso * 0.07)));
+    c2.imageSmoothingEnabled = false;
+    estela.forEach(([x, y, g], i) => pintaGato(x, y, lado, g, 0.1 + i * 0.07));
+    pintaGato(gatoX, gatoY, lado, gatoQuieto ? null : giro, secI === 8 ? 0.8 : 1);
+  }
+
+  // Todo lo que va en el lienzo de efectos: escenario, gato y, encima, destellos y apagón
+  let fxLimpio = true;
+  function dibujaFx() {
+    const activo = modo === "ritmo" && estado !== "cargando" && secI >= 0;
+    if (!activo) { if (!fxLimpio) { c2.clearRect(0, 0, FW, FH); fxLimpio = true; } return; }
+    fxLimpio = false;
+    c2.globalAlpha = 1;
+    ESCENAS[secI]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[secI] });
+    dibujaGato();
+    // El destello al cambiar de escenario y el fogonazo del despegue
+    if (!RM && cambio > 0) { c2.globalAlpha = (cambio / 26) * 0.55; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
+    if (!RM && secI === 3 && ts > 98.86) { c2.globalAlpha = Math.min(1, (ts - 98.86) / 1.96) * 0.5; rc("#ffffff", 0, 0, FW, FH); c2.globalAlpha = 1; }
+    // El apagón final: la pantalla entera se cierra en una línea y la línea en un punto
     const falta = R.dur - ts;
     if (secI === R.sec.length - 1 && falta < 3) {
-      const k = 1 - Math.max(0, falta) / 3, mitad = Math.max(1, (A / 2) * (1 - k) * (1 - k));
-      rc(col.F, 0, Y0, W, A / 2 - mitad);
-      rc(col.F, 0, Y0 + A / 2 + mitad, W, A / 2 - mitad + 1);
-      if (k > 0.75) { const ancho = (W / 2) * (1 - (k - 0.75) / 0.25); rc(col.F, 0, Y0, W / 2 - ancho, A); rc(col.F, W / 2 + ancho, Y0, W / 2 - ancho + 1, A); }
+      const k = 1 - Math.max(0, falta) / 3, mitad = Math.max(1, (FH / 2) * (1 - k) * (1 - k));
+      rc(col.F, 0, 0, FW, FH / 2 - mitad);
+      rc(col.F, 0, FH / 2 + mitad, FW, FH / 2 - mitad + 1);
+      if (k > 0.75) { const ancho = (FW / 2) * (1 - (k - 0.75) / 0.25); rc(col.F, 0, 0, FW / 2 - ancho, FH); rc(col.F, FW / 2 + ancho, 0, FW / 2 - ancho + 1, FH); }
     }
-  }
-  // El gato: gira sobre sí mismo como en una tornamesa. Los sprites se dibujan una vez y luego se estiran según el ángulo
-  function preparaGato() {
-    const hazlo = (rows, espejo) => {
-      const c = document.createElement("canvas");
-      c.width = rows[0].length;
-      c.height = rows.length;
-      const g = c.getContext("2d");
-      rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { if (r[i] === ".") continue; g.fillStyle = col[r[i]]; g.fillRect(espejo ? r.length - 1 - i : i, j, 1, 1); } });
-      return c;
-    };
-    gatoImg.lado = hazlo(GATO_LADO, false);
-    gatoImg.ladoEsp = hazlo(GATO_LADO, true);
-    gatoImg.frente = hazlo(GATO_FRENTE, false);
-    gatoImg.atras = hazlo(GATO_ATRAS, false);
-    gatoListo = true;
-  }
-  function gato() {
-    if (!gatoListo) preparaGato();
-    const Y0 = 9, A = piso() - Y0, e = 2, cx = W / 2;
-    const pie = Math.round(Y0 + A * 0.66) - (pulso > 0.6 ? 1 : 0);
-    const s = Math.sin(giro * TAU), c = Math.cos(giro * TAU);
-    let img, w;
-    if (Math.abs(s) > 0.38) { img = s > 0 ? gatoImg.lado : gatoImg.ladoEsp; w = Math.max(8, Math.round(img.width * e * Math.abs(s))); }
-    else { img = c > 0 ? gatoImg.frente : gatoImg.atras; w = img.width * e; }
-    const alto = img.height * e;
-    ctx.fillStyle = "rgba(0,0,0,.45)";
-    ctx.fillRect(Math.round(cx - 8 * e), pie - 1, 16 * e, e + 1);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, Math.round(cx - w / 2), pie - alto, w, alto);
+    // En pausa o al terminar, todo se oscurece para que se lea el mensaje
+    if (estado !== "jugando") rc("rgba(0,0,0,.74)", 0, 0, FW, FH);
   }
   function bucle(ahora) {
     raf = requestAnimationFrame(bucle);
@@ -757,6 +815,7 @@
     ult = ahora;
     while (acum >= 1000 / 60) { paso(); acum -= 1000 / 60; }
     dibuja();
+    dibujaFx();
   }
 
   // Puntero: el mouse guía a BIT al moverse sobre el juego; en el teléfono, arrastrando el dedo
@@ -769,12 +828,23 @@
     if (el.hidden) return;
     const k = e.key.toLowerCase();
     const flechaIzq = k === "arrowleft" || k === "a", flechaDer = k === "arrowright" || k === "d";
-    if (e.type === "keyup") { if (flechaIzq) izq = false; if (flechaDer) der = false; return; }
+    if (e.type === "keyup") {
+      if (flechaIzq) izq = false;
+      if (flechaDer) der = false;
+      if (flechaIzq || flechaDer) { dirTecla = der ? 1 : izq ? -1 : 0; rep = 6; }
+      return;
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     e.stopPropagation();
     e.preventDefault();
-    if (flechaIzq) izq = true;
-    else if (flechaDer) der = true;
+    if (flechaIzq || flechaDer) {
+      // Cada toque es un salto inmediato; dejar la tecla apretada repite el salto
+      if (e.repeat) return;
+      if (flechaIzq) izq = true; else der = true;
+      dirTecla = flechaIzq ? -1 : 1;
+      rep = 10;
+      if (estado === "jugando") { meta = null; saltaA(bit.c + dirTecla); }
+    }
     else if (k === "escape") { if (estado === "jugando") pausa(true); else cerrar(false); }
     else if (k === "p") pausa(estado === "jugando");
     else if (estado === "titulo" && (k === "1" || k === " " || k === "enter")) empezar();
@@ -801,6 +871,7 @@
     hud();
     titulo();
     izq = der = false;
+    dirTecla = 0;
     meta = null;
     ult = 0;
     raf = requestAnimationFrame(bucle);

@@ -790,6 +790,15 @@ body.warming #app{animation:warm .8s ease-out}
 .jm-b button:first-child{animation:blinkCorto 1.2s steps(1,end) infinite}
 .jm-b button:hover,.jm-b button:focus-visible{outline:none;background:var(--p-amarillo);color:var(--p-negro);animation:none}
 .juego-ayuda{margin:0;font-family:var(--f-term);font-size:19px;color:var(--p-gris);text-align:center}
+/* El lienzo de efectos del modo ritmo cubre toda la pantalla, detrás del juego */
+.juego{overflow:hidden}
+.juego-fx{position:absolute;left:0;top:0;z-index:0;image-rendering:pixelated;pointer-events:none}
+.juego-hud,.juego-ayuda{position:relative;z-index:1}
+.juego-marco{z-index:1}
+/* El fondo oscuro de los textos va con sombra, no con relleno: así el recuadro del juego no cambia de tamaño */
+.juego.ritmo .juego-hud,.juego.ritmo .juego-ayuda{width:auto;background:rgba(3,3,3,.62);box-shadow:0 0 0 6px rgba(3,3,3,.62)}
+.juego.ritmo .juego-ayuda{color:var(--p-blanco)}
+.juego.ritmo .juego-msg{text-shadow:0 2px 0 var(--p-negro),0 0 8px var(--p-negro)}
 /* Modo ritmo: combo en el marcador, nota final y aviso del modo */
 .j-combo b{color:var(--p-blanco)}
 .j-combo i{font-style:normal;color:var(--p-amarillo)}
