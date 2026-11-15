@@ -5,7 +5,26 @@
    - energia: qué tan fuerte va la canción, dos valores por segundo (0-9); de aquí sale la velocidad del gato
    - golpes: centésimas de segundo de cada bombo; el escenario late con ellos */
 window.RitmoUIA = {
+  id: "uia",
   archivo: "sonidos/uia_cat.mp3",
+  // Lo que se ve en los créditos (la ventana AUDIO.EXE), en el estante de disquetes y en la pantalla final
+  titulo: "U I A CAT",
+  corto: "UIA_CAT",
+  artista: "MUGETSU",
+  enlace: "https://soundcloud.com/dj-mugetsu-0001",
+  // Una pista por tramo, para el selector de tramos
+  pistas: [
+    ["La consola arranca. Pocos bugs, hasta que GATO.EXE la tumba.", "The console boots. Few bugs, until CAT.EXE crashes it."],
+    ["El primer estribillo: bugs seguidos, casi cada uno pide un salto.", "The first chorus: steady bugs, nearly each one needs a hop."],
+    ["Bajo el agua todo va más lento. Recupera combo.", "Underwater everything slows down. Rebuild your combo."],
+    ["La subida: cada vez más rápido hasta el despegue.", "The build-up: faster and faster until liftoff."],
+    ["No dejes caer bugs: llenan la memoria. Esquiva los rayos.", "Do not drop bugs: they fill the memory. Dodge the bolts."],
+    ["Calma después del jefe. Sin especiales.", "Calm after the boss. No specials."],
+    ["Lluvia de código: aparecen los glitch, que cambian de carril.", "Code rain: glitches appear and switch lanes."],
+    ["BIT vuela libre: los bugs cruzan de lado y el gato lanza rayos.", "BIT flies free: bugs cross sideways and the cat throws bolts."],
+    ["El abismo: lento y espaciado, respira.", "The abyss: slow and sparse, breathe."],
+    ["El antivirus limpia al gato. Los últimos bugs.", "The antivirus cleans the cat. The last bugs."],
+  ],
   // Hoja del gato: 6 cuadros de 64 px en fila (0 = parado, 1 a 5 = una vuelta)
   gato: "images/juego/gato-uia.png",
   // La historia: segundo del error crítico del arranque, instantes en que el gato se asoma antes,

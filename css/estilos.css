@@ -801,11 +801,120 @@ body.warming #app{animation:warm .8s ease-out}
 .juego.ritmo .juego-msg{text-shadow:0 2px 0 var(--p-negro),0 0 8px var(--p-negro)}
 /* El recuadro del juego es una ventana de terminal: marco claro, borde negro y sombra dura */
 .juego-lienzo{box-shadow:0 0 0 2px #c9c6b8,0 0 0 4px var(--p-negro),8px 8px 0 4px rgba(0,0,0,.55)}
-/* Elegir dificultad: tres renglones, botón y lo que cambia */
-.jm-dif{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 14px;max-width:min(560px,92vw);text-align:left;pointer-events:auto}
-.jm-dif button{padding:10px 12px;border:0;background:none;color:var(--p-amarillo);font-family:var(--f-pixel);font-size:11px;letter-spacing:.06em;cursor:pointer;text-align:left}
-.jm-dif button:hover,.jm-dif button:focus-visible,.jm-dif button.jm-sel{outline:none;background:var(--p-amarillo);color:var(--p-negro)}
-.jm-dif span{font-size:19px;line-height:1.1;color:var(--p-gris)}
+/* El estante de disquetes: A: clásico y B:, C:, D: las tres dificultades de la canción. El elegido se levanta */
+.jm-t2{font-size:clamp(16px,3vw,26px)}
+.juego-msg a{pointer-events:auto;color:var(--p-amarillo)}
+.jd-can{display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--f-pixel);font-size:9px;letter-spacing:.06em;line-height:1.6;color:var(--p-blanco)}
+.jd-can button{padding:8px 10px;border:0;background:none;color:var(--p-amarillo);font-family:var(--f-pixel);font-size:11px;cursor:pointer}
+.jd-can button:hover,.jd-can button:focus-visible{outline:none;background:var(--p-amarillo);color:var(--p-negro)}
+.jd-fila{display:flex;justify-content:center;gap:16px;padding-top:12px;pointer-events:auto}
+.jd{--dc:#8f93a8;position:relative;width:96px;height:100px;padding:0;border:0;background:var(--dc);color:var(--p-negro);font-family:var(--f-pixel);cursor:pointer;
+  box-shadow:0 0 0 2px var(--p-negro),5px 5px 0 2px rgba(0,0,0,.6);transition:transform .12s steps(3,end)}
+.jd::before{content:"";position:absolute;right:0;top:0;border-style:solid;border-width:0 10px 10px 0;border-color:transparent var(--p-negro) transparent transparent}
+.jd-facil{--dc:var(--p-verde)}.jd-medio{--dc:var(--p-amarillo)}.jd-dificil{--dc:var(--p-rojo)}
+.jd-u{position:absolute;left:5px;top:5px;font-size:7px}
+.jd-met{position:absolute;left:26px;top:0;width:44px;height:26px;background:#c9c6b8;box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}
+.jd-met::after{content:"";position:absolute;left:8px;top:4px;width:10px;height:17px;background:var(--p-negro)}
+.jd-et{position:absolute;left:7px;right:7px;bottom:6px;height:56px;display:grid;align-content:center;justify-items:center;gap:5px;background:#f2efe2;
+  background-image:linear-gradient(rgba(0,0,0,.14) 1px,transparent 1px);background-size:100% 8px;background-position:0 5px}
+.jd-et b{font-weight:400;font-size:8px;letter-spacing:.04em}
+.jd-et i{display:flex;gap:1px;font-style:normal}
+.jd-et i svg{display:block;width:10px;height:auto}
+.jd-et u{font-size:6px;text-decoration:none;color:#5c5a52}
+.jd-r{position:absolute;right:-10px;top:24px;display:grid;place-items:center;width:30px;height:30px;font-style:normal;font-size:15px;background:var(--p-negro);color:var(--p-amarillo);
+  box-shadow:0 0 0 2px currentColor,0 0 0 4px var(--p-negro);transform:rotate(10deg)}
+.jd.jm-sel{transform:translateY(-12px);outline:3px solid var(--p-blanco);outline-offset:3px}
+.jd:hover,.jd:focus-visible{outline:3px solid var(--p-blanco);outline-offset:3px}
+.jd-info{max-width:44ch;min-height:2.4em;font-size:19px;line-height:1.15;color:var(--p-blanco)}
+.jd-rec{font-size:9px;color:var(--p-gris)}
+.jf-gris{font-size:18px;line-height:1.1;color:var(--p-gris)}
+/* La cinta de la canción: un segmento por tramo, del largo que dura. Verde, amarillo o rojo según el resultado */
+.jc-cmd{font-size:24px;color:var(--p-verde)}
+.jc-cmd b{font-weight:400;color:var(--p-amarillo)}
+.jc-caja{width:min(560px,90vw);padding-top:10px;pointer-events:auto}
+.jc{display:flex;gap:3px;height:44px;width:100%}
+.jc-s{position:relative;min-width:20px;padding:0 0 4px;border:0;display:grid;place-items:end center;background:var(--p-gris-osc);color:var(--p-negro);font-family:var(--f-pixel);font-size:7px;cursor:pointer}
+span.jc-s{cursor:default}
+.jc-v{background:var(--p-verde)}.jc-y{background:var(--p-amarillo)}.jc-r{background:var(--p-rojo)}
+.jc-0{background:none;box-shadow:inset 0 0 0 2px var(--p-gris);color:var(--p-gris)}
+.jc-x{background:var(--p-gris-osc);color:var(--p-gris);opacity:.55}
+.jc-s.jm-sel{transform:translateY(-8px);outline:3px solid var(--p-blanco);outline-offset:2px;z-index:1}
+.jc-reg{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--f-pixel);font-size:7px;color:var(--p-gris)}
+.jc-n{font-family:var(--f-pixel);font-size:11px;letter-spacing:.06em;line-height:1.7;color:var(--p-amarillo)}
+.jc-n span{margin-left:10px;font-size:8px;color:var(--p-gris)}
+/* El final: primero la cuenta, renglón por renglón; luego el resultado con el rango pegado en el disquete */
+.jf-cuenta{display:grid;gap:8px;width:min(400px,86vw);min-height:150px;align-content:start;font-family:var(--f-pixel);font-size:10px;letter-spacing:.06em}
+.jf-f{display:flex;justify-content:space-between;gap:16px;text-align:left}
+.jf-f[hidden]{display:none}
+.jf-f b{font-weight:400;color:var(--p-amarillo)}
+.jf-no,.jf-no b{color:var(--p-gris-osc)}
+.jf-tot{margin-top:6px!important;padding-top:10px;border-top:2px solid var(--p-gris);font-size:13px;animation:jvPop .16s steps(3,end)}
+.jf{display:flex;align-items:center;justify-content:center;gap:34px;max-width:min(720px,94vw)}
+.jf-a{flex:none;padding:14px 12px 0 0}
+.jf-b{display:grid;gap:9px;justify-items:start;text-align:left;min-width:0;width:min(440px,92vw)}
+.jf-sello{pointer-events:none!important;transform:scale(1.25);outline:0!important}
+.jf-sello .jd-r{animation:jdSello .45s steps(5,end)}
+@keyframes jdSello{0%{transform:rotate(-30deg) scale(4);opacity:0}60%{transform:rotate(14deg) scale(.85);opacity:1}100%{transform:rotate(10deg) scale(1)}}
+.jf-falta{font-size:21px;line-height:1.1}
+.jf-falta b{font-weight:400;color:var(--p-amarillo)}
+.jf-bar{width:100%;height:8px;background:var(--p-gris-osc)}
+.jf-bar i{display:block;height:100%;background:var(--p-amarillo)}
+.jc-fin{height:30px}
+.jc-fin .jc-s.jm-sel{transform:none;animation:blinkCorto 1s steps(1,end) infinite}
+.jf-logro{font-family:var(--f-pixel);font-size:9px;letter-spacing:.06em;line-height:1.6;color:var(--p-negro);background:var(--p-amarillo);padding:4px 8px}
+.jf-reto{font-size:18px;line-height:1.1;color:var(--p-gris)}
+.jf-reto b{font-weight:400;color:var(--p-blanco)}
+.jf-v{color:var(--p-verde)}
+/* AUDIO.EXE: el crédito de la canción. Se abre al centro del recuadro y luego se guarda en su esquina de abajo a la derecha */
+.j-audio{position:absolute;z-index:2;min-width:150px;font-family:var(--f-pixel);color:var(--p-cian);background:var(--p-negro);pointer-events:none;
+  box-shadow:0 0 0 2px var(--p-cian),0 0 0 4px var(--p-negro),6px 6px 0 4px rgba(0,0,0,.5);transition:left .4s steps(8,end),top .4s steps(8,end),transform .4s steps(8,end)}
+.j-audio[hidden]{display:none}
+.j-audio.centro{transform:translate(-50%,-50%);animation:jvAbre .16s steps(3,end)}
+.j-audio.esquina{transform:translate(-100%,-100%);min-width:0}
+.ja-bar{display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--p-cian);color:var(--p-negro);font-size:8px;letter-spacing:.06em}
+.ja-bar i{width:6px;height:6px;background:var(--p-negro)}
+.ja-bar em{margin-left:auto;font-style:normal}
+.ja-c{display:grid;gap:7px;padding:10px;font-size:8px;letter-spacing:.06em;white-space:nowrap}
+.ja-t{font-weight:400;color:var(--p-blanco)}
+.ja-a,.ja-d{color:var(--p-gris)}
+.ja-a:empty{display:none}
+.j-audio.esquina .ja-bar,.j-audio.esquina .ja-d{display:none}
+.j-audio.esquina .ja-c{grid-auto-flow:column;gap:8px;padding:6px 8px;font-size:7px}
+@media (min-width:900px){
+  .jd{width:124px;height:128px}
+  .jd-u{font-size:9px}
+  .jd-met{left:34px;width:56px;height:32px}
+  .jd-met::after{left:10px;top:5px;width:13px;height:21px}
+  .jd-et{height:74px;gap:7px}
+  .jd-et b{font-size:10px}
+  .jd-et i svg{width:14px}
+  .jd-et u{font-size:7px}
+  .jd-r{width:36px;height:36px;font-size:18px;top:30px}
+  .jd-can{font-size:11px}
+  .jd-rec{font-size:10px}
+  .jf-cuenta{width:480px;font-size:12px;gap:11px;min-height:190px}
+  .jf-tot{font-size:15px}
+  .jc{height:54px}
+  .jc-s{font-size:9px}
+  .jc-fin{height:36px}
+  .jc-reg{font-size:8px}
+  .jc-n{font-size:13px}
+  .jf-logro{font-size:10px}
+}
+@media (max-width:620px){
+  .juego-msg{gap:9px;padding:8px}
+  .jd-fila{display:grid;grid-template-columns:repeat(2,96px);gap:20px 26px}
+  .jd{height:86px}
+  .jd-et{height:46px;gap:3px}
+  .jd-et u{display:none}
+  .jd-info{font-size:17px}
+  .jf{flex-direction:column;gap:14px}
+  .jf-a{padding:8px 0 0}
+  .jf-sello{transform:none}
+  .jf-b{justify-items:center;text-align:center}
+  .jf-reto,.jf-b .jf-gris{font-size:16px}
+  .jf-reto{display:none}
+}
 .j-vidas .j-combo{margin-left:8px}
 /* La ventana del combo: otra terminalita que se abre en un rincón y cambia de lugar */
 .j-ventana{--c:var(--p-blanco);position:absolute;z-index:2;transform:translate(-50%,-50%);min-width:136px;font-family:var(--f-pixel);color:var(--c);background:var(--p-negro);
@@ -853,5 +962,5 @@ body.warming #app{animation:warm .8s ease-out}
 
 @media (prefers-reduced-motion:reduce){
   .chcp,.envio.abre .envio-win,.envio.sale,.envio.completa .descarga-barra i.on,.ev-picado,.ev-gran-t,.ev-gran.feliz .ev-gran-n,
-  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,:root[data-evento="valentin"] .foot .spr{animation:none}
+  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,.jf-sello .jd-r,.jf-tot,.j-audio.centro,.jc-fin .jc-s.jm-sel,:root[data-evento="valentin"] .foot .spr{animation:none}
 }
