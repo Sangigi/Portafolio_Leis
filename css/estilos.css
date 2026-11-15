@@ -825,6 +825,31 @@ body.warming #app{animation:warm .8s ease-out}
   box-shadow:0 0 0 2px currentColor,0 0 0 4px var(--p-negro);transform:rotate(10deg)}
 .jd.jm-sel{transform:translateY(-12px);outline:3px solid var(--p-blanco);outline-offset:3px}
 .jd:hover,.jd:focus-visible{outline:3px solid var(--p-blanco);outline-offset:3px}
+/* El título en dos pasos: 1 · CANCION (una tarjeta por canción; las que faltan, con candado) y 2 · DISCO */
+.jk-caja{display:grid;gap:9px;justify-items:center;pointer-events:auto}
+.jk-paso{font-family:var(--f-pixel);font-size:9px;letter-spacing:.08em;color:var(--p-gris)}
+.jk-paso b{display:inline-block;margin-right:6px;padding:3px 5px;font-weight:400;background:var(--p-gris);color:var(--p-negro)}
+.jk-act .jk-paso{color:var(--p-amarillo)}
+.jk-act .jk-paso b{background:var(--p-amarillo)}
+.jk-fila{display:flex;justify-content:center;gap:12px}
+.jk{position:relative;display:grid;gap:6px;width:176px;padding:0 0 9px;border:0;background:var(--p-gris-osc);color:var(--p-blanco);font-family:var(--f-pixel);text-align:left;cursor:pointer;box-shadow:0 0 0 2px var(--p-negro),4px 4px 0 2px rgba(0,0,0,.6)}
+.jk-p{display:block;height:28px;background:linear-gradient(90deg,#1b0638 0 30%,#ff3fb4 30% 35%,#00f6ff 35% 40%,#FFD319 40% 45%,#1b0638 45%)}
+.jk-grimorio .jk-p{background:repeating-linear-gradient(90deg,#3b1463 0 8px,#07040d 8px 16px)}
+.jk-doom .jk-p{background:linear-gradient(105deg,#7ddc6b 0 50%,#b3260f 50%)}
+.jk-n{position:absolute;left:6px;top:6px;padding:2px 3px;font-size:7px;background:var(--p-negro)}
+.jk b,.jk i{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jk b{font-weight:400;font-size:9px;letter-spacing:.04em}
+.jk i{font-style:normal;font-size:6px;color:var(--p-gris)}
+.jk em{position:absolute;right:-7px;top:-7px;display:grid;place-items:center;width:22px;height:22px;font-style:normal;font-size:11px;background:var(--p-negro);color:var(--p-amarillo);box-shadow:0 0 0 2px currentColor;transform:rotate(10deg)}
+.jk:hover,.jk:focus-visible{outline:3px solid var(--p-gris);outline-offset:2px}
+.jk.jm-sel{outline:3px solid var(--p-blanco);outline-offset:2px;background:#353b52}
+.jk-act .jk.jm-sel{outline-color:var(--p-amarillo)}
+.jk-x .jk-p{filter:grayscale(1) brightness(.35)}
+.jk-x b{color:var(--p-gris)}
+.jk-cred{font-family:var(--f-pixel);font-size:8px;letter-spacing:.06em}
+.jd-cerrado .jd:not(.jd-clasico){filter:grayscale(1) brightness(.4)}
+.jk-act .jd.jm-sel{outline-color:var(--p-amarillo)}
+.jf-nueva{background:var(--p-verde)}
 .jd-info{max-width:44ch;min-height:2.4em;font-size:19px;line-height:1.15;color:var(--p-blanco)}
 .jd-rec{font-size:9px;color:var(--p-gris)}
 .jf-gris{font-size:18px;line-height:1.1;color:var(--p-gris)}
@@ -936,9 +961,20 @@ span.jc-s{cursor:default}
 }
 @media (max-width:620px){
   .juego-msg{gap:9px;padding:8px}
-  .jd-fila{display:grid;grid-template-columns:repeat(2,96px);gap:20px 26px}
-  .jd{height:86px}
-  .jd-et{height:46px;gap:3px}
+  .jd-fila{gap:9px}
+  .jd{width:76px;height:80px}
+  .jd-u{font-size:6px;left:3px;top:3px}
+  .jd-met{left:20px;width:34px;height:20px}
+  .jd-met::after{left:6px;top:3px;width:8px;height:13px}
+  .jd-et{left:5px;right:5px;bottom:5px;height:46px;gap:3px}
+  .jd-et b{font-size:6px}
+  .jd-et i svg{width:8px}
+  .jd-r{width:24px;height:24px;font-size:12px;right:-6px;top:16px}
+  .jk-fila{gap:8px}
+  .jk{width:min(112px,29vw);gap:5px;padding-bottom:7px}
+  .jk-p{height:20px}
+  .jk b{font-size:7px;padding:0 5px}
+  .jk i{font-size:5px;padding:0 5px}
   .jd-et u{display:none}
   .jd-info{font-size:17px}
   .jf{flex-direction:column;gap:14px}
