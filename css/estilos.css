@@ -1037,3 +1037,70 @@ span.jc-s{cursor:default}
   .chcp,.envio.abre .envio-win,.envio.sale,.envio.completa .descarga-barra i.on,.ev-picado,.ev-gran-t,.ev-gran.feliz .ev-gran-n,
   .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,.jf-sello .jd-r,.jf-tot,.j-grito,.juego-msg.entra>*,.juego-msg.entra .jd,.juego-msg.entra .jc-s,.j-audio.centro,.jc-fin .jc-s.jm-sel,:root[data-evento="valentin"] .foot .spr{animation:none}
 }
+/* ---------- BIT & BUGS: tienda, llave y gatos de racha ---------- */
+.jt-fila{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.jt{display:grid;justify-items:center;gap:4px;width:66px;padding:7px 1px 6px;border:0;background:var(--p-gris-osc);color:var(--p-blanco);font-family:var(--f-pixel);cursor:pointer;box-shadow:0 0 0 2px var(--p-negro),4px 4px 0 2px rgba(0,0,0,.6)}
+.jt img{width:30px;height:36px;object-fit:contain;image-rendering:pixelated}
+.jt b{font-weight:400;font-size:6px;letter-spacing:.02em}
+.jt i{font-style:normal;font-size:7px;color:var(--p-amarillo)}
+.jt-x img{filter:brightness(.55)}
+.jt-eq{box-shadow:0 0 0 2px var(--p-verde),4px 4px 0 2px rgba(0,0,0,.6)}
+.jt-eq i{color:var(--p-verde)}
+.jt.jm-sel{background:var(--p-amarillo);color:var(--p-negro)}
+.jt.jm-sel i{color:var(--p-negro)}
+.jt.jm-sel img{filter:none}
+.jt-b{margin:0;font-family:var(--f-pixel);font-size:10px;color:var(--p-gris)}
+.jt-b b{font-weight:400;color:var(--p-amarillo);font-size:14px}
+.jt-mas{font-weight:400;color:var(--p-verde)}
+.jk-llave{animation:jkLlave .8s steps(2,end) infinite}
+.jk-llave i{color:var(--p-amarillo)}
+.jk-llave .jk-p{filter:grayscale(.6) brightness(.6)}
+@keyframes jkLlave{50%{box-shadow:0 0 0 2px var(--p-amarillo),4px 4px 0 2px rgba(0,0,0,.6)}}
+.jl{display:grid;gap:14px;justify-items:center;width:min(540px,90vw);font-family:var(--f-pixel)}
+.jl-esc{position:relative;width:270px;height:150px}
+.jl-disco{position:absolute;right:16px;top:14px;width:122px;height:122px;background:#3d7bff;box-shadow:0 0 0 3px #030303,6px 6px 0 3px rgba(0,0,0,.6);animation:jlTiembla .1s steps(2,end) .72s 4}
+.jl-meta{position:absolute;left:34px;top:0;width:58px;height:34px;background:#c9c6b8}
+.jl-meta::after{content:"";position:absolute;left:34px;top:6px;width:12px;height:22px;background:#030303}
+.jl-ojo{position:absolute;left:6px;top:52px;width:8px;height:14px;background:#030303}
+.jl-eti{position:absolute;left:10px;right:10px;bottom:8px;height:52px;display:grid;place-items:center;background:#ECEBE4;color:#030303;font-size:8px;line-height:1.6;text-align:center;overflow:hidden;word-break:break-all;padding:0 4px}
+.jl-llave{position:absolute;left:0;top:26px;width:42px;height:66px;image-rendering:pixelated;animation:jlLlave 1.15s steps(16,end) forwards}
+@keyframes jlLlave{0%{transform:translateX(-70px) rotate(-90deg)}55%,68%{transform:translateX(112px) rotate(-90deg)}84%{transform:translateX(112px) rotate(-50deg)}100%{transform:translateX(112px) rotate(-90deg)}}
+@keyframes jlTiembla{50%{transform:translate(2px,-1px)}}
+.jl-term{margin:0;width:100%;min-height:118px;padding:10px 12px;background:#030303;color:#7dff3c;font-family:var(--f-term);font-size:18px;line-height:1.15;white-space:pre-wrap;text-align:left;box-shadow:0 0 0 2px #c9c6b8,6px 6px 0 2px rgba(0,0,0,.55)}
+.jl-ok{margin:0;font-size:13px;color:var(--p-amarillo);animation:jlParpa .24s steps(1,end) infinite}
+@keyframes jlParpa{50%{color:var(--p-blanco)}}
+.jl-abre{animation:jlFlash .55s steps(6,end)}
+.jl-abre .jl-disco{background:#FFD319}
+.jl-abre .jl-eti{background:#030303;color:#FFD319;font-size:9px}
+.jl-abre .jl-llave{filter:brightness(3)}
+@keyframes jlFlash{0%{filter:brightness(6) saturate(0)}40%{filter:brightness(2.2)}100%{filter:none}}
+.jv-g{display:none}
+.j-ventana.gato{min-width:150px}
+.j-ventana.gato .jv-g{display:block;width:76px;height:76px;object-fit:contain;justify-self:center}
+.j-ventana.gato .jv-n{font-size:18px}
+.j-ventana.chica.gato .jv-g{width:44px;height:44px}
+@media (prefers-reduced-motion:reduce){.jk-llave,.jl-llave,.jl-disco,.jl-ok,.jl-abre{animation:none}.jl-llave{transform:translateX(112px) rotate(-90deg)}}
+
+/* ---------- BIT & BUGS: menú más ordenado ---------- */
+.juego-msg>*{max-width:100%}
+.juego-msg:has(.jk-caja){gap:8px}
+.juego-msg:has(.jk-caja) .jf-gris{display:none}
+.jk-caja{gap:7px;padding:6px 12px 8px;background:rgba(255,255,255,.035);box-shadow:0 0 0 1px #262a38}
+.jk-caja.jk-act{background:rgba(255,211,25,.05);box-shadow:0 0 0 1px rgba(255,211,25,.55)}
+.jk-fila{flex-wrap:wrap;gap:12px 14px}
+.jk{width:168px}
+.jk i{font-size:7px;color:#a9adc4}
+.jd-fila{padding-top:4px}
+.jd-info{max-width:min(44ch,100%);min-height:2.3em;font-size:20px;color:#d8dae6}
+.jz-fila{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;font-family:var(--f-pixel);font-size:8px;letter-spacing:.05em;color:var(--p-gris)}
+.jz{padding:6px 8px;background:#0c0f1a;box-shadow:0 0 0 1px #262a38}
+.jz b{font-weight:400;color:var(--p-blanco)}
+.jz i{font-style:normal;color:var(--p-verde)}
+.jm-uno{margin-top:2px}
+.jm-b .jm-prim,.jm-b .jm-prim:first-child{padding:11px 24px;background:var(--p-amarillo);color:var(--p-negro);font-size:12px;animation:none;box-shadow:0 0 0 2px var(--p-negro),4px 4px 0 2px rgba(0,0,0,.6)}
+.jm-b .jm-prim:hover,.jm-b .jm-prim:focus-visible{background:var(--p-blanco)}
+.jm-dos{gap:2px 6px}
+.jm-dos button,.jm-dos button:first-child{padding:6px 9px;font-size:8px;color:#a9adc4;animation:none}
+.jt-fila{max-width:640px}
+.jt-b span{color:var(--p-amarillo);font-size:14px}
+@media (max-height:860px){.jt{width:58px;gap:3px;padding:5px 1px 4px}.jt img{width:24px;height:29px}.jt-fila{gap:6px}}
