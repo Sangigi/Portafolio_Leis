@@ -276,6 +276,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .thumb b{position:absolute;left:4px;bottom:4px;padding:3px 4px 2px;background:var(--negro);font-family:var(--f-pixel);font-size:8px;font-weight:400;color:var(--blanco)}
 .res-go{justify-self:start;padding:2px;font-family:var(--f-pixel);font-size:9px;letter-spacing:.06em;color:var(--c);text-underline-offset:5px}
 .res-go:hover{background:var(--c);color:var(--negro);text-decoration:none}
+.res-jugar{border:0;font-family:var(--f-pixel);font-size:9px;letter-spacing:.06em;color:var(--c);background:none;cursor:pointer;text-decoration:underline;animation:blinkCorto 1.2s steps(1,end) infinite}
+.res-jugar:hover,.res-jugar:focus-visible{outline:none;animation:none;background:var(--c);color:var(--negro);text-decoration:none}
 .res-none{color:var(--gris)}
 
 /* Categorías de habilidades: disquetes en las unidades A: a D: */
@@ -599,7 +601,7 @@ body.warming #app{animation:warm .8s ease-out}
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .crt .grain,.crt .flick,.hero-art .spr,.dot,.card.empty .plus .spr,.tech[aria-pressed="true"] .spr,.card:target,.card.destello,.res-x.abre,.card.zap .view{animation:none}
+  .crt .grain,.crt .flick,.hero-art .spr,.dot,.card.empty .plus .spr,.tech[aria-pressed="true"] .spr,.card:target,.card.destello,.res-x.abre,.res-jugar,.card.zap .view{animation:none}
   .track,.car{transition:none}
   .visor.prende .visor-win,.visor.sale,.visor-ascii.dibuja,.visor.revela .visor-lienzo img{animation:none}
   .buddy.llega .buddy-b,.buddy-b .spr{animation:none}
@@ -760,12 +762,7 @@ body.warming #app{animation:warm .8s ease-out}
 .ev-gran.feliz .ev-gran-n{font-size:clamp(26px,6.4vw,72px);animation:blinkCorto 1s steps(1,end) infinite}
 .ev-gran-s{font-family:var(--f-term);font-size:22px;color:var(--p-gris)}
 
-/* ---------- BIT & BUGS: el minijuego del GAME OVER (js/juego.js) ---------- */
-.cont-juego{display:none;margin:4px 0 0}
-.cont.over .cont-juego{display:block;animation:aparece 1.6s steps(1,end)}
-@keyframes aparece{0%,70%{opacity:0}}
-.cont-juego button{padding:12px 16px;border:0;background:none;color:var(--p-amarillo);font-family:var(--f-pixel);font-size:12px;letter-spacing:.06em;cursor:pointer;animation:blinkCorto 1.2s steps(1,end) infinite}
-.cont-juego button:hover,.cont-juego button:focus-visible{outline:none;background:var(--p-amarillo);color:var(--p-negro);animation:none}
+/* ---------- BIT & BUGS: el minijuego (carpeta js/juego/), se abre desde su resultado en Habilidades ---------- */
 .juego{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;gap:10px;padding:max(14px,env(safe-area-inset-top,0px)) 16px max(14px,env(safe-area-inset-bottom,0px));background:var(--p-negro);color:var(--p-blanco);outline:none}
 .juego[hidden]{display:none}
 .juego-hud{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 26px;width:100%;max-width:960px;font-family:var(--f-pixel);font-size:10px;letter-spacing:.06em;color:var(--p-gris)}
@@ -1027,7 +1024,6 @@ span.jc-s{cursor:default}
 .jm-rC,.jm-rD{color:var(--p-blanco)}
 /* En pantallas táctiles: sin teclas, con el dedo */
 @media (pointer:coarse){
-  .cont-juego-k{display:none}
   .juego-ayuda{font-size:0}
   .juego-ayuda::after{content:"Desliza para mover a BIT";font-size:19px}
   :root[lang="en"] .juego-ayuda::after{content:"Drag to move BIT"}
@@ -1035,7 +1031,7 @@ span.jc-s{cursor:default}
 
 @media (prefers-reduced-motion:reduce){
   .chcp,.envio.abre .envio-win,.envio.sale,.envio.completa .descarga-barra i.on,.ev-picado,.ev-gran-t,.ev-gran.feliz .ev-gran-n,
-  .cont.over .cont-juego,.cont-juego button,.jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,.jf-sello .jd-r,.jf-tot,.j-grito,.juego-msg.entra>*,.juego-msg.entra .jd,.juego-msg.entra .jc-s,.j-audio.centro,.jc-fin .jc-s.jm-sel,:root[data-evento="valentin"] .foot .spr{animation:none}
+  .jm-b button:first-child,.jm-nuevo,.j-ventana.abre,.j-ventana.arco,.juego-lienzo.tenso,.j-ventana.pop .jv-n,.jf-sello .jd-r,.jf-tot,.j-grito,.juego-msg.entra>*,.juego-msg.entra .jd,.juego-msg.entra .jc-s,.j-audio.centro,.jc-fin .jc-s.jm-sel,:root[data-evento="valentin"] .foot .spr{animation:none}
 }
 /* ---------- BIT & BUGS: tienda, llave y gatos de racha ---------- */
 .jt-fila{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}

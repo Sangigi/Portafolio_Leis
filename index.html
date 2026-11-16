@@ -239,7 +239,6 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
     <div class="cont-op"><button type="button" id="cont-y">Y</button><span aria-hidden="true">/</span><button type="button" id="cont-no">N</button></div>
     <p class="cont-over">GAME OVER</p>
     <p class="cont-hint">Clic o tecla Y para volver a encender</p>
-    <p class="cont-juego"><button type="button"><span class="cont-juego-k">[J] </span><span>JUGAR BIT &amp; BUGS</span></button></p>
   </div>
 </div>
 
@@ -251,13 +250,17 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
 <script src="js/correo.js"></script>
 <script src="js/temporadas.js"></script>
 <!-- BIT & BUGS (unos 420 KB entre el juego y sus canciones) ya no se descarga con la página: se trae solo al abrirlo,
-     o en segundo plano cuando la página ya cargó y está en calma. Para agregar una canción, súmala a ARCHIVOS antes de juego.js -->
+     o en segundo plano cuando la página ya cargó y está en calma. Las canciones van primero (CANCIONES) y luego el motor, en orden (MOTOR, carpeta js/juego/) -->
 <script>
   (() => {
-    const ARCHIVOS = ["js/ritmo-uia.js", "js/ritmo-grimorio.js", "js/ritmo-funk.js", "js/ritmo-doom.js", "js/juego.js"];
+    const CANCIONES = ["uia", "grimorio", "funk", "doom"].map((c) => `js/ritmo-${c}.js`);
+    const MOTOR = ["base", "ventana", "estado", "avisos", "pantallas", "tienda", "ritmo", "ritmo-paso", "clasico", "dibujo",
+      "escenas-base", "escenas-uia", "escenas-grimorio", "escenas-doom", "escenas-funk", "efectos", "entrada"].map((f) => `js/juego/${f}.js`);
+    const ARCHIVOS = [...CANCIONES, ...MOTOR];
     let carga = null;
-    const pon = (src) => new Promise((ok, mal) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = mal; document.body.appendChild(s); });
-    const trae = () => carga || (carga = ARCHIVOS.reduce((p, src) => p.then(() => pon(src)), Promise.resolve()).catch((e) => { carga = null; throw e; }));
+    // Se piden todos a la vez (se descargan en paralelo) pero corren en orden (async = false)
+    const pon = (src) => new Promise((ok, mal) => { const s = document.createElement("script"); s.src = src; s.async = false; s.onload = ok; s.onerror = mal; document.body.appendChild(s); });
+    const trae = () => carga || (carga = Promise.all(ARCHIVOS.map(pon)).catch((e) => { carga = null; throw e; }));
     // Mientras llega el juego de verdad, este lo sustituye: al pedir abrirlo, lo trae y lo abre
     const espera = { abrir: () => trae().then(() => { if (window.Juego !== espera) window.Juego.abrir(); }).catch(() => {}), abierto: () => false };
     window.Juego = espera;
