@@ -250,10 +250,20 @@ Respuesta desde correo: bytes=32 tiempo&lt;24h TTL=64</pre>
 <script src="js/app.js"></script>
 <script src="js/correo.js"></script>
 <script src="js/temporadas.js"></script>
-<script src="js/ritmo-uia.js"></script>
-<script src="js/ritmo-grimorio.js"></script>
-<script src="js/ritmo-funk.js"></script>
-<script src="js/ritmo-doom.js"></script>
-<script src="js/juego.js"></script>
+<!-- BIT & BUGS (unos 420 KB entre el juego y sus canciones) ya no se descarga con la página: se trae solo al abrirlo,
+     o en segundo plano cuando la página ya cargó y está en calma. Para agregar una canción, súmala a ARCHIVOS antes de juego.js -->
+<script>
+  (() => {
+    const ARCHIVOS = ["js/ritmo-uia.js", "js/ritmo-grimorio.js", "js/ritmo-funk.js", "js/ritmo-doom.js", "js/juego.js"];
+    let carga = null;
+    const pon = (src) => new Promise((ok, mal) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = mal; document.body.appendChild(s); });
+    const trae = () => carga || (carga = ARCHIVOS.reduce((p, src) => p.then(() => pon(src)), Promise.resolve()).catch((e) => { carga = null; throw e; }));
+    // Mientras llega el juego de verdad, este lo sustituye: al pedir abrirlo, lo trae y lo abre
+    const espera = { abrir: () => trae().then(() => { if (window.Juego !== espera) window.Juego.abrir(); }).catch(() => {}), abierto: () => false };
+    window.Juego = espera;
+    const enCalma = () => { if (!(navigator.connection && navigator.connection.saveData)) trae().catch(() => {}); };
+    addEventListener("load", () => ("requestIdleCallback" in window ? requestIdleCallback(enCalma, { timeout: 8000 }) : setTimeout(enCalma, 4000)));
+  })();
+</script>
 </body>
 </html>

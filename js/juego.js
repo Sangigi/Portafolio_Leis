@@ -487,7 +487,7 @@
     fx.style.height = `${FH * escala}px`;
     if (!aEl.hidden) ponAudio(aEl.dataset.d);
     // Las tramas guardadas dependen del tamaño del lienzo: al cambiar, se vuelven a pintar
-    tramas = {};
+    tramas = {}; calientes = "";
   }
   // Si el marcador cambia de alto (en el teléfono ocupa dos renglones en ritmo), el recuadro se vuelve a medir
   if (window.ResizeObserver) new ResizeObserver(() => { if (!el.hidden) medir(); }).observe(marco);
@@ -1143,6 +1143,22 @@
       <p class="jm-b"><button type="button" data-j="titulo">${kb("M")}${T("DISCOS", "DISKS")}</button><button type="button" data-j="salir">${kb("ESC")}${T("SALIR", "QUIT")}</button></p>`);
   }
   // desde / guardado: para reintentar un escenario sin repetir toda la canción
+  /* Mientras carga la canción se pinta una vez, fuera de la vista, cada escenario del nivel: así sus tramas, manchas y
+     planetas (que se calculan pixel por pixel la primera vez) quedan guardados y el cambio de escenario no da tirones.
+     Solo FUTURE FUNK, cuyos escenarios no tocan el estado del juego. Se hace de una vez, detrás del letrero de carga */
+  let calientes = "";
+  function precalienta() {
+    if (!FK() || RM) return;
+    const clave = `${idC()}|${FW}x${FH}`;
+    if (calientes === clave) return;
+    calientes = clave;
+    for (let i = 0; i < ESCENAS_F.length; i++) {
+      c2.save();
+      try { ESCENAS_F[i]({ cx: gx + W / 2, cy: gy + H * 0.5, suelo: gy + piso(), sec: R.sec[i] || R.sec[0] }); } catch (e) { /* ese se calcula al llegar */ }
+      c2.restore();
+    }
+    c2.clearRect(0, 0, FW, FH);
+  }
   function empezarRitmo(desde, guardado) {
     if (!R) return;
     desde = typeof desde === "number" ? desde : 0;
@@ -1182,6 +1198,7 @@
     pideGato();
     hud();
     aviso(`<p class="jm-t">♪</p><p>${T("Cargando la canción...", "Loading the song...")}</p>`);
+    precalienta();
     // Cada canción tiene su propio <audio>. Si la canción sigue después del nivel (R.sigue), al acabarse vuelve a ese punto
     audio = audios[idC()];
     if (!audio) {
@@ -2334,8 +2351,6 @@
     if (ritmo) ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = modoLibre ? "rgba(0,0,0,0)" : ritmo ? (FK() && R.pisones && secI === R.pisones[1] ? "rgba(2,2,8,.8)" : "rgba(2,4,10,.56)") : col.F;
     ctx.fillRect(0, 0, W, H);
-    // En órbita (R.orbita), la mitad de delante del anillo pasa por enfrente de la terminal
-    if (ritmo && R.orbita === secI && estado === "jugando") { ctx.globalAlpha = 0.6; anilloOrbita((c, x, y, w, hh) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x - gx), Math.round(y - gy), w, hh); }, true); ctx.globalAlpha = 1; }
     // Por dentro es una terminal: renglones de barrido y una guía tenue entre carriles
     ctx.fillStyle = "rgba(0,0,0,.16)";
     if (!modoLibre) for (let y = 9; y < piso(); y += 2) ctx.fillRect(0, y, W, 1);
@@ -2434,7 +2449,7 @@
       }
       else if (o.tipo === "mal") { sp = ESPECIES.G[cuadro]; mp = { R: (t >> 3) % 2 ? "#d44bff" : "#a259ff", Z: "#3a0d5c", K: "#ffffff" }; }
       else if (o.tipo === "arco" && G()) { sp = RUNA; mp = { R: SANDE[(t >> 2) % SANDE.length] }; }
-      else if (o.tipo === "bono") { sp = ESPECIES[MU[o.s][0]][cuadro]; mp = { R: SANDE[((t >> 2) + ((o.tn * 7) | 0)) % SANDE.length], Z: "#ffffff" }; }
+      else if (o.tipo === "bono") { sp = ESPECIES[MU[o.s][0] === "R" ? "RSU"[Math.floor(o.tn * 7.3) % 3] : packI > 0 ? PACKS[packI][3] : MU[o.s][0]][cuadro]; mp = { R: SANDE[((t >> 2) + ((o.tn * 7) | 0)) % SANDE.length], Z: "#ffffff" }; }
       else {
         const [esp0, m0] = MU[o.s], roca = esp0 === "R" && o.tipo !== "glitch", pk = !roca && o.tipo === "bug" && packI > 0 ? PACKS[packI] : null;
         // Las piedras salen de tres formas; el pack de la tienda cambia a los bugs comunes (menos en los tramos de piedras)
@@ -3857,17 +3872,7 @@
       spr.forEach((r, j) => { for (let k = 0; k < r.length; k++) if (r[k] !== ".") rc(r[k] === "B" ? pal.C : f < 0.5 ? pal.B : pal.A, x + k, y + j, 1, 1); });
     }
   }
-  // Bolas de fuego que cruzan en diagonal desde las esquinas de arriba, con su estela
-  function bolasFuego() {
-    if (RM) return;
-    for (let i = 0; i < 3; i++) {
-      const dur = 2.6 + i * 0.7, f = ((ts + i * 1.9) % (dur + 2.2)) / dur;
-      if (f > 1) continue;
-      const lado = i % 2 ? -1 : 1, x0 = lado > 0 ? -10 : FW + 10, x = x0 + lado * f * FW * 0.7, y = -10 + f * FH * 0.8, pal = FUEGOS[["amarillo", "verde", "morado"][i]];
-      for (let k = 9; k >= 1; k--) { const g = Math.max(1, 7 - k * 0.7), tx = x - lado * k * 5, ty = y - k * 5.6 + Math.sin(ts * 14 + k) * 1.2; rc(k > 5 ? pal.O : k > 2 ? pal.A : pal.B, tx - g / 2, ty - g / 2, g, g); }
-      disco(pal.O, x, y, 6); disco(pal.A, x, y, 5); disco(pal.B, x + lado, y + 1, 3); rc(pal.C, x + lado, y, 3, 3);
-    }
-  }
+
   // La nave de la fábrica. fuego = arde
   function fabrica(e, fuego) {
     const yB = Math.round(Math.min(FH * 0.9, e.suelo)), ang = (golpeN + (RM ? 0 : 1 - pulso)) * 0.13, metal = "#3a4058", claro = "#8f93a8", sombra = "#1c2030";
