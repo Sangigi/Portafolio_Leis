@@ -1100,6 +1100,7 @@ span.jc-s{cursor:default}
 .jt-fila{max-width:640px}
 .jt-b span{color:var(--p-amarillo);font-size:14px}
 @media (max-height:860px){.jt{width:58px;gap:3px;padding:5px 1px 4px}.jt img{width:24px;height:29px}.jt-fila{gap:6px}}
+<<<<<<< HEAD
 
 /* ---------- BIT & BUGS: modo personalizado, TU MUSICA ---------- */
 .jk-personal{background:#14141f;box-shadow:0 0 0 2px var(--p-negro),4px 4px 0 2px rgba(0,0,0,.6);outline:2px dashed var(--p-gris);outline-offset:-6px}
@@ -1289,3 +1290,5 @@ p.je-k{margin:2px 0 0}
 @media (max-width:860px){.jx-impg{grid-template-columns:1fr}.jx-imp{position:fixed}}
 .jx-imptol{width:140px}
 .jx-uso .je-k{display:inline-flex;align-items:center;gap:4px;margin:4px 0 0}
+=======
+>>>>>>> origin/alt

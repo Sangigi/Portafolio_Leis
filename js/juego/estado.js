@@ -6,12 +6,15 @@
   Object.assign(BB, { lapsoYa, ponLibre, tiemposTeles });
 
   /* ---------- 3. Estado de la partida ---------- */
+<<<<<<< HEAD
   // La tarjeta "+ TU MUSICA" del título está elegida (en vez de una canción)
   S.selPersonal = false;
   // Canción del jugador elegida en el título (su id), y las que ya tienen mapa (salen en la fila de canciones)
   S.selMia = null; S.misMapas = []; S.miaUrl = "";
   // Probando un mapa desde el editor de ritmo (al acabar o con ESC se vuelve al editor)
   S.prueba = false;
+=======
+>>>>>>> origin/alt
   // Medidas: el recuadro del juego (W × H pixeles propios, a 'escala' pixeles de pantalla cada uno), su lugar en la
   // pantalla (rectL) y el lienzo de efectos, que cubre todo con el mismo tamaño de pixel (FW × FH; el recuadro empieza en gx, gy)
   S.W = 200; S.H = 140; S.escala = 4; S.col = {}; S.rectL = null;
@@ -207,4 +210,8 @@
   const espectro = [];
 
   Object.assign(BB, { APAGA_BLANCO, CAMPANAS_ESCUDO, CRUCE, CRUCE_LENTO, DIFS, FONDOS_FLASH, GROOVE_MAX, JEFE_BAJA, LLAVE, RAROS, audios, bitY, cajaRect, cajaS, carriles, chispazo, espectro, filaY, flashesPasados, fogonazo, lapso, mundoDe, piso, quiereLibre, xBit, xBug });
+<<<<<<< HEAD
 })();
+=======
+})();
+>>>>>>> origin/alt
