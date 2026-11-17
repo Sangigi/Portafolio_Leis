@@ -570,7 +570,7 @@
     if (!rows) return;
     el.innerHTML = svgDe(rows, +el.dataset.px || 4);
   }
-  // El <svg> de un sprite (también lo usan temporadas.js y juego.js)
+  // El <svg> de un sprite (también lo usan temporadas.js y el juego, en js/juego/)
   function svgDe(rows, px) {
     const h = rows.length, w = rows[0].length;
     let out = "";
@@ -620,6 +620,7 @@
   pc.addEventListener("animationend", (e) => { if (e.target === pc) pc.classList.remove("hit"); });
 
   /* ---------- Galerías de los proyectos ---------- */
+  const dos = (n) => String(n).padStart(2, "0");
   // Para agregar capturas: pon en "src" la ruta de la imagen (por ejemplo "img/seguros-1.png")
   // y en "pie" una descripción corta. Mientras "src" esté vacío se muestra una carta de ajuste.
   const GALERIAS = {
@@ -629,16 +630,17 @@
       { src: "", pie: "Calendario de citas" },
     ],
     "p-libertyfin": [
-      { src: "images/Libertyfin/Libertyfin-1.jpeg", pie: "Inicio de sesión" },
-      { src: "images/Libertyfin/Libertyfin-2.jpeg", pie: "Dashboard con resumen del negocio" },
-      { src: "images/Libertyfin/Libertyfin-3.jpeg", pie: "Caja y cobro de ventas" },
-      { src: "images/Libertyfin/Libertyfin-4.jpeg", pie: "Listado y detalle de ventas" },
-      { src: "images/Libertyfin/Libertyfin-5.jpeg", pie: "Reportes" },
-      { src: "images/Libertyfin/Libertyfin-6.jpeg", pie: "Trabajos y notas" },
-      { src: "images/Libertyfin/Libertyfin-7.jpeg", pie: "Tutorial de uso" },
+      { src: "images/Libertyfin/Libertyfin-1.png", pie: "Inicio de sesión" },
+      { src: "images/Libertyfin/Libertyfin-2.png", pie: "Dashboard con resumen del negocio" },
+      { src: "images/Libertyfin/Libertyfin-3.png", pie: "Caja y cobro de ventas" },
+      { src: "images/Libertyfin/Libertyfin-4.png", pie: "Listado y detalle de ventas" },
+      { src: "images/Libertyfin/Libertyfin-5.png", pie: "Reportes" },
+      { src: "images/Libertyfin/Libertyfin-6.png", pie: "Trabajos y notas" },
+      { src: "images/Libertyfin/Libertyfin-7.png", pie: "Tutorial de uso" },
     ],
+    // Los proyectos que no están en destacados también pueden tener imágenes: se ven ahí mismo, en su resultado de la terminal
+    "p-bitbugs": [1, 2, 3, 4, 5].map((n) => ({ src: `images/Bit_&_Bugs/Bit_&_Bugs-${n}.png`, pie: `BIT & BUGS · captura ${dos(n)}` })),
   };
-  const dos = (n) => String(n).padStart(2, "0");
   const slideHTML = (img, i) => img.src
     ? `<figure class="slide"><img src="${img.src}" alt="${img.pie}" loading="lazy" draggable="false"><figcaption>${img.pie}</figcaption></figure>`
     : `<figure class="slide ph ph-${i % 3}"><figcaption><b>SIN IMAGEN ${dos(i + 1)}</b><span>${img.pie}</span></figcaption></figure>`;
@@ -1111,13 +1113,15 @@
   const PROY = {
     lux: { nombre: "SEGUROS_LUX", id: "p-seguros-lux" },
     liberty: { nombre: "LIBERTYFIN", id: "p-libertyfin" },
+    // Sin tarjeta en destacados: sus imágenes se abren desde el resultado y, en vez de "IR AL PROYECTO", trae JUGAR
+    bit: { nombre: "BIT_&_BUGS", id: "p-bitbugs", juego: true },
   };
   // Conteos tomados del repositorio de Seguros-Lux (noviembre de 2026).
   // Las que no tienen "hits" abren su ícono en grande con una descripción.
   const TECH = {
-    html:     { n: "HTML",         q: "html",     c: "var(--rojo)",     s: "html",     hits: [["lux", "34 vistas", "Plantillas PHP del CRM"]] },
-    css:      { n: "CSS",          q: "css",      c: "var(--azul)",     s: "css",      hits: [["lux", "7 archivos .css", "Tema del CRM, formularios y landing"]] },
-    js:       { n: "JavaScript",   q: "js",       c: "var(--amarillo)", s: "js",       tile: "JS", hits: [["lux", "23 archivos .js", "Calendario, clientes, cotizaciones y autos"]] },
+    html:     { n: "HTML",         q: "html",     c: "var(--rojo)",     s: "html",     hits: [["lux", "34 vistas", "Plantillas PHP del CRM"], ["bit", "2 lienzos canvas", "El minijuego: pantalla y escenarios armados desde JS"]] },
+    css:      { n: "CSS",          q: "css",      c: "var(--azul)",     s: "css",      hits: [["lux", "7 archivos .css", "Tema del CRM, formularios y landing"], ["bit", "304 reglas", "Menús, disquetes, tienda y ventanas de racha"]] },
+    js:       { n: "JavaScript",   q: "js",       c: "var(--amarillo)", s: "js",       tile: "JS", hits: [["lux", "23 archivos .js", "Calendario, clientes, cotizaciones y autos"], ["bit", "5 archivos .js", "Juego de ritmo en canvas con Web Audio, niveles y tienda"]] },
     vue:      { n: "Vue.js",       q: "vue",      c: "var(--verde)",    s: "vue",      tile: "VUE.JS", hits: [], desc: "Framework de JavaScript para interfaces reactivas." },
     tailwind: { n: "Tailwind CSS", q: "tailwind", c: "var(--azul)",     s: "tailwind", tile: "TAILWIND", hits: [], desc: "CSS con clases de utilidad, directo en el HTML." },
     sass:     { n: "Sass",         q: "sass",     c: "var(--rojo)",     s: "sass",     hits: [], desc: "CSS con variables, anidación y mixins." },
@@ -1165,7 +1169,7 @@
       `</button>` +
       `<div class="res-x" hidden>` +
         (imgs.length ? `<div class="thumbs">${thumbs}</div>` : `<span class="res-none">Sin imágenes todavía.</span>`) +
-        `<a class="res-go" href="#${p.id}">IR AL PROYECTO</a>` +
+        (p.juego ? `<button type="button" class="res-go res-jugar">JUGAR BIT &amp; BUGS</button>` : `<a class="res-go" href="#${p.id}">IR AL PROYECTO</a>`) +
       `</div>`;
     const b = r.querySelector(".res-b"), x = r.querySelector(".res-x");
     b.addEventListener("click", () => {
@@ -1181,10 +1185,14 @@
     });
     r.querySelectorAll(".thumb").forEach((t) => t.addEventListener("click", () => {
       const v = visores[p.id];
-      if (!v) return;
-      v.abrir(+t.dataset.i);
-      document.getElementById(p.id).scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" });
+      // En destacados: se abre el carrusel de su tarjeta, que comparte las imágenes
+      if (v) { v.abrir(+t.dataset.i); document.getElementById(p.id).scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" }); return; }
+      // Sin tarjeta: se abre el visor ahí mismo
+      const reales = imgs.flatMap((im, k) => (im.src ? [{ ...im, k }] : [])), j = reales.findIndex((x) => x.k === +t.dataset.i);
+      if (j >= 0) visor.abrir(reales, j, { carpeta: p.nombre, color: getComputedStyle(termWin).getPropertyValue("--c").trim() });
     }));
+    const jugar = r.querySelector(".res-jugar");
+    if (jugar) jugar.addEventListener("click", () => { if (window.Juego) window.Juego.abrir(); });
     return r;
   }
 
@@ -1753,11 +1761,8 @@
     exitB.focus({ preventScroll: true });
   }
   exitB.addEventListener("click", apagar);
-  // En el GAME OVER, BIT ofrece la revancha: BIT VS BUGS (js/juego.js)
-  const jugar = () => { if (window.Juego) window.Juego.abrir(); };
   apagado.addEventListener("click", (e) => {
     if (!apagado.classList.contains("fin")) return;
-    if (e.target.closest(".cont-juego")) { jugar(); return; }
     if (e.target.closest("#cont-no")) { gameOver(); return; }
     encender();
   });
@@ -1772,7 +1777,6 @@
     const k = e.key.toLowerCase();
     if (k === "n" || k === "escape") gameOver();
     else if (k === "y" || k === "enter" || k === " ") encender();
-    else if (k === "j" && cont.classList.contains("over")) jugar();
   }, true);
 
   /* ---------- Tarjeta de presentación: se voltea con un clic ---------- */
@@ -2065,7 +2069,7 @@
   window.addEventListener("resize", revisarSeccion);
   revisarSeccion();
 
-  /* ---------- Lo que usan los demás módulos (idioma.js, correo.js, temporadas.js, juego.js) ---------- */
+  /* ---------- Lo que usan los demás módulos (idioma.js, correo.js, temporadas.js y el juego de js/juego/) ---------- */
   window.Portafolio = {
     bitDice,
     bitEmote,
