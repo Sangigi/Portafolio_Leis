@@ -21,11 +21,8 @@
     const poses = S.R.lateral != null ? tiemposTeles(S.R.sec[S.R.lateral][1] - 0.25) : [];
     for (let i = 0; i < n; i++) {
       const tn = N[i * 3] / 1000, sec = seccionDe(tn);
-<<<<<<< HEAD
       // En un mapa hecho a mano salen todos, tal como se pusieron
       if (S.R.personal) { S.activa.push(true); S.totalNotas++; continue; }
-=======
->>>>>>> origin/alt
       // No salen los que quedan muy juntos, ni los comunes que caerían en el aire que pidió un bicho con maña
       // Mientras la terminal se encoge, se muda de lado y vuelve, no cae nada
       const sl = S.R.lateral != null ? S.R.sec[S.R.lateral] : null, sc = S.R.caja != null ? S.R.sec[S.R.caja] : null;
@@ -47,11 +44,8 @@
   const mapa = { c: [], tipo: [], aire: [] };
   function armaMapa() {
     mapa.c = []; mapa.tipo = []; mapa.aire = [];
-<<<<<<< HEAD
     // Las canciones del jugador (modo personalizado) traen su mapa hecho a mano: carril y tipo de cada bug
     if (S.R.personal) { mapa.c = S.R.pc.slice(); mapa.tipo = S.R.pt.slice(); mapa.aire = S.R.pc.map(() => 0); return; }
-=======
->>>>>>> origin/alt
     let sem = 20261114;
     const rnd = () => { sem = (sem * 1664525 + 1013904223) >>> 0; return sem / 4294967296; };
     const N = S.R.notas, n = N.length / 3, calma = S.R.calma || [0, 2, 5, 8, 9], g = G(), fin = S.R.sec.length - 1;
@@ -99,10 +93,6 @@
       mapa.aire.push(aire);
     }
   }
-<<<<<<< HEAD
-=======
-  if (S.R) ponCancion(S.cancionI);
->>>>>>> origin/alt
   /* El cierre de un nivel. Al acabar la canción: un destello y estrellas del color del nivel que salen del centro y se
      desvanecen hasta dejar todo en negro. Entonces baja una llave por un carril y se queda en el piso: al recogerla, BIT la
      levanta, todo se apaga con otro destello y aparecen los resultados. */
@@ -123,11 +113,8 @@
     k.t++;
     pasoOrden();
     if (k.fase === "luz" || k.fase === "llave") BB.moverBit();
-<<<<<<< HEAD
     // Las canciones del jugador no traen llave (no abren nada): tras la luz y las estrellas, van directo a los resultados
     if (k.fase === "luz" && k.t > 150 && S.R.personal) { k.fase = "fin"; k.tt = 0; bip(2000, 200, 0.5, "sawtooth", 0.035); }
-=======
->>>>>>> origin/alt
     if (k.fase === "luz" && k.t > 150) {
       k.fase = "llave";
       if (tactil) cmd("LLAVE.EXE", "KEY.EXE", "OK: toca la llave", "OK: tap the key"); else cmd("LLAVE.EXE", "KEY.EXE", "OK: recoge la llave", "OK: grab the key");
@@ -138,11 +125,7 @@
       if (k.y > suelo - 16 && S.bit.c === k.c && Math.abs(S.bit.x - xBit(k.c)) < 3) {
         k.fase = "toma"; k.tt = 0;
         // Recoger la llave es lo que abre la siguiente canción
-<<<<<<< HEAD
         if (!S.R.personal && !lee(`bitBugsPaso_${idC()}`)) { guarda(`bitBugsPaso_${idC()}`, "1"); k.abre = CANCIONES[S.cancionI + 1] || null; }
-=======
-        if (!lee(`bitBugsPaso_${idC()}`)) { guarda(`bitBugsPaso_${idC()}`, "1"); k.abre = CANCIONES[S.cancionI + 1] || null; }
->>>>>>> origin/alt
         S.nuevaCancion = k.abre || null;
         S.boca = "s"; S.bocaT = 90;
         cierraOrden();
@@ -205,11 +188,7 @@
     // Al reintentar al jefe, se espera a que el audio brinque a su punto
     if (S.ts < S.desdeIni - 1) return;
     if (S.practica != null && S.secI === S.practica && S.ts >= S.R.sec[S.practica][1] - 0.05) { finRitmo(); return; }
-<<<<<<< HEAD
     if (S.ts >= S.R.dur - 0.05) { if (S.prueba) { BB.volverAlEditor(); return; } if (S.practica != null) finRitmo(); else empiezaCierre(); return; }
-=======
-    if (S.ts >= S.R.dur - 0.05) { if (S.practica != null) finRitmo(); else empiezaCierre(); return; }
->>>>>>> origin/alt
     // Los créditos del arranque: la terminal inicializa la canción, se abre AUDIO.EXE al centro y luego se guarda en la esquina
     if (S.cred >= 0) {
       S.cred++;
@@ -260,11 +239,7 @@
     if (S.vuela && !S.vueloAviso) { S.vueloAviso = true; S.vy = -3.2; if (tactil) cmdRes("COMPLETO: arrastra para volar", "DONE: drag to fly"); else cmdRes("COMPLETO: vuela con las 4 flechas", "DONE: fly with all 4 arrows"); }
     // La terminal escribe cada reto: el vuelo y el jefe, unos segundos antes de que empiecen
     if (S.pistaT === 290) { if (tactil) cmd("BIT.EXE", "BIT.EXE", "OK: toca un carril o desliza", "OK: tap a lane or slide", "controles"); else cmd("BIT.EXE", "BIT.EXE", "OK: flechas o A/D, un salto por toque", "OK: arrows or A/D, one hop per tap", "controles"); }
-<<<<<<< HEAD
     if (S.R.sec[S.VUELO] && S.R.sec[S.VUELO][0] - S.ts < 6.6 && S.ts < S.R.sec[S.VUELO][0]) cmd(G() ? "ALAS.EXE" : "VUELO.EXE", G() ? "WINGS.EXE" : "FLIGHT.EXE", null, null, "prevuelo");
-=======
-    if (S.R.sec[S.VUELO][0] - S.ts < 6.6 && S.ts < S.R.sec[S.VUELO][0]) cmd(G() ? "ALAS.EXE" : "VUELO.EXE", G() ? "WINGS.EXE" : "FLIGHT.EXE", null, null, "prevuelo");
->>>>>>> origin/alt
     if (G()) {
       const en = S.ts - S.R.sec[S.secI][0];
       if (S.secI === 1 && en > 1) cmd("LINTERNA.EXE", "LANTERN.EXE", "OK: cada bug aviva tu luz", "OK: every bug feeds your light", "luz");
@@ -330,11 +305,7 @@
       if (S.secI === S.JEFE && !S.jefeAviso) { S.jefeAviso = true; cmdRes("ALERTA: sal de la columna de fuego", "WARNING: leave the fire column"); }
       if (S.secI === 3 && en > 0.6) cmd("PORTAL.EXE /bucle", "PORTAL.EXE /loop", "ALERTA: los mundos se turnan", "WARNING: the worlds take turns", "vaiven");
       if (S.secI === 8 && en > 0.6) cmd("MUNDOS.EXE /juntar", "WORLDS.EXE /merge", "ALERTA: los dos a la vez", "WARNING: both at once", "dos");
-<<<<<<< HEAD
     } else if (UIA()) {
-=======
-    } else {
->>>>>>> origin/alt
       if (S.ts > S.R.error + 0.4 && S.secI === 0) cmd("GATO.EXE", "CAT.EXE", "ERROR: proceso no autorizado", "ERROR: unauthorized process", "error");
       if (S.R.sec[S.JEFE][0] - S.ts < 5.6 && S.ts < S.R.sec[S.JEFE][0]) cmd("GATO.EXE /llenar memoria", "CAT.EXE /fill memory", null, null, "prejefe");
       if (S.secI === S.JEFE && !S.jefeAviso) { S.jefeAviso = true; cmdRes("ALERTA: que no caiga ni uno", "WARNING: do not drop any"); }
@@ -478,10 +449,7 @@
         if (o.finJefe) lapsoYa();
         const antes = nivelCombo();
         S.combo++;
-<<<<<<< HEAD
         S.tAcierto = S.ts;
-=======
->>>>>>> origin/alt
         if ((o.tipo !== "bono" || o.nota) && !o.libre && !o.cria) { S.atrapados++; S.tramos[o.s][0]++; S.tramos[o.s][1]++; }
         if (G()) S.luz = Math.min(1, S.luz + 0.07);
         // En el pueblo cada bug da una campana (el dorado, tres)
@@ -693,8 +661,4 @@
   }
 
   Object.assign(BB, { DJ_FIGS, mapa, seccionDe });
-<<<<<<< HEAD
 })();
-=======
-})();
->>>>>>> origin/alt

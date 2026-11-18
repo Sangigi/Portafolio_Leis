@@ -63,11 +63,7 @@
     while (S.teleI < S.teles.length && S.teles[S.teleI] < desde) S.teleI++;
     S.luz = S.luzVis = 0.75; S.campanas = guardado && guardado.campanas ? guardado.campanas : 0; S.escudo = guardado && guardado.escudo ? guardado.escudo : 0; S.res = null; S.finModo = ""; S.finN++; S.cred = desde > 0 ? -1 : 0;
     S.tramos = guardado && guardado.tramos ? JSON.parse(guardado.tramos) : S.R.sec.map(() => [0, 0]);
-<<<<<<< HEAD
     S.ts = desde; S.tAcierto = null; S.tFallo = null; S.ultA = -1; S.rI = 0; S.rG = 0; S.golpeN = 0; S.pulso = 0; S.secI = -1; S.cambio = 0; S.combo = 0; S.maxCombo = 0; S.atrapados = 0; S.giro = 0; S.vGiro = 0.3; S.energiaAhora = 0;
-=======
-    S.ts = desde; S.ultA = -1; S.rI = 0; S.rG = 0; S.golpeN = 0; S.pulso = 0; S.secI = -1; S.cambio = 0; S.combo = 0; S.maxCombo = 0; S.atrapados = 0; S.giro = 0; S.vGiro = 0.3; S.energiaAhora = 0;
->>>>>>> origin/alt
     S.ecos = []; S.dano = 0; S.interferencia = 0; S.agachaT = 0; S.peligro = 0; S.peligroVis = 0; S.muerto = false; S.muerteIni = 0; S.foto = null; S.jefeAviso = false; S.desdeIni = desde; S.zoom = 1;
     if (guardado) { S.pts = guardado.pts; S.maxCombo = guardado.maxCombo; S.atrapados = guardado.atrapados; }
     // Dificultad: vidas completas (también al reintentar un tramo), memoria del jefe y las notas que tocan
@@ -93,11 +89,7 @@
       a.preload = "auto";
       a.addEventListener("ended", () => {
         if (a !== S.audio || el.hidden) return;
-<<<<<<< HEAD
         if (S.modo === "ritmo" && S.estado === "jugando") { if (S.prueba) BB.volverAlEditor(); else if (S.practica != null) finRitmo(); else BB.empiezaCierre(); }
-=======
-        if (S.modo === "ritmo" && S.estado === "jugando") { if (S.practica != null) finRitmo(); else BB.empiezaCierre(); }
->>>>>>> origin/alt
         else if (S.R.sigue && (S.estado === "fin" || S.estado === "cierre")) { try { a.currentTime = S.R.dur; } catch (e) { /* se queda en silencio */ } a.play().catch(() => {}); }
       });
       a.addEventListener("error", errorAudio);
@@ -294,10 +286,7 @@
   const reintenta = () => (S.foto && S.foto.t > 2 ? empezarRitmo(S.foto.t - 1.9, S.foto) : empezarRitmo(0, { pts: 0, maxCombo: 0, atrapados: 0, cont: S.continues }));
   // Fallar se tiene que sentir: sacudida, BIT lastimado, el carril en rojo, interferencia y la música se hunde un instante
   function falla(o) {
-<<<<<<< HEAD
     S.tFallo = S.ts;
-=======
->>>>>>> origin/alt
     S.destellos.push({ x: o.x, vida: 30 });
     S.boca = "o"; S.bocaT = 45;
     S.dano = 26;
@@ -311,11 +300,8 @@
   }
   // BIT pierde una vida y queda un instante a salvo, para que una mala racha no se las lleve todas de golpe
   function pierdeVida() {
-<<<<<<< HEAD
     // Probando un mapa desde el editor no se pierden vidas: se puede recorrer completo
     if (S.prueba) return;
-=======
->>>>>>> origin/alt
     if (S.invul > 0 || (S.fiebre > S.ts && !S.vuela) || S.vidasR <= 0) return;
     // La armadura aguanta el golpe en lugar de la vida
     if (S.escudo > 0) {
@@ -368,8 +354,4 @@
   }
 
   Object.assign(BB, { RANGOS, muriendo, reintenta });
-<<<<<<< HEAD
 })();
-=======
-})();
->>>>>>> origin/alt

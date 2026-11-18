@@ -39,13 +39,9 @@
   const visteCon = (sk, rows) => { const m = sk[3], ov = sk[4]; if (!m) return rows; return rows.map((r, j) => { let x = r.replace(/[YQWK]/g, (ch) => (m[ch] ? SK[ch] : ch)); if (ov && ov[j]) x = [...x].map((ch, i) => (ov[j][i] && ov[j][i] !== "." ? ov[j][i] : ch)).join(""); return x; }); };
   const viste = (rows) => visteCon(SKINS[S.skinI], rows);
   const palDe = (sk) => { const p = {}; for (const k in sk[3] || {}) p[SK[k] || k] = sk[3][k]; return p; };
-<<<<<<< HEAD
   function ganaBytes(n) {
     // Las canciones del jugador no dan bytes (si no, bastaría un mapa fácil para llenarse de bytes)
     if (S.R && S.R.personal) { S.ultBytes = 0; return; } n = Math.max(0, Math.floor(n)); S.ultBytes = n; if (n) { S.bytes += n; guarda("bitBugsBytes", String(S.bytes)); } }
-=======
-  function ganaBytes(n) { n = Math.max(0, Math.floor(n)); S.ultBytes = n; if (n) { S.bytes += n; guarda("bitBugsBytes", String(S.bytes)); } }
->>>>>>> origin/alt
   const tLista = () => (S.tFila === 0 ? SKINS : PACKS), tMio = (it) => it[2] === 0 || !!S.compras[it[0]];
   function tienda() { S.estado = "tienda"; S.tNota = ""; pintaTienda(); musicaTienda(); }
   // La música de la tienda: suena en bucle, bajito, mientras la tienda esté abierta, y se calla sola al salir
@@ -101,8 +97,4 @@
   }
 
   Object.assign(BB, { PACKS, SK, SKINS, palDe, tLista, tMio, viste, visteCon });
-<<<<<<< HEAD
 })();
-=======
-})();
->>>>>>> origin/alt

@@ -17,14 +17,11 @@
     const k = e.key.toLowerCase();
     const flechaIzq = k === "arrowleft" || k === "a", flechaDer = k === "arrowright" || k === "d";
     const flechaArr = k === "arrowup" || k === "w", flechaAba = k === "arrowdown" || k === "s";
-<<<<<<< HEAD
     // El editor de ritmo tiene su propio teclado (y deja escribir en sus casillas)
     if (S.estado === "editor") { BB.teclaEditor(e); return; }
     if (S.estado === "escenas") { BB.teclaEscenas(e); return; }
     // Probando desde el editor: ESC regresa al editor
     if (S.prueba && k === "escape" && e.type === "keydown") { e.preventDefault(); e.stopPropagation(); BB.volverAlEditor(); return; }
-=======
->>>>>>> origin/alt
     if (e.type === "keyup") {
       if (flechaIzq) S.izq = false;
       if (flechaDer) S.der = false;
@@ -40,7 +37,6 @@
     if (S.enTrans) return;
     if (S.estado === "fin" && S.finModo === "conteo") { if (!e.repeat) pasaAResultado(); return; }
     if (S.estado === "llave") { if (!e.repeat && S.llaveFin) S.llaveFin(); return; }
-<<<<<<< HEAD
     // La pantalla TU MUSICA: ← → elige, ENTER carga o abre el editor, ESPACIO escucha, SUPR borra, ESC vuelve
     if (S.estado === "personal") {
       if (e.repeat && k !== "arrowleft" && k !== "arrowright") return;
@@ -53,8 +49,6 @@
       else if (k === "escape" || k === "m") BB.volverDePersonal();
       return;
     }
-=======
->>>>>>> origin/alt
     if (flechaIzq || flechaDer) {
       // Cada toque es un salto inmediato; dejar la tecla apretada repite el salto
       if (e.repeat) return;
@@ -82,11 +76,7 @@
     else if (k === "p") pausa(S.estado === "jugando");
     else if (S.estado === "titulo" && k >= "1" && k <= "4" && k.length === 1) { eligeDisco(+k - 1); jugar(); }
     else if (S.estado === "titulo" && (k === " " || k === "enter")) jugar();
-<<<<<<< HEAD
     else if (S.estado === "titulo" && k === "n" && S.selDisco > 0 && BB.abiertaSel()) irA(() => verTramos());
-=======
-    else if (S.estado === "titulo" && k === "n" && S.selDisco > 0 && cancionAbierta(S.cancionI)) irA(() => verTramos());
->>>>>>> origin/alt
     else if (S.estado === "tramos" && (k === " " || k === "enter")) practicar();
     else if (S.estado === "tramos" && k === "m") irA(titulo);
     else if (S.estado === "pausa" && (k === " " || k === "enter")) pausa(false);
@@ -146,16 +136,9 @@
     else if (S.volverA && S.volverA.isConnected) S.volverA.focus({ preventScroll: true });
   }
 
-<<<<<<< HEAD
   // La canción guardada se prepara cuando ya cargaron todos los archivos (necesita funciones de ritmo-paso.js)
   if (S.R) BB.ponCancion(S.cancionI);
   window.Juego = { abrir, abierto: () => !el.hidden };
 
   Object.assign(BB, { alSalir });
 })();
-=======
-  window.Juego = { abrir, abierto: () => !el.hidden };
-
-  Object.assign(BB, { alSalir });
-})();
->>>>>>> origin/alt

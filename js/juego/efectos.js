@@ -126,10 +126,7 @@
       if (w0 > 2 && h0 > 2) { rc("#ffffff", x0, y0, w0, 1); rc("#ffffff", x0, y0 + h0 - 1, w0, 1); rc("#ffffff", x0, y0, 1, h0); rc("#ffffff", x0 + w0 - 1, y0, 1, h0); } else rc("#000000", 0, 0, S.FW, S.FH);
     } else if (DM()) escenaDoom(esc);
     else if (FK() && S.lateral && flashesPasados() > 0) { const i = FONDOS_FLASH[(flashesPasados() - 1) % FONDOS_FLASH.length]; ESCENAS_F[i]({ ...esc, sec: S.R.sec[i] || S.R.sec[S.secI] }); }
-<<<<<<< HEAD
     else if (S.R.personal) BB.escenaPersonal(esc);
-=======
->>>>>>> origin/alt
     else (G() ? ESCENAS_G : FK() ? ESCENAS_F : ESCENAS)[S.secI](esc);
     // Lo raro "fuera": BIT está al lado de la terminal, por fuera, a la altura de su fila
     if (S.raro === "fuera" && S.lateral && P() && S.rectL) {
@@ -212,8 +209,4 @@
   }
 
   Object.assign(BB, { gatoHoja, gatoSeVe, limpieza });
-<<<<<<< HEAD
 })();
-=======
-})();
->>>>>>> origin/alt

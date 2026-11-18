@@ -207,8 +207,4 @@
   const espectro = [];
 
   Object.assign(BB, { APAGA_BLANCO, CAMPANAS_ESCUDO, CRUCE, CRUCE_LENTO, DIFS, FONDOS_FLASH, GROOVE_MAX, JEFE_BAJA, LLAVE, RAROS, audios, bitY, cajaRect, cajaS, carriles, chispazo, espectro, filaY, flashesPasados, fogonazo, lapso, mundoDe, piso, quiereLibre, xBit, xBug });
-<<<<<<< HEAD
 })();
-=======
-})();
->>>>>>> origin/alt
